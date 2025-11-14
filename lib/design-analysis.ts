@@ -19,16 +19,19 @@ export async function analyzeCreativeDesign(imageBuffer: Buffer): Promise<{
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
 
-    // Call Gemini Vision for comprehensive analysis
+    // Call Claude 3.5 Sonnet for comprehensive analysis (more accurate than Gemini)
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Creative Copycat AI',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
+        model: 'anthropic/claude-3.5-sonnet',
+        temperature: 0.3, // Low for accuracy and consistency
+        max_tokens: 4000, // High for detailed analysis
         messages: [
           {
             role: 'user',

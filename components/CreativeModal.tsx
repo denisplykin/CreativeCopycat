@@ -12,7 +12,7 @@ interface CreativeModalProps {
 interface GenerationConfig {
   aspectRatio: string;
   numVariations: number;
-  mode: 'clone' | 'similar' | 'new_background';
+  mode: 'clone' | 'similar' | 'new_background' | 'old_style';
 }
 
 const ASPECT_RATIOS = [
@@ -52,12 +52,19 @@ const GENERATION_MODES = [
     subtitle: 'Bold new look',
     color: 'from-purple-500 to-pink-600',
   },
+  {
+    id: 'old_style',
+    title: '🎨 Old Style (Midjourney)',
+    description: 'Uses analyzed prompts for Midjourney/Flux generation',
+    subtitle: 'AI-generated from scratch',
+    color: 'from-yellow-500 to-orange-600',
+  },
 ];
 
 export default function CreativeModal({ creative, onClose, onGenerate }: CreativeModalProps) {
   const [aspectRatio, setAspectRatio] = useState('9:16'); // Default to Facebook portrait
   const [numVariations, setNumVariations] = useState(3);
-  const [selectedMode, setSelectedMode] = useState<'clone' | 'similar' | 'new_background'>('clone');
+  const [selectedMode, setSelectedMode] = useState<'clone' | 'similar' | 'new_background' | 'old_style'>('clone');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
