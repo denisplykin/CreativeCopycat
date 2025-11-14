@@ -335,42 +335,35 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
               </select>
             </div>
 
-            {/* Generation Mode */}
+            {/* Generation Buttons */}
             <div>
               <label className="block text-sm font-bold mb-3 text-gray-700">
-                🎨 Generation Mode
+                🎨 Choose Generation Mode
               </label>
               <div className="space-y-3">
                 {GENERATION_MODES.map((mode) => (
                   <button
                     key={mode.id}
-                    onClick={() => setSelectedMode(mode.id as any)}
-                    className={`gen-mode-btn w-full ${
-                      selectedMode === mode.id
-                        ? 'border-orange-500/50 shadow-lg'
-                        : ''
-                    }`}
+                    onClick={() => handleGenerate({ aspectRatio, numVariations, mode: mode.id as any })}
+                    disabled={isGenerating || !creative.analysis}
+                    className={`w-full text-left p-4 rounded-xl transition-all bg-gradient-to-r ${mode.color} text-white hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className={`text-3xl`}>
-                        {mode.title.split(' ')[0]}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-bold text-lg mb-1">
-                          {mode.title.slice(2)}
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          {mode.description}
-                        </div>
-                        {selectedMode === mode.id && (
-                          <div className={`text-xs mt-2 font-medium bg-gradient-to-r ${mode.color} bg-clip-text text-transparent`}>
-                            ✓ {mode.subtitle}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <h4 className="font-bold text-lg mb-1">{mode.title}</h4>
+                    <p className="text-sm opacity-90">{mode.subtitle}</p>
                   </button>
                 ))}
+                
+                {/* Generate ALL Button */}
+                <button
+                  onClick={() => handleGenerateAll()}
+                  disabled={isGenerating || !creative.analysis}
+                  className="w-full p-4 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 text-white font-bold text-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <span>🚀 Generate ALL Variants</span>
+                  </div>
+                  <p className="text-sm font-normal opacity-90 mt-1">Creates all 4 modes simultaneously</p>
+                </button>
               </div>
             </div>
 
