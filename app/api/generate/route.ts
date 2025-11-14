@@ -170,6 +170,44 @@ export async function POST(request: Request) {
             break;
           }
 
+          case 'old_style': {
+            // Old Style: Use prompts from Claude analysis (Midjourney/Flux approach)
+            console.log('🎨 Mode: Old Style (Midjourney/Flux)');
+            
+            // Check if analysis has imageGenerationPrompts
+            const prompts = (creative.analysis as any).imageGenerationPrompts;
+            
+            if (!prompts || !prompts.background) {
+              console.warn('⚠️ No imageGenerationPrompts in analysis, using design description');
+              
+              // Fallback: generate prompt from design analysis
+              const bgPrompt = generateBackgroundPrompt(
+                creative.analysis.design,
+                'realistic photorealistic studio lighting'
+              );
+              
+              bgBuffer = await generateBackground({
+                stylePreset: 'realistic',
+                prompt: bgPrompt,
+                width: metadata.width,
+                height: metadata.height,
+              });
+            } else {
+              // Use Claude's generated prompt
+              console.log(`📝 Using Claude prompt: ${prompts.background.substring(0, 100)}...`);
+              
+              bgBuffer = await generateBackground({
+                stylePreset: 'realistic',
+                prompt: prompts.background,
+                width: metadata.width,
+                height: metadata.height,
+              });
+            }
+            
+            console.log('✅ Old Style background generated!');
+            break;
+          }
+
           default: {
             // Fallback to simple overlay
             console.log('⚠️ Unknown copyMode, falling back to simple overlay');
