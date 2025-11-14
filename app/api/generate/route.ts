@@ -5,6 +5,7 @@ import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
+import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
 import type { GenerateRequest, GenerateResponse } from '@/types/creative';
 
 export async function POST(request: Request) {
@@ -108,6 +109,10 @@ export async function POST(request: Request) {
           }
         }
 
+        // IMPORTANT: Replace competitor brands with Algonova in ALL texts
+        console.log('🏢 Replacing competitor brands with Algonova...');
+        finalTexts = replaceBrandsInTexts(finalTexts);
+
         let bgBuffer: Buffer;
 
         // Different strategies based on copyMode
@@ -120,18 +125,22 @@ export async function POST(request: Request) {
           }
 
           case 'dalle_inpaint': {
-            // Similar: Remove text using DALL·E inpaint
+            // Similar: Remove text + logos using DALL·E inpaint
             console.log('✨ Mode: DALL·E Inpaint (Similar Style)');
             
-            // Create mask from OCR text blocks
+            // Create mask from OCR text blocks + logos
             const textBlocks = creative.analysis.ocr?.blocks || [];
             const textBoxes = textBlocks.map(block => block.bbox);
             
-            console.log(`🎭 Creating mask for ${textBoxes.length} text blocks...`);
+            // Add logo bounding boxes to mask
+            const logoBoxes = getLogoBoundingBoxes(creative.analysis, metadata.width, metadata.height);
+            const allBoxes = [...textBoxes, ...logoBoxes];
+            
+            console.log(`🎭 Creating mask for ${textBoxes.length} text blocks + ${logoBoxes.length} logos...`);
             const maskBuffer = await createTextMask(
               metadata.width,
               metadata.height,
-              textBoxes
+              allBoxes
             );
             
             // Generate inpaint prompt
