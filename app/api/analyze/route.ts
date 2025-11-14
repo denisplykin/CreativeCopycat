@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCreativeById, updateCreativeStatus, updateCreativeAnalysis, createRun } from '@/lib/db';
-import { runOCR, extractDominantColors, detectLanguage, calculateAspectRatio } from '@/lib/ocr';
+import { runOCR, extractDominantColors, extractImageMetadata } from '@/lib/ocr';
 import { extractRoles } from '@/lib/llm';
 import { generateLayout } from '@/lib/render';
 import type { AnalyzeRequest, AnalyzeResponse, AnalysisData } from '@/types/creative';
@@ -31,17 +31,21 @@ export async function POST(request: Request) {
     }
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
 
-    // Determine image dimensions
-    const sharp = (await import('sharp')).default;
-    const metadata = await sharp(imageBuffer).metadata();
-    const width = metadata.width || 1080;
-    const height = metadata.height || 1080;
+    // Extract image metadata
+    const imageMetadata = await extractImageMetadata(imageBuffer);
+    const { width, height } = imageMetadata;
+
+    console.log(`📐 Image size: ${width}x${height}`);
 
     // Run OCR
+    console.log('🔍 Running OCR...');
     const ocrResult = await runOCR(imageBuffer);
+    console.log(`✅ OCR complete: ${ocrResult.blocks.length} text blocks, confidence: ${(ocrResult.confidence! * 100).toFixed(1)}%`);
 
     // Extract text roles using LLM
+    console.log('🤖 Extracting text roles with LLM...');
     const rolesJson = await extractRoles(ocrResult.fullText);
+    console.log(`✅ Roles extracted: ${rolesJson.roles.length} roles`);
 
     // Generate layout
     const layoutJson = generateLayout(
@@ -51,23 +55,26 @@ export async function POST(request: Request) {
     );
 
     // Extract colors
+    console.log('🎨 Extracting dominant colors...');
     const dominantColors = await extractDominantColors(imageBuffer);
-
-    // Detect language
-    const language = detectLanguage(ocrResult.fullText);
+    console.log(`✅ Colors: ${dominantColors.join(', ')}`);
 
     // Calculate aspect ratio
-    const aspectRatio = calculateAspectRatio(width, height);
+    const aspectRatio = `${width}x${height}`;
+    const ratio = width / height;
+    const ratioLabel = ratio > 1.5 ? 'landscape' : ratio < 0.7 ? 'portrait' : 'square';
 
-    // Prepare analysis data
+    // Prepare analysis data (will be saved to Supabase JSONB field)
     const analysis: AnalysisData = {
-      ocr: ocrResult,
+      ocr: ocrResult, // Includes all text blocks with bboxes and confidence
       layout: layoutJson,
       roles: rolesJson.roles,
       dominant_colors: dominantColors,
-      language,
-      aspect_ratio: aspectRatio,
+      language: ocrResult.language || 'en',
+      aspect_ratio: `${aspectRatio} (${ratioLabel})`,
     };
+
+    console.log('💾 Saving analysis to Supabase...');
 
     // Save analysis
     await updateCreativeAnalysis(creativeId, analysis);

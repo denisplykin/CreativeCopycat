@@ -63,6 +63,8 @@ export interface TextBlock {
 export interface OCRResult {
   blocks: TextBlock[];
   fullText: string;
+  confidence?: number; // Overall OCR confidence (0-1)
+  language?: string; // Detected language code
 }
 
 export interface TextRole {
