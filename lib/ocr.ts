@@ -1,13 +1,22 @@
 import type { OCRResult, TextBlock } from '@/types/creative';
-import Tesseract from 'tesseract.js';
 
 /**
  * Run OCR on image using Tesseract.js
- * Extracts text with bounding boxes and confidence scores
+ * TEMPORARILY DISABLED: Tesseract.js doesn't work in Vercel serverless (worker threads issue)
+ * Using stub data until we integrate Google Vision API
  */
 export async function runOCR(imageBuffer: Buffer): Promise<OCRResult> {
+  console.log('⚠️ OCR: Using stub data (Tesseract disabled for serverless compatibility)');
+  
+  // TODO: Replace with Google Vision API
+  // For now, return stub data to test the rest of the flow
+  return getStubOCRResult();
+
+  /* DISABLED - Worker threads don't work in Vercel serverless
   try {
     console.log('🔍 Starting OCR with Tesseract.js...');
+    
+    const Tesseract = await import('tesseract.js');
     
     // Run Tesseract OCR
     const result = await Tesseract.recognize(
@@ -60,6 +69,7 @@ export async function runOCR(imageBuffer: Buffer): Promise<OCRResult> {
     console.warn('⚠️ Falling back to stub OCR data');
     return getStubOCRResult();
   }
+  */
 }
 
 /**
