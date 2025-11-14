@@ -96,11 +96,12 @@ export default function CreativesPage() {
 
     try {
       // Map UI mode to copyMode
-      const copyModeMap: Record<string, 'simple_overlay' | 'dalle_inpaint' | 'bg_regen' | 'old_style'> = {
+      const copyModeMap: Record<string, 'simple_overlay' | 'dalle_inpaint' | 'bg_regen' | 'old_style' | 'style_variations'> = {
         'clone': 'simple_overlay',
         'similar': 'dalle_inpaint',
         'new_background': 'bg_regen',
         'old_style': 'old_style',
+        'style_variations': 'style_variations',
       };
 
       // Call generate API

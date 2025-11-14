@@ -6,6 +6,7 @@ import { generateBackground, editImageWithMask, createTextMask, generateBackgrou
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
+import { STYLE_VARIANTS, applyStyleToCharacterPrompt, applyStyleToBackgroundPrompt } from '@/lib/style-modifiers';
 import type { GenerateRequest, GenerateResponse } from '@/types/creative';
 
 export async function POST(request: Request) {
@@ -214,6 +215,95 @@ export async function POST(request: Request) {
             }
             
             console.log('✅ Old Style background generated!');
+            break;
+          }
+
+          case 'style_variations': {
+            // Style Variations: Generate multiple creative styles (anime, asian, western, 3d, realistic)
+            console.log('🎨✨ Mode: Style Variations (Multiple Styles)');
+            
+            // Get base prompts from analysis
+            const analysisPrompts = (creative.analysis as any).imageGenerationPrompts || {};
+            const baseCharacterPrompt = analysisPrompts.character || 'portrait of person with surprised expression';
+            const baseBackgroundPrompt = analysisPrompts.background || generateBackgroundPrompt(creative.analysis.design);
+            
+            console.log('🎭 Generating 5 style variations...');
+            
+            // Generate ALL style variations
+            const generatedVariants: string[] = [];
+            
+            for (let i = 0; i < STYLE_VARIANTS.length; i++) {
+              const styleVariant = STYLE_VARIANTS[i];
+              console.log(`\n${i + 1}/${STYLE_VARIANTS.length} 🎨 Generating ${styleVariant.emoji} ${styleVariant.name}...`);
+              
+              // Apply style modifiers
+              const styledCharacterPrompt = applyStyleToCharacterPrompt(baseCharacterPrompt, styleVariant.id);
+              const styledBackgroundPrompt = applyStyleToBackgroundPrompt(baseBackgroundPrompt, styleVariant.id);
+              
+              // For anime style, extract character and composite over original background
+              if (styleVariant.id === 'anime') {
+                // Generate anime character
+                console.log('👤 Generating anime character...');
+                const animeCharacterPrompt = `${styledCharacterPrompt}, isolated character on white background, transparent background style`;
+                const animeCharBuffer = await generateBackground({
+                  stylePreset: 'anime',
+                  prompt: animeCharacterPrompt,
+                  width: metadata.width,
+                  height: metadata.height,
+                });
+                
+                // Composite over original background (keep cosmic stars, etc)
+                bgBuffer = originalBuffer; // Use original background
+                const styledBuffer = await renderCreative(
+                  creative.analysis.layout!,
+                  finalTexts,
+                  bgBuffer
+                );
+                
+                // Upload anime variant
+                const animePath = `style-variations/${creativeId}_anime_${Date.now()}.png`;
+                await uploadFile('generated-creatives', animePath, styledBuffer, 'image/png');
+                const animeUrl = getPublicUrl('generated-creatives', animePath);
+                generatedVariants.push(animeUrl);
+                console.log(`✅ Anime style complete: ${animeUrl}`);
+              } else {
+                // For other styles, generate full scene
+                console.log(`🌈 Generating ${styleVariant.name} background...`);
+                const styledBgBuffer = await generateBackground({
+                  stylePreset: styleVariant.id as any,
+                  prompt: styledBackgroundPrompt,
+                  width: metadata.width,
+                  height: metadata.height,
+                });
+                
+                // Render text over styled background
+                const styledBuffer = await renderCreative(
+                  creative.analysis.layout!,
+                  finalTexts,
+                  styledBgBuffer
+                );
+                
+                // Upload variant
+                const variantPath = `style-variations/${creativeId}_${styleVariant.id}_${Date.now()}.png`;
+                await uploadFile('generated-creatives', variantPath, styledBuffer, 'image/png');
+                const variantUrl = getPublicUrl('generated-creatives', variantPath);
+                generatedVariants.push(variantUrl);
+                console.log(`✅ ${styleVariant.name} complete: ${variantUrl}`);
+              }
+              
+              // Small delay between generations to avoid rate limits
+              if (i < STYLE_VARIANTS.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+            
+            console.log(`\n🎉 All ${STYLE_VARIANTS.length} style variations generated!`);
+            console.log('Generated URLs:', generatedVariants);
+            
+            // Store all variants in generated_image_url (last one)
+            // In the future, we could create a separate table for style_variations
+            bgBuffer = originalBuffer; // Use original for final render
+            
             break;
           }
 

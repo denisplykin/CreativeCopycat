@@ -125,16 +125,36 @@ export async function createTextMask(
     textBoxes.map(async (box) => {
       // Add padding around text boxes
       const padding = 10;
-      const boxWidth = Math.max(1, box.width + padding * 2);
-      const boxHeight = Math.max(1, box.height + padding * 2);
-      const boxX = Math.max(0, box.x - padding);
-      const boxY = Math.max(0, box.y - padding);
+      const boxX = Math.max(0, Math.min(box.x - padding, width - 1));
+      const boxY = Math.max(0, Math.min(box.y - padding, height - 1));
+      
+      // Calculate dimensions with proper bounds checking
+      let boxWidth = box.width + padding * 2;
+      let boxHeight = box.height + padding * 2;
+      
+      // Ensure the box fits within the image
+      if (boxX + boxWidth > width) {
+        boxWidth = width - boxX;
+      }
+      if (boxY + boxHeight > height) {
+        boxHeight = height - boxY;
+      }
+      
+      // Minimum size of 1x1 pixel
+      boxWidth = Math.max(1, Math.floor(boxWidth));
+      boxHeight = Math.max(1, Math.floor(boxHeight));
+      
+      // Skip boxes that are completely out of bounds
+      if (boxWidth <= 0 || boxHeight <= 0 || boxX >= width || boxY >= height) {
+        console.warn(`⚠️ Skipping invalid box: x=${boxX}, y=${boxY}, w=${boxWidth}, h=${boxHeight}`);
+        return null;
+      }
       
       return {
         input: await sharp({
           create: {
-            width: Math.min(boxWidth, width - boxX),
-            height: Math.min(boxHeight, height - boxY),
+            width: boxWidth,
+            height: boxHeight,
             channels: 4,
             background: { r: 255, g: 255, b: 255, alpha: 1 }
           }
@@ -145,15 +165,24 @@ export async function createTextMask(
     })
   );
   
+  // Filter out null entries (invalid boxes)
+  const validRects = whiteRects.filter(rect => rect !== null) as Array<{
+    input: Buffer;
+    top: number;
+    left: number;
+  }>;
+  
   // Composite all white rectangles onto black background
-  if (whiteRects.length > 0) {
+  if (validRects.length > 0) {
     maskImage = await sharp(maskImage)
-      .composite(whiteRects)
+      .composite(validRects)
       .png()
       .toBuffer();
+    
+    console.log(`✅ Text mask created with ${validRects.length}/${textBoxes.length} valid regions`);
+  } else {
+    console.warn(`⚠️ No valid text boxes found for mask creation`);
   }
-  
-  console.log(`✅ Text mask created with ${textBoxes.length} regions`);
   
   return maskImage;
 }

@@ -147,7 +147,7 @@ export interface LayoutElement {
   };
 }
 
-export type CopyMode = 'simple_overlay' | 'dalle_inpaint' | 'bg_regen' | 'new_text_pattern' | 'old_style';
+export type CopyMode = 'simple_overlay' | 'dalle_inpaint' | 'bg_regen' | 'new_text_pattern' | 'old_style' | 'style_variations';
 
 export type GenerationType = 'character' | 'background' | 'full_creative';
 

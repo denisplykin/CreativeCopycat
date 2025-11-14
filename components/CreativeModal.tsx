@@ -12,7 +12,7 @@ interface CreativeModalProps {
 interface GenerationConfig {
   aspectRatio: string;
   numVariations: number;
-  mode: 'clone' | 'similar' | 'new_background' | 'old_style';
+  mode: 'clone' | 'similar' | 'new_background' | 'old_style' | 'style_variations';
 }
 
 const ASPECT_RATIOS = [
@@ -58,6 +58,13 @@ const GENERATION_MODES = [
     description: 'Uses analyzed prompts for Midjourney/Flux generation',
     subtitle: 'AI-generated from scratch',
     color: 'from-yellow-500 to-orange-600',
+  },
+  {
+    id: 'style_variations',
+    title: '🎨✨ Style Variations',
+    description: 'Generate 5 different styles: anime, asian, western, 3D, realistic',
+    subtitle: '5 unique creative styles at once',
+    color: 'from-rose-500 via-fuchsia-500 to-purple-600',
   },
 ];
 
