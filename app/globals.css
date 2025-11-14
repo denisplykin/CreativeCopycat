@@ -2,122 +2,228 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
+/* Algonova Brand Colors */
 :root {
-  --color-primary: #FF6B35;
-  --color-secondary: #F7B538;
-  --color-accent: #4ECDC4;
-  --color-dark: #1A1A2E;
-  --color-light: #F8F9FA;
+  --primary-orange: #FF6B35;
+  --primary-pink: #FF006E;
+  --primary-purple: #8338EC;
+  --primary-cyan: #06FFA5;
+  --bg-dark: #1A1A2E;
+  --bg-darker: #16161F;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Glass Morphism Base */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  color: var(--color-dark);
+.glass-dark {
+  background: rgba(26, 26, 46, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
-@layer components {
-  .gradient-card {
-    @apply bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-xl border border-gray-100;
-  }
-
-  .btn-primary {
-    @apply bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold px-6 py-3 rounded-full
-           hover:shadow-2xl hover:scale-105 transform transition-all duration-300;
-  }
-
-  .btn-secondary {
-    @apply bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold px-6 py-3 rounded-full
-           hover:shadow-2xl hover:scale-105 transform transition-all duration-300;
-  }
-
-  .status-badge {
-    @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-  }
-
-  .creative-card {
-    @apply bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl 
-           transform hover:-translate-y-2 transition-all duration-300 cursor-pointer;
-  }
-
-  .section-title {
-    @apply text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 
-           bg-clip-text text-transparent;
-  }
-
-  .emoji-large {
-    @apply text-6xl;
-  }
-}
-
-/* Анимации */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-.float-animation {
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.6); }
-}
-
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Кастомный скроллбар */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #FF6B35, #F7B538);
+  background: linear-gradient(180deg, var(--primary-orange), var(--primary-pink));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #F7B538, #FF6B35);
+  background: linear-gradient(180deg, var(--primary-pink), var(--primary-purple));
 }
 
-/* Эффект для изображений */
-.image-hover {
-  @apply overflow-hidden rounded-2xl;
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
-.image-hover img {
-  @apply transition-transform duration-500 hover:scale-110;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Градиентные фоны */
-.bg-gradient-orange {
-  background: linear-gradient(135deg, #FF6B35 0%, #F7B538 100%);
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-.bg-gradient-blue {
-  background: linear-gradient(135deg, #4ECDC4 0%, #44A8B3 100%);
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
-.bg-gradient-purple {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
 }
 
-.bg-gradient-pink {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass Card */
+.glass-card {
+  @apply glass rounded-3xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl;
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.2);
+}
+
+.glass-card:hover {
+  box-shadow: 0 12px 48px rgba(255, 107, 53, 0.3);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+
+/* Button Styles */
+.btn-glass {
+  @apply glass rounded-2xl px-6 py-3 font-bold transition-all duration-300;
+  @apply hover:scale-105 active:scale-95;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600;
+  @apply text-white shadow-lg hover:shadow-xl;
+  @apply rounded-2xl px-6 py-3 font-bold transition-all;
+}
+
+.btn-secondary {
+  @apply glass-dark text-white rounded-2xl px-6 py-3 font-medium;
+  @apply hover:bg-opacity-80 transition-all;
+}
+
+/* Input Styles */
+.input-glass {
+  @apply glass rounded-2xl px-6 py-4 text-white placeholder-gray-400;
+  @apply border-2 border-white/10 focus:border-orange-500/50;
+  @apply focus:ring-4 focus:ring-orange-500/20 outline-none;
+  @apply transition-all;
+}
+
+/* Modal */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  animation: fade-in 0.2s ease-out;
+}
+
+.modal-content {
+  @apply glass-dark rounded-3xl p-8 max-w-6xl w-full mx-4;
+  @apply max-h-[90vh] overflow-y-auto;
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Status Badge */
+.status-badge {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full;
+  @apply font-bold text-sm backdrop-blur-sm;
+}
+
+/* Creative Grid */
+.creative-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  @apply inline-block w-8 h-8 border-4 border-orange-500/30;
+  @apply border-t-orange-500 rounded-full animate-spin;
+}
+
+/* Aspect Ratio Selector */
+.aspect-ratio-btn {
+  @apply glass-dark rounded-xl px-4 py-3 text-sm font-medium;
+  @apply transition-all hover:scale-105;
+  @apply border-2 border-transparent;
+}
+
+.aspect-ratio-btn.active {
+  @apply bg-gradient-to-r from-orange-500 to-pink-500;
+  @apply border-orange-500 shadow-lg;
+}
+
+/* Generation Mode Button */
+.gen-mode-btn {
+  @apply glass rounded-2xl p-6 text-left transition-all;
+  @apply hover:scale-105 cursor-pointer;
+  @apply border-2 border-white/10 hover:border-orange-500/50;
+}
+
+.gen-mode-btn:hover {
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+}
+
+/* Tooltip */
+.tooltip {
+  @apply absolute z-10 px-3 py-2 text-sm font-medium text-white;
+  @apply bg-gray-900 rounded-lg shadow-lg;
+  @apply opacity-0 invisible transition-all;
+}
+
+.tooltip-trigger:hover .tooltip {
+  @apply opacity-100 visible;
+}
+
+/* Shimmer Effect */
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 107, 53, 0.3) 50%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Error Message */
+.error-box {
+  @apply glass-dark rounded-2xl p-4 border-2 border-red-500/50;
+  @apply text-red-300 flex items-center gap-3;
+}
+
+/* Success Message */
+.success-box {
+  @apply glass-dark rounded-2xl p-4 border-2 border-green-500/50;
+  @apply text-green-300 flex items-center gap-3;
+}
+
+/* Base Styles */
+body {
+  @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900;
+  @apply text-white min-h-screen;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
