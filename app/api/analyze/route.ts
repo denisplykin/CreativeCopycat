@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCreativeById, updateCreativeStatus, updateCreativeAnalysis, createRun } from '@/lib/db';
 import { runOCR, extractDominantColors, extractImageMetadata } from '@/lib/ocr';
+import { analyzeCreativeDesign } from '@/lib/design-analysis';
 import { extractRoles } from '@/lib/llm';
 import { generateLayout } from '@/lib/render';
 import type { AnalyzeRequest, AnalyzeResponse, AnalysisData } from '@/types/creative';
@@ -54,10 +55,17 @@ export async function POST(request: Request) {
       height
     );
 
-    // Extract colors
-    console.log('🎨 Extracting dominant colors...');
-    const dominantColors = await extractDominantColors(imageBuffer);
-    console.log(`✅ Colors: ${dominantColors.join(', ')}`);
+    // Full design analysis (background, characters, graphics, colors, typography)
+    console.log('🎨 Running full design analysis...');
+    const designAnalysis = await analyzeCreativeDesign(imageBuffer);
+    console.log(`✅ Design analysis complete!`);
+
+    // Extract dominant colors from color palette
+    const dominantColors = [
+      designAnalysis.color_palette.primary,
+      ...(designAnalysis.color_palette.accent || []),
+      designAnalysis.color_palette.secondary,
+    ].filter(Boolean) as string[];
 
     // Calculate aspect ratio
     const aspectRatio = `${width}x${height}`;
@@ -66,12 +74,25 @@ export async function POST(request: Request) {
 
     // Prepare analysis data (will be saved to Supabase JSONB field)
     const analysis: AnalysisData = {
-      ocr: ocrResult, // Includes all text blocks with bboxes and confidence
-      layout: layoutJson,
+      // Text analysis
+      ocr: ocrResult,
       roles: rolesJson.roles,
-      dominant_colors: dominantColors,
       language: ocrResult.language || 'en',
+      
+      // Layout
+      layout: layoutJson,
+      
+      // Design analysis
+      design: designAnalysis,
+      
+      // Colors
+      dominant_colors: dominantColors.slice(0, 5), // Top 5 colors
+      
+      // Metadata
       aspect_ratio: `${aspectRatio} (${ratioLabel})`,
+      
+      // Full description
+      description: designAnalysis.description,
     };
 
     console.log('💾 Saving analysis to Supabase...');

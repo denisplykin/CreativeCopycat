@@ -15,15 +15,77 @@ export interface Creative {
 }
 
 export interface AnalysisData {
+  // Text analysis
   ocr?: OCRResult;
+  roles?: TextRole[];
+  language?: string;
+  
+  // Layout and elements
   layout?: {
     elements: LayoutElement[];
     canvasSize: { width: number; height: number };
   };
-  roles?: TextRole[];
+  
+  // Visual design
+  design?: {
+    background: BackgroundInfo;
+    characters: CharacterInfo[];
+    graphics: GraphicElement[];
+    color_palette: ColorPalette;
+    typography: TypographyInfo[];
+  };
+  
+  // Colors
   dominant_colors?: string[];
-  language?: string;
+  
+  // Metadata
   aspect_ratio?: string;
+  
+  // Full description for recreation
+  description?: string;
+}
+
+export interface BackgroundInfo {
+  type: 'solid' | 'gradient' | 'image' | 'pattern';
+  colors: string[];
+  description: string;
+  position?: BoundingBox; // If background is not full canvas
+}
+
+export interface CharacterInfo {
+  description: string;
+  position: BoundingBox;
+  pose?: string;
+  clothing?: string;
+  accessories?: string[];
+  facial_expression?: string;
+}
+
+export interface GraphicElement {
+  type: 'icon' | 'shape' | 'decoration' | 'logo' | 'illustration';
+  description: string;
+  position: BoundingBox;
+  colors?: string[];
+  style?: string; // e.g., "flat", "3D", "outlined"
+}
+
+export interface ColorPalette {
+  primary: string;
+  secondary?: string;
+  accent?: string[];
+  text_colors: string[];
+  background_colors: string[];
+}
+
+export interface TypographyInfo {
+  text: string;
+  font_family?: string;
+  font_size: number;
+  font_weight: string; // 'normal', 'bold', 'black'
+  color: string;
+  position: BoundingBox;
+  alignment?: 'left' | 'center' | 'right';
+  line_height?: number;
 }
 
 export interface Pattern {
