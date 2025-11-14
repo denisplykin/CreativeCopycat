@@ -19,9 +19,8 @@ export default function CreativeDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form states
   const [selectedGenerationType, setSelectedGenerationType] = useState<GenerationType>('full_creative');
-  const [selectedStylePreset, setSelectedStylePreset] = useState<StylePreset>('original');
+  const [selectedStylePreset, setSelectedStylePreset] = useState<StylePreset>('anime');
 
   useEffect(() => {
     fetchCreativeData();
@@ -30,9 +29,7 @@ export default function CreativeDetailPage() {
   const fetchCreativeData = async () => {
     try {
       const response = await fetch(`/api/creatives/${creativeId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch creative');
-      }
+      if (!response.ok) throw new Error('Failed to fetch creative');
       const data = await response.json();
       setCreative(data.creative);
     } catch (err) {
@@ -51,11 +48,7 @@ export default function CreativeDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ creativeId }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze creative');
-      }
-
+      if (!response.ok) throw new Error('Failed to analyze');
       const data = await response.json();
       setCreative(data.creative);
     } catch (err) {
@@ -67,10 +60,9 @@ export default function CreativeDetailPage() {
 
   const handleGenerate = async () => {
     if (!creative?.analysis) {
-      setError('Please analyze the creative first');
+      setError('Please analyze first! 🔍');
       return;
     }
-
     setGenerating(true);
     setError(null);
     try {
@@ -84,13 +76,10 @@ export default function CreativeDetailPage() {
           language: 'en',
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to generate');
+        throw new Error(errorData.details || 'Generation failed');
       }
-
-      // Refresh data
       await fetchCreativeData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
@@ -101,10 +90,11 @@ export default function CreativeDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-20">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">Loading creative...</p>
+          <div className="text-8xl mb-8 float-animation">🎨</div>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500"></div>
+          <p className="mt-6 text-2xl font-bold text-white">Loading magic...</p>
         </div>
       </div>
     );
@@ -112,223 +102,203 @@ export default function CreativeDetailPage() {
 
   if (!creative) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>Creative not found</p>
+      <div className="container mx-auto px-6 py-20">
+        <div className="gradient-card p-12 max-w-2xl mx-auto text-center">
+          <div className="text-6xl mb-6">🔍</div>
+          <h2 className="text-3xl font-black text-gray-800 mb-4">Creative not found</h2>
+          <a href="/creatives" className="btn-primary inline-block mt-6">
+            ← Back to Library
+          </a>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-6 py-12">
       {error && (
-        <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div className="gradient-card p-6 mb-8 border-l-8 border-red-500 pulse-glow">
+          <div className="flex items-center">
+            <span className="text-4xl mr-4">⚠️</span>
+            <p className="text-lg font-bold text-gray-800">{error}</p>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left: Original Image */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Original Creative</h2>
-          <div className="bg-white rounded-lg shadow-lg p-4">
-            <div className="relative aspect-square mb-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+        {/* Left Column: Original */}
+        <div className="space-y-8">
+          <div className="gradient-card p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Original Creative 🎯
+              </h2>
+            </div>
+            
+            <div className="relative aspect-square bg-gradient-to-br from-purple-200 to-pink-200 rounded-2xl overflow-hidden mb-6">
               <Image
                 src={creative.original_image_url}
                 alt="Creative"
                 fill
                 className="object-contain"
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 1280px) 100vw, 50vw"
               />
             </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>
-                <strong>Status:</strong>{' '}
-                <span className={`px-2 py-1 rounded text-xs ${
-                  creative.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  creative.status === 'analyzing' ? 'bg-blue-100 text-blue-800' :
-                  creative.status === 'generating' ? 'bg-yellow-100 text-yellow-800' :
-                  creative.status === 'failed' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {creative.status}
-                </span>
-              </p>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-pink-50 rounded-xl">
+                <span className="font-bold text-gray-700">Status:</span>
+                <span className="text-2xl">{creative.status === 'completed' ? '✅' : creative.status === 'analyzing' ? '🔍' : creative.status === 'generating' ? '🎨' : '⏳'}</span>
+              </div>
               {creative.competitor_name && (
-                <p>
-                  <strong>Competitor:</strong> {creative.competitor_name}
-                </p>
-              )}
-              <p>
-                <strong>Created:</strong>{' '}
-                {new Date(creative.created_at).toLocaleString()}
-              </p>
-              {creative.error_message && (
-                <p className="text-red-600">
-                  <strong>Error:</strong> {creative.error_message}
-                </p>
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl">
+                  <span className="font-bold text-gray-700">Competitor: </span>
+                  <span className="text-lg">{creative.competitor_name}</span>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right: Analysis & Actions */}
-        <div className="space-y-6">
+        {/* Right Column: Actions */}
+        <div className="space-y-8">
           {/* Analysis Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Analysis</h2>
+          <div className="gradient-card p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-gray-800 flex items-center">
+                <span className="mr-3">🔍</span>
+                Analysis
+              </h2>
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing || creative.status === 'analyzing'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="btn-secondary"
               >
-                {analyzing ? 'Analyzing...' : creative.analysis ? 'Re-analyze' : 'Analyze'}
+                {analyzing ? '⏳ Analyzing...' : creative.analysis ? '🔄 Re-analyze' : '🚀 Analyze'}
               </button>
             </div>
 
             {creative.analysis ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {creative.analysis.roles && creative.analysis.roles.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-2">Text Roles</h3>
-                    <div className="space-y-2">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                      <span className="text-2xl mr-2">💬</span>
+                      Text Roles
+                    </h3>
+                    <div className="space-y-3">
                       {creative.analysis.roles.map((role, idx) => (
-                        <div key={idx} className="border-l-4 border-blue-500 pl-3">
-                          <span className="text-xs font-semibold text-blue-600 uppercase">
-                            {role.role}
-                          </span>
-                          <p className="text-sm">{role.text}</p>
+                        <div key={idx} className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-l-4 border-purple-500">
+                          <span className="text-xs font-black text-purple-600 uppercase tracking-wider">{role.role}</span>
+                          <p className="text-gray-800 mt-1">{role.text}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {creative.analysis.language && (
-                    <div>
-                      <span className="text-gray-600">Language:</span>{' '}
-                      <span className="font-medium">{creative.analysis.language}</span>
-                    </div>
-                  )}
-                  {creative.analysis.aspect_ratio && (
-                    <div>
-                      <span className="text-gray-600">Aspect Ratio:</span>{' '}
-                      <span className="font-medium">{creative.analysis.aspect_ratio}</span>
-                    </div>
-                  )}
-                </div>
-
                 {creative.analysis.dominant_colors && creative.analysis.dominant_colors.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-2">Dominant Colors</h3>
-                    <div className="flex gap-2">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                      <span className="text-2xl mr-2">🎨</span>
+                      Colors
+                    </h3>
+                    <div className="flex gap-3 flex-wrap">
                       {creative.analysis.dominant_colors.map((color, idx) => (
-                        <div
-                          key={idx}
-                          className="w-10 h-10 rounded border-2 border-gray-300"
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
+                        <div key={idx} className="group relative">
+                          <div
+                            className="w-16 h-16 rounded-xl shadow-lg hover:scale-110 transition-transform cursor-pointer"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-mono text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {color}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-gray-500">Click "Analyze" to analyze this creative</p>
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🤔</div>
+                <p className="text-xl text-gray-600">Click "Analyze" to start the magic!</p>
+              </div>
             )}
           </div>
 
           {/* Generation Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4">Generate</h2>
+          <div className="gradient-card p-8">
+            <h2 className="text-3xl font-black text-gray-800 mb-6 flex items-center">
+              <span className="mr-3">✨</span>
+              Generate
+            </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Generation Type</label>
+                <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                  🎯 Generation Type
+                </label>
                 <select
                   value={selectedGenerationType}
                   onChange={(e) => setSelectedGenerationType(e.target.value as GenerationType)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 >
-                  <option value="character">Character Only</option>
-                  <option value="background">Background Only</option>
-                  <option value="full_creative">Full Creative</option>
+                  <option value="character">👤 Character Only</option>
+                  <option value="background">🖼️ Background Only</option>
+                  <option value="full_creative">🎨 Full Creative</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Style Preset</label>
+                <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                  🎭 Style Preset
+                </label>
                 <select
                   value={selectedStylePreset}
                   onChange={(e) => setSelectedStylePreset(e.target.value as StylePreset)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all"
                 >
-                  <option value="original">Original</option>
-                  <option value="anime">Anime</option>
-                  <option value="sakura">Sakura</option>
-                  <option value="realistic">Realistic</option>
-                  <option value="3d">3D</option>
-                  <option value="minimal">Minimal</option>
+                  <option value="anime">🌸 Anime</option>
+                  <option value="sakura">🌺 Sakura</option>
+                  <option value="realistic">📸 Realistic</option>
+                  <option value="3d">🎮 3D</option>
+                  <option value="minimal">⚪ Minimal</option>
+                  <option value="original">✨ Original</option>
                 </select>
               </div>
 
               <button
                 onClick={handleGenerate}
                 disabled={generating || !creative.analysis || creative.status === 'generating'}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+                className="w-full btn-primary text-xl py-4"
               >
-                {generating ? 'Generating...' : 'Generate'}
+                {generating ? '⏳ Generating Magic...' : '🚀 Generate Now!'}
               </button>
             </div>
           </div>
 
           {/* Generated Results */}
           {(creative.generated_character_url || creative.generated_background_url || creative.generated_image_url) && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-bold mb-4">Generated</h2>
-              <div className="space-y-4">
-                {creative.generated_character_url && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Character</h3>
-                    <div className="relative aspect-square bg-gray-100 rounded">
-                      <Image
-                        src={creative.generated_character_url}
-                        alt="Generated character"
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                      />
-                    </div>
-                  </div>
-                )}
-                {creative.generated_background_url && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Background</h3>
-                    <div className="relative aspect-square bg-gray-100 rounded">
-                      <Image
-                        src={creative.generated_background_url}
-                        alt="Generated background"
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                      />
-                    </div>
-                  </div>
-                )}
+            <div className="gradient-card p-8">
+              <h2 className="text-3xl font-black text-gray-800 mb-6 flex items-center">
+                <span className="mr-3">🎉</span>
+                Generated Results
+              </h2>
+              <div className="space-y-6">
                 {creative.generated_image_url && (
                   <div>
-                    <h3 className="text-sm font-semibold mb-2">Full Creative</h3>
-                    <div className="relative aspect-square bg-gray-100 rounded">
+                    <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center">
+                      <span className="text-2xl mr-2">🎨</span>
+                      Full Creative
+                    </h3>
+                    <div className="relative aspect-square bg-gradient-to-br from-yellow-100 to-pink-100 rounded-2xl overflow-hidden">
                       <Image
                         src={creative.generated_image_url}
-                        alt="Generated creative"
+                        alt="Generated"
                         fill
                         className="object-contain"
-                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        sizes="(max-width: 1280px) 100vw, 50vw"
                       />
                     </div>
                   </div>

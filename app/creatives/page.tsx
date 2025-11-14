@@ -29,12 +29,33 @@ export default function CreativesPage() {
     }
   };
 
+  const getStatusEmoji = (status: string) => {
+    switch (status) {
+      case 'completed': return '✅';
+      case 'analyzing': return '🔍';
+      case 'generating': return '🎨';
+      case 'failed': return '❌';
+      default: return '⏳';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-gradient-to-r from-green-400 to-emerald-500';
+      case 'analyzing': return 'bg-gradient-to-r from-blue-400 to-cyan-500';
+      case 'generating': return 'bg-gradient-to-r from-yellow-400 to-orange-500';
+      case 'failed': return 'bg-gradient-to-r from-red-400 to-pink-500';
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-20">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">Loading creatives...</p>
+          <div className="text-8xl mb-8 float-animation">🎨</div>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
+          <p className="mt-6 text-2xl font-bold text-white">Loading creatives...</p>
         </div>
       </div>
     );
@@ -42,61 +63,80 @@ export default function CreativesPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
+      <div className="container mx-auto px-6 py-20">
+        <div className="gradient-card p-12 max-w-2xl mx-auto text-center">
+          <div className="text-6xl mb-6">😢</div>
+          <h2 className="text-3xl font-black text-red-600 mb-4">Oops! Something went wrong</h2>
+          <p className="text-xl text-gray-600">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Creative Library</h1>
-        <p className="text-gray-600">Browse and analyze competitive creatives</p>
+    <div className="container mx-auto px-6 py-12">
+      {/* Hero Section */}
+      <div className="text-center mb-16">
+        <div className="text-7xl mb-6 float-animation">🚀</div>
+        <h1 className="section-title">Creative Library</h1>
+        <p className="text-2xl text-white font-medium mt-4">
+          Browse, analyze, and generate amazing creatives ✨
+        </p>
       </div>
 
       {creatives.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No creatives found</p>
-          <p className="text-gray-400 mt-2">Add creatives via API or database</p>
+        <div className="gradient-card p-20 text-center max-w-3xl mx-auto">
+          <div className="text-8xl mb-8">📦</div>
+          <h2 className="text-4xl font-black text-gray-800 mb-4">No creatives yet</h2>
+          <p className="text-xl text-gray-600 mb-8">
+            Time to add some magic! Create your first creative via API 🎯
+          </p>
+          <div className="bg-gray-100 rounded-2xl p-6 text-left">
+            <p className="text-sm font-mono text-gray-700">
+              POST /api/creatives<br/>
+              {"{ \"original_image_url\": \"...\", \"competitor_name\": \"...\" }"}
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {creatives.map((creative) => (
             <Link
               key={creative.id}
               href={`/creatives/${creative.id}`}
-              className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+              className="creative-card group"
             >
-              <div className="relative aspect-square bg-gray-200">
+              <div className="relative aspect-square bg-gradient-to-br from-purple-200 to-pink-200">
                 <Image
                   src={creative.original_image_url}
                   alt={`Creative from ${creative.competitor_name || 'Unknown'}`}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                 />
+                <div className="absolute top-3 right-3">
+                  <span className="text-3xl">
+                    {getStatusEmoji(creative.status)}
+                  </span>
+                </div>
               </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    creative.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    creative.status === 'analyzing' ? 'bg-blue-100 text-blue-800' :
-                    creative.status === 'generating' ? 'bg-yellow-100 text-yellow-800' :
-                    creative.status === 'failed' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+              <div className="p-5">
+                <div className="mb-3">
+                  <span className={`status-badge ${getStatusColor(creative.status)} text-white`}>
                     {creative.status}
                   </span>
                 </div>
                 {creative.competitor_name && (
-                  <p className="text-sm font-medium text-gray-900">{creative.competitor_name}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    {creative.competitor_name}
+                  </h3>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(creative.created_at).toLocaleDateString()}
+                <p className="text-sm text-gray-500">
+                  📅 {new Date(creative.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
                 </p>
               </div>
             </Link>
