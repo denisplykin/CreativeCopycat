@@ -189,7 +189,7 @@ export async function createTextMask(
 
 /**
  * Generate background prompt from design analysis
- * Creates a detailed DALL·E prompt for background generation
+ * Creates a VERY detailed DALL·E prompt using full Claude analysis
  */
 export function generateBackgroundPrompt(designAnalysis: any, styleDescription?: string): string {
   // Handle undefined or null designAnalysis
@@ -200,51 +200,86 @@ export function generateBackgroundPrompt(designAnalysis: any, styleDescription?:
   
   const background = designAnalysis.background;
   const colorPalette = designAnalysis.color_palette;
+  const characters = designAnalysis.characters || [];
+  const graphics = designAnalysis.graphics || [];
+  const fullDescription = designAnalysis.description;
   
   let prompt = '';
   
-  // Background type and colors
-  if (background?.type === 'gradient') {
-    prompt += `${background.type} background with colors ${background.colors.join(', ')}. `;
-  } else if (background?.type === 'solid') {
-    prompt += `Solid ${background.colors[0]} background. `;
-  } else {
-    prompt += `${background?.description || 'Abstract background'}. `;
+  // Start with full description if available (most detailed!)
+  if (fullDescription) {
+    prompt += `${fullDescription} `;
   }
   
-  // Add color palette
+  // Background details
+  if (background) {
+    prompt += `Background: ${background.description || background.type}. `;
+    if (background.colors && background.colors.length > 0) {
+      prompt += `Background colors: ${background.colors.join(', ')}. `;
+    }
+  }
+  
+  // Characters (detailed descriptions)
+  if (characters.length > 0) {
+    prompt += `Characters: `;
+    characters.forEach((char: any, i: number) => {
+      prompt += `${char.description}`;
+      if (char.pose) prompt += `, ${char.pose}`;
+      if (char.clothing) prompt += `, wearing ${char.clothing}`;
+      if (char.facial_expression) prompt += `, ${char.facial_expression}`;
+      if (char.accessories && char.accessories.length > 0) {
+        prompt += `, with ${char.accessories.join(', ')}`;
+      }
+      if (i < characters.length - 1) prompt += '; ';
+    });
+    prompt += '. ';
+  }
+  
+  // Graphics and visual elements
+  if (graphics.length > 0) {
+    prompt += `Visual elements: `;
+    graphics.forEach((graphic: any, i: number) => {
+      if (graphic.type !== 'logo') { // Skip logos
+        prompt += `${graphic.description}`;
+        if (graphic.style) prompt += ` (${graphic.style} style)`;
+        if (graphic.colors && graphic.colors.length > 0) {
+          prompt += `, colors: ${graphic.colors.join(', ')}`;
+        }
+        if (i < graphics.length - 1) prompt += '; ';
+      }
+    });
+    prompt += '. ';
+  }
+  
+  // Color palette (CRITICAL for matching style)
   if (colorPalette) {
-    prompt += `Color palette: primary ${colorPalette.primary}`;
+    prompt += `Color scheme: `;
+    prompt += `primary ${colorPalette.primary}`;
     if (colorPalette.secondary) {
       prompt += `, secondary ${colorPalette.secondary}`;
     }
     if (colorPalette.accent && colorPalette.accent.length > 0) {
-      prompt += `, accents ${colorPalette.accent.slice(0, 2).join(', ')}`;
+      prompt += `, accents ${colorPalette.accent.join(', ')}`;
     }
     prompt += '. ';
   }
   
-  // Style
+  // Style modifiers
   if (styleDescription) {
-    prompt += `Style: ${styleDescription}. `;
-  } else {
-    prompt += 'Modern, clean, professional. ';
+    prompt += `Art style: ${styleDescription}. `;
   }
   
-  // For EdTech
-  prompt += 'Educational technology advertising style, vibrant and engaging. ';
+  // Technical quality requirements
+  prompt += 'High quality, professional advertising creative, well-lit, sharp focus, vibrant colors, suitable for text overlay, modern design, engaging composition, EdTech advertising style.';
   
-  // Technical requirements
-  prompt += 'High quality, well-lit, suitable for text overlay.';
-  
-  console.log(`📝 Generated background prompt: ${prompt.substring(0, 100)}...`);
+  console.log(`📝 Generated DETAILED background prompt (${prompt.length} chars): ${prompt.substring(0, 150)}...`);
   
   return prompt;
 }
 
 /**
  * Generate inpaint prompt to remove text and maintain style
- * Creates a prompt for DALL·E edit to remove text while keeping background
+ * Creates a VERY detailed prompt for DALL·E edit with complete scene description
  */
 export function generateInpaintPrompt(designAnalysis: any): string {
   // Handle undefined or null designAnalysis (for older creatives)
@@ -255,35 +290,64 @@ export function generateInpaintPrompt(designAnalysis: any): string {
   
   const background = designAnalysis.background;
   const colorPalette = designAnalysis.color_palette;
+  const characters = designAnalysis.characters || [];
+  const graphics = designAnalysis.graphics || [];
+  const fullDescription = designAnalysis.description;
   
-  let prompt = 'Remove all text and fill the area seamlessly with the background. ';
+  let prompt = 'Remove all text and logos from the masked areas. Fill seamlessly. ';
   
-  // Describe what to keep
-  if (background?.description) {
-    prompt += background.description + '. ';
+  // CRITICAL: Describe the FULL scene so DALL·E knows what to preserve
+  if (fullDescription) {
+    prompt += `The scene shows: ${fullDescription} `;
   }
   
-  // Maintain colors
-  if (colorPalette) {
-    prompt += `Keep the color scheme: ${colorPalette.primary}`;
-    if (colorPalette.secondary) {
-      prompt += `, ${colorPalette.secondary}`;
+  // Background details (what to fill masked areas with)
+  if (background) {
+    prompt += `Fill text areas with: ${background.description || background.type}`;
+    if (background.colors && background.colors.length > 0) {
+      prompt += ` using colors ${background.colors.join(', ')}`;
     }
     prompt += '. ';
   }
   
-  // Keep graphics and characters
-  if (designAnalysis.graphics && designAnalysis.graphics.length > 0) {
-    prompt += 'Preserve all graphics, icons, and illustrations. ';
+  // Preserve characters
+  if (characters.length > 0) {
+    prompt += `PRESERVE all characters: `;
+    characters.forEach((char: any, i: number) => {
+      prompt += `${char.description}`;
+      if (char.clothing) prompt += ` in ${char.clothing}`;
+      if (i < characters.length - 1) prompt += ', ';
+    });
+    prompt += '. ';
   }
   
-  if (designAnalysis.characters && designAnalysis.characters.length > 0) {
-    prompt += 'Preserve all characters and people. ';
+  // Preserve graphics (except logos)
+  const nonLogoGraphics = graphics.filter((g: any) => g.type !== 'logo');
+  if (nonLogoGraphics.length > 0) {
+    prompt += `PRESERVE visual elements: `;
+    nonLogoGraphics.forEach((graphic: any, i: number) => {
+      prompt += `${graphic.description}`;
+      if (i < nonLogoGraphics.length - 1) prompt += ', ';
+    });
+    prompt += '. ';
   }
   
-  prompt += 'Maintain the overall style and mood. Natural and seamless blending.';
+  // Maintain exact color scheme
+  if (colorPalette) {
+    prompt += `Maintain exact color scheme: primary ${colorPalette.primary}`;
+    if (colorPalette.secondary) {
+      prompt += `, secondary ${colorPalette.secondary}`;
+    }
+    if (colorPalette.accent && colorPalette.accent.length > 0) {
+      prompt += `, accents ${colorPalette.accent.slice(0, 3).join(', ')}`;
+    }
+    prompt += '. ';
+  }
   
-  console.log(`📝 Generated inpaint prompt: ${prompt.substring(0, 100)}...`);
+  // Technical requirements
+  prompt += 'Natural and seamless blending, match lighting and shadows, maintain composition and style, high quality professional inpainting, no artifacts or distortions.';
+  
+  console.log(`📝 Generated DETAILED inpaint prompt (${prompt.length} chars): ${prompt.substring(0, 150)}...`);
   
   return prompt;
 }

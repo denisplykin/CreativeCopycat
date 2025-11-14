@@ -138,6 +138,7 @@ suitable for advertising creative
 
 /**
  * Apply style modifier to a base character prompt
+ * Creates VERY detailed prompts by combining base description with style
  */
 export function applyStyleToCharacterPrompt(
   basePrompt: string,
@@ -152,22 +153,25 @@ export function applyStyleToCharacterPrompt(
   // Extract key elements from base prompt (emotion, pose, clothing, action)
   const baseElements = extractKeyElements(basePrompt);
 
-  // Combine base elements with style modifier
+  // Combine FULL base prompt with style modifier for maximum detail
   const styledPrompt = `
-${style.characterModifier},
-${baseElements.emotion ? `emotion: ${baseElements.emotion},` : ''}
-${baseElements.pose ? `pose: ${baseElements.pose},` : ''}
-${baseElements.clothing ? `clothing: ${baseElements.clothing},` : ''}
-${baseElements.action ? `action: ${baseElements.action},` : ''}
-maintaining the same overall composition and framing
+${style.characterModifier}.
+Based on this description: ${basePrompt}.
+${baseElements.emotion ? `Maintain emotion: ${baseElements.emotion}.` : ''}
+${baseElements.pose ? `Maintain pose: ${baseElements.pose}.` : ''}
+${baseElements.clothing ? `Similar clothing: ${baseElements.clothing}.` : ''}
+${baseElements.action ? `Keep action: ${baseElements.action}.` : ''}
+Preserve the overall composition, framing, and character positioning.
+High quality professional artwork, sharp focus, vibrant colors, engaging expression.
   `.trim();
 
-  console.log(`🎨 Applied ${style.name} to character prompt`);
+  console.log(`🎨 Applied ${style.name} to character prompt (${styledPrompt.length} chars)`);
   return styledPrompt;
 }
 
 /**
  * Apply style modifier to a background prompt
+ * Creates VERY detailed background prompts
  */
 export function applyStyleToBackgroundPrompt(
   basePrompt: string,
@@ -179,14 +183,24 @@ export function applyStyleToBackgroundPrompt(
     return basePrompt;
   }
 
-  // For anime style, keep original background
+  // For anime style, keep original background with style treatment
   if (styleId === 'anime') {
-    return `${basePrompt}, ${style.backgroundModifier}`;
+    const combined = `${basePrompt}. ${style.backgroundModifier}. Maintain the same background composition and elements from the original, but apply anime aesthetic treatment.`;
+    console.log(`🌈 Applied ${style.name} (preserving original): ${combined.length} chars`);
+    return combined;
   }
 
-  // For other styles, use the style-specific background
-  console.log(`🌈 Applied ${style.name} to background prompt`);
-  return style.backgroundModifier;
+  // For other styles, combine base description with style-specific background
+  // This gives DALL·E more context about what elements to include
+  const combined = `
+${style.backgroundModifier}.
+Original scene context: ${basePrompt}.
+Adapt the mood and atmosphere while applying the new ${style.name} aesthetic.
+High quality professional artwork, engaging composition, suitable for advertising creative.
+  `.trim();
+  
+  console.log(`🌈 Applied ${style.name} to background prompt (${combined.length} chars)`);
+  return combined;
 }
 
 /**
