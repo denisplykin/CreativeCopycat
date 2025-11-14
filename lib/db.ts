@@ -1,12 +1,9 @@
 import { supabaseAdmin } from './supabase';
 import type {
   Creative,
-  CreativeAnalysis,
-  CreativeVariant,
-  OCRResult,
-  TextRole,
-  LayoutElement,
-  CopyMode,
+  AnalysisData,
+  Pattern,
+  Run,
 } from '@/types/creative';
 
 /**
@@ -44,17 +41,130 @@ export async function getCreativeById(id: string): Promise<Creative | null> {
 }
 
 /**
- * Get creative analysis
+ * Create new creative
  */
-export async function getCreativeAnalysis(creativeId: string): Promise<CreativeAnalysis | null> {
-  const { data, error } = await supabaseAdmin
-    .from('creative_analysis')
-    .select('*')
-    .eq('creative_id', creativeId)
+export async function createCreative(
+  original_image_url: string,
+  competitor_name?: string
+): Promise<Creative> {
+  const { data, error} = await supabaseAdmin
+    .from('creatives')
+    .insert({
+      original_image_url,
+      competitor_name,
+      status: 'pending',
+    })
+    .select()
     .single();
 
   if (error) {
-    console.error(`Failed to fetch analysis: ${error.message}`);
+    throw new Error(`Failed to create creative: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Update creative status
+ */
+export async function updateCreativeStatus(
+  id: string,
+  status: Creative['status'],
+  error_message?: string
+): Promise<void> {
+  const updateData: any = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (error_message) {
+    updateData.error_message = error_message;
+  }
+
+  const { error } = await supabaseAdmin
+    .from('creatives')
+    .update(updateData)
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to update creative status: ${error.message}`);
+  }
+}
+
+/**
+ * Update creative analysis
+ */
+export async function updateCreativeAnalysis(
+  id: string,
+  analysis: AnalysisData
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('creatives')
+    .update({
+      analysis,
+      status: 'analyzed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to update analysis: ${error.message}`);
+  }
+}
+
+/**
+ * Update generated URLs
+ */
+export async function updateGeneratedUrls(
+  id: string,
+  updates: {
+    generated_character_url?: string;
+    generated_background_url?: string;
+    generated_image_url?: string;
+  }
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('creatives')
+    .update({
+      ...updates,
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to update generated URLs: ${error.message}`);
+  }
+}
+
+/**
+ * Get all patterns
+ */
+export async function getPatterns(): Promise<Pattern[]> {
+  const { data, error } = await supabaseAdmin
+    .from('patterns')
+    .select('*')
+    .order('inserted_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch patterns: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Get pattern by ID
+ */
+export async function getPatternById(pattern_id: string): Promise<Pattern | null> {
+  const { data, error } = await supabaseAdmin
+    .from('patterns')
+    .select('*')
+    .eq('pattern_id', pattern_id)
+    .single();
+
+  if (error) {
+    console.error(`Failed to fetch pattern: ${error.message}`);
     return null;
   }
 
@@ -62,101 +172,45 @@ export async function getCreativeAnalysis(creativeId: string): Promise<CreativeA
 }
 
 /**
- * Create or update creative analysis
+ * Create run log
  */
-export async function upsertCreativeAnalysis(
-  creativeId: string,
-  ocrJson: OCRResult,
-  layoutJson: { elements: LayoutElement[]; canvasSize: { width: number; height: number } },
-  rolesJson: TextRole[],
-  dominantColors: string[],
-  language: string,
-  aspectRatio: string
-): Promise<string> {
+export async function createRun(
+  input: any,
+  output: any,
+  status: string,
+  latency_ms?: number
+): Promise<Run> {
   const { data, error } = await supabaseAdmin
-    .from('creative_analysis')
-    .upsert(
-      {
-        creative_id: creativeId,
-        ocr_json: ocrJson,
-        layout_json: layoutJson,
-        roles_json: rolesJson,
-        dominant_colors: dominantColors,
-        language,
-        aspect_ratio: aspectRatio,
-        analyzed_at: new Date().toISOString(),
-      },
-      { onConflict: 'creative_id' }
-    )
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to upsert analysis: ${error.message}`);
-  }
-
-  return data.id;
-}
-
-/**
- * Get creative variants
- */
-export async function getCreativeVariants(creativeId: string): Promise<CreativeVariant[]> {
-  const { data, error } = await supabaseAdmin
-    .from('creative_variants')
-    .select('*')
-    .eq('creative_id', creativeId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to fetch variants: ${error.message}`);
-  }
-
-  return data || [];
-}
-
-/**
- * Create creative variant
- */
-export async function createCreativeVariant(
-  creativeId: string,
-  analysisId: string | null,
-  variantType: string,
-  stylePreset: string,
-  language: string,
-  backgroundPath: string | null,
-  renderedPath: string,
-  textsJson: {
-    texts: Record<string, string>;
-    meta?: {
-      llm_model?: string;
-      temperature?: number;
-      copy_mode?: CopyMode;
-    };
-  },
-  copyMode: CopyMode | null
-): Promise<CreativeVariant> {
-  const { data, error } = await supabaseAdmin
-    .from('creative_variants')
+    .from('runs')
     .insert({
-      creative_id: creativeId,
-      analysis_id: analysisId,
-      variant_type: variantType,
-      style_preset: stylePreset,
-      language,
-      background_path: backgroundPath,
-      rendered_path: renderedPath,
-      texts_json: textsJson,
-      copy_mode: copyMode,
-      created_at: new Date().toISOString(),
+      input,
+      output,
+      status,
+      latency_ms,
     })
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Failed to create variant: ${error.message}`);
+    throw new Error(`Failed to create run: ${error.message}`);
   }
 
   return data;
 }
 
+/**
+ * Get recent runs
+ */
+export async function getRecentRuns(limit: number = 10): Promise<Run[]> {
+  const { data, error } = await supabaseAdmin
+    .from('runs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`Failed to fetch runs: ${error.message}`);
+  }
+
+  return data || [];
+}

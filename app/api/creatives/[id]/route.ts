@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCreativeById, getCreativeAnalysis, getCreativeVariants } from '@/lib/db';
-import { getPublicUrl } from '@/lib/supabase';
+import { getCreativeById } from '@/lib/db';
 
 export async function GET(
   request: Request,
@@ -17,28 +16,7 @@ export async function GET(
       );
     }
 
-    const analysis = await getCreativeAnalysis(creativeId);
-    const variants = await getCreativeVariants(creativeId);
-
-    // Add public URLs
-    const creativeWithUrl = {
-      ...creative,
-      imageUrl: getPublicUrl('creatives', creative.source_image_path),
-    };
-
-    const variantsWithUrls = variants.map((variant) => ({
-      ...variant,
-      renderedUrl: getPublicUrl('renders', variant.rendered_path),
-      backgroundUrl: variant.background_path
-        ? getPublicUrl('backgrounds', variant.background_path)
-        : null,
-    }));
-
-    return NextResponse.json({
-      creative: creativeWithUrl,
-      analysis,
-      variants: variantsWithUrls,
-    });
+    return NextResponse.json({ creative });
   } catch (error) {
     console.error('Error fetching creative:', error);
     return NextResponse.json(
@@ -47,4 +25,3 @@ export async function GET(
     );
   }
 }
-

@@ -1,11 +1,49 @@
-// Database types
+// Database types matching your Supabase schema
 export interface Creative {
   id: string;
-  source_image_path: string;
-  platform: string;
-  source_url: string | null;
-  width: number;
-  height: number;
+  competitor_name: string | null;
+  original_image_url: string;
+  analysis: AnalysisData | null;
+  generated_character_url: string | null;
+  generated_background_url: string | null;
+  generated_image_url: string | null;
+  figma_file_id: string | null;
+  status: 'pending' | 'analyzing' | 'generating' | 'completed' | 'failed';
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnalysisData {
+  ocr?: OCRResult;
+  layout?: {
+    elements: LayoutElement[];
+    canvasSize: { width: number; height: number };
+  };
+  roles?: TextRole[];
+  dominant_colors?: string[];
+  language?: string;
+  aspect_ratio?: string;
+}
+
+export interface Pattern {
+  pattern_id: string;
+  name: string | null;
+  file_key: string | null;
+  node_id: string | null;
+  template_yaml: any;
+  preferred_bg: string | null;
+  sizes: string[] | null;
+  weights: any;
+  inserted_at: string;
+}
+
+export interface Run {
+  run_id: string;
+  input: any;
+  output: any;
+  status: string | null;
+  latency_ms: number | null;
   created_at: string;
 }
 
@@ -45,47 +83,11 @@ export interface LayoutElement {
   };
 }
 
-export interface CreativeAnalysis {
-  id: string;
-  creative_id: string;
-  ocr_json: OCRResult;
-  layout_json: {
-    elements: LayoutElement[];
-    canvasSize: { width: number; height: number };
-  };
-  roles_json: TextRole[];
-  dominant_colors: string[];
-  language: string;
-  aspect_ratio: string;
-  analyzed_at: string;
-}
-
 export type CopyMode = 'simple_overlay' | 'dalle_inpaint' | 'bg_regen' | 'new_text_pattern';
 
-export type VariantType = 'copy' | 'variation_text' | 'variation_style' | 'variation_structure';
+export type GenerationType = 'character' | 'background' | 'full_creative';
 
 export type StylePreset = 'anime' | 'sakura' | 'realistic' | 'original' | '3d' | 'minimal';
-
-export interface CreativeVariant {
-  id: string;
-  creative_id: string;
-  analysis_id: string | null;
-  variant_type: VariantType;
-  style_preset: StylePreset;
-  language: string;
-  background_path: string | null;
-  rendered_path: string;
-  texts_json: {
-    texts: Record<string, string>;
-    meta?: {
-      llm_model?: string;
-      temperature?: number;
-      copy_mode?: CopyMode;
-    };
-  };
-  copy_mode: CopyMode | null;
-  created_at: string;
-}
 
 // API Request/Response types
 export interface AnalyzeRequest {
@@ -93,40 +95,24 @@ export interface AnalyzeRequest {
 }
 
 export interface AnalyzeResponse {
-  analysisId: string;
-  analysis: CreativeAnalysis;
+  creative: Creative;
+  analysis: AnalysisData;
 }
 
-export interface GenerateCopyRequest {
+export interface GenerateRequest {
   creativeId: string;
-  copyMode: CopyMode;
+  generationType: GenerationType;
+  stylePreset?: StylePreset;
   texts?: Record<string, string>;
-  stylePreset?: StylePreset;
+  patternId?: string;
   llmModel?: string;
   temperature?: number;
   language?: string;
 }
 
-export interface GenerateCopyResponse {
-  variantId: string;
-  imageUrl: string;
-  variant: CreativeVariant;
-}
-
-export interface GenerateVariationRequest {
-  creativeId: string;
-  variantType: 'variation_text' | 'variation_style' | 'variation_structure';
-  stylePreset?: StylePreset;
-  language?: string;
-  niche?: string;
-  llmModel?: string;
-  temperature?: number;
-}
-
-export interface GenerateVariationResponse {
-  variantId: string;
-  imageUrl: string;
-  variant: CreativeVariant;
+export interface GenerateResponse {
+  creative: Creative;
+  generated_url: string;
 }
 
 // LLM types
