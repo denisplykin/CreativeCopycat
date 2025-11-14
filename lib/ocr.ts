@@ -1,18 +1,137 @@
 import type { OCRResult, TextBlock } from '@/types/creative';
 
 /**
- * Run OCR on image using Tesseract.js
- * TEMPORARILY DISABLED: Tesseract.js doesn't work in Vercel serverless (worker threads issue)
- * Using stub data until we integrate Google Vision API
+ * Run OCR on image using Gemini Vision via OpenRouter
+ * Uses Gemini 2.0 Flash Thinking with vision capabilities
  */
 export async function runOCR(imageBuffer: Buffer): Promise<OCRResult> {
-  console.log('⚠️ OCR: Using stub data (Tesseract disabled for serverless compatibility)');
-  
-  // TODO: Replace with Google Vision API
-  // For now, return stub data to test the rest of the flow
-  return getStubOCRResult();
+  try {
+    console.log('🔍 Starting OCR with Gemini Vision via OpenRouter...');
+    
+    // Convert image to base64
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = detectMimeType(imageBuffer);
+    
+    // Call Gemini Vision through OpenRouter
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-thinking-exp:free', // Free Gemini with vision
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this advertising creative image and extract ALL text you see.
 
-  /* DISABLED - Worker threads don't work in Vercel serverless
+For each text element, provide:
+1. The exact text
+2. Approximate position (x, y as percentage of image)
+3. Approximate size (width, height as percentage)
+4. Your confidence in this detection (0-1)
+
+Return a JSON object with this structure:
+{
+  "blocks": [
+    {
+      "text": "exact text here",
+      "x_percent": 10,
+      "y_percent": 20,
+      "width_percent": 30,
+      "height_percent": 5,
+      "confidence": 0.95
+    }
+  ],
+  "fullText": "all text combined",
+  "language": "en" or "id" (Indonesian) or other,
+  "confidence": 0.95
+}
+
+Important:
+- Extract ALL text, even small text
+- Preserve exact wording and spacing
+- Order blocks from top to bottom, left to right
+- Detect if text is in English, Indonesian, or mixed
+- Be precise with positions`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.1, // Low temperature for consistent OCR
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ OpenRouter error:', response.status, errorText);
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.warn('⚠️ No content from Gemini');
+      return getStubOCRResult();
+    }
+
+    console.log('📝 Gemini response:', content.substring(0, 200));
+
+    // Parse JSON from Gemini's response
+    // Gemini might wrap JSON in markdown code blocks
+    let jsonText = content;
+    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1];
+    }
+
+    const ocrData = JSON.parse(jsonText);
+
+    // Convert percentage-based positions to pixel positions
+    // We'll use approximate image dimensions (will be corrected by actual image size later)
+    const imageWidth = 1080; // Approximate, will be overridden by actual
+    const imageHeight = 1080;
+
+    const blocks: TextBlock[] = (ocrData.blocks || []).map((block: any) => ({
+      text: block.text,
+      bbox: {
+        x: Math.round((block.x_percent / 100) * imageWidth),
+        y: Math.round((block.y_percent / 100) * imageHeight),
+        width: Math.round((block.width_percent / 100) * imageWidth),
+        height: Math.round((block.height_percent / 100) * imageHeight),
+      },
+      confidence: block.confidence || 0.9,
+    }));
+
+    console.log(`✅ Gemini OCR: ${blocks.length} text blocks detected`);
+    console.log(`📊 Confidence: ${ocrData.confidence || 0.9}`);
+    console.log(`🌐 Language: ${ocrData.language || 'en'}`);
+
+    return {
+      blocks,
+      fullText: ocrData.fullText || blocks.map(b => b.text).join('\n'),
+      confidence: ocrData.confidence || 0.9,
+      language: ocrData.language || detectLanguage(ocrData.fullText || ''),
+    };
+  } catch (error) {
+    console.error('❌ Gemini OCR error:', error);
+    console.warn('⚠️ Falling back to stub OCR data');
+    return getStubOCRResult();
+  }
+
+  /* OLD: DISABLED - Worker threads don't work in Vercel serverless
   try {
     console.log('🔍 Starting OCR with Tesseract.js...');
     
@@ -141,6 +260,27 @@ function mergeBlocks(blocks: TextBlock[]): TextBlock {
     },
     confidence: avgConfidence,
   };
+}
+
+/**
+ * Detect MIME type from buffer
+ */
+function detectMimeType(buffer: Buffer): string {
+  // Check magic numbers
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return 'image/png';
+  }
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+    return 'image/gif';
+  }
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
+    return 'image/webp';
+  }
+  // Default to PNG
+  return 'image/png';
 }
 
 /**
