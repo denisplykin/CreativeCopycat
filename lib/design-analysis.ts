@@ -150,7 +150,6 @@ IMPORTANT:
             ]
           }
         ],
-        temperature: 0.2, // Low temperature for detailed, consistent analysis
       }),
     });
 
