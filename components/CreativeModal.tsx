@@ -51,15 +51,49 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
   const [numVariations, setNumVariations] = useState(3);
   const [selectedMode, setSelectedMode] = useState<'clone' | 'similar' | 'new_background'>('clone');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creativeId: creative.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+
+      alert('✅ Analysis complete! Refresh to see results.');
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleGenerate = async () => {
+    if (!creative.analysis) {
+      setError('Please analyze the creative first!');
+      return;
+    }
+
     setIsGenerating(true);
+    setError(null);
     try {
       await onGenerate({
         aspectRatio,
         numVariations,
         mode: selectedMode,
       });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
       setIsGenerating(false);
     }
@@ -96,7 +130,7 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
             </div>
 
             {/* Analysis Info */}
-            {creative.analysis && (
+            {creative.analysis ? (
               <div className="glass-dark rounded-2xl p-4 space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-400">📝 Text blocks:</span>
@@ -126,6 +160,25 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
                     </div>
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="glass-dark rounded-2xl p-6 text-center">
+                <div className="text-4xl mb-3">🔍</div>
+                <p className="text-gray-300 font-medium mb-4">Not analyzed yet</p>
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="btn-primary w-full"
+                >
+                  {isAnalyzing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="loading-spinner" />
+                      Analyzing...
+                    </span>
+                  ) : (
+                    '🔍 Analyze Creative'
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -217,10 +270,21 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="error-box">
+                <div className="text-2xl">⚠️</div>
+                <div>
+                  <p className="font-bold">Error</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+              </div>
+            )}
+
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || !creative.analysis}
               className="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
@@ -228,6 +292,8 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
                   <div className="loading-spinner" />
                   Generating...
                 </span>
+              ) : !creative.analysis ? (
+                <span>⚠️ Analyze First</span>
               ) : (
                 <span>🚀 Generate {numVariations} Variations</span>
               )}
