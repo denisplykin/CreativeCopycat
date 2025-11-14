@@ -46,8 +46,10 @@ export async function generateBackground(
 export async function editImageWithMask(params: EditImageParams): Promise<Buffer> {
   try {
     // Convert buffers to File objects for DALL·E API
-    const imageFile = new File([params.image], 'image.png', { type: 'image/png' });
-    const maskFile = new File([params.mask], 'mask.png', { type: 'image/png' });
+    const imageBlob = new Blob([params.image], { type: 'image/png' });
+    const maskBlob = new Blob([params.mask], { type: 'image/png' });
+    const imageFile = new File([imageBlob], 'image.png', { type: 'image/png' });
+    const maskFile = new File([maskBlob], 'mask.png', { type: 'image/png' });
 
     const response = await openai.images.edit({
       model: 'dall-e-2', // dall-e-3 doesn't support edit yet
