@@ -11,9 +11,13 @@ export default function CreativesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [competitorFilter, setCompetitorFilter] = useState<string>('all');
   const [selectedCreative, setSelectedCreative] = useState<Creative | null>(null);
   
   const itemsPerPage = 20;
+
+  // Get unique competitors
+  const competitors = ['all', ...Array.from(new Set(creatives.map(c => c.competitor_name).filter(Boolean) as string[])).sort()];
 
   useEffect(() => {
     fetchCreatives();
@@ -119,7 +123,8 @@ export default function CreativesPage() {
   const filteredCreatives = creatives.filter(creative => {
     const matchesSearch = creative.competitor_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
     const matchesStatus = statusFilter === 'all' || creative.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesCompetitor = competitorFilter === 'all' || creative.competitor_name === competitorFilter;
+    return matchesSearch && matchesStatus && matchesCompetitor;
   });
 
   // Pagination
@@ -204,6 +209,27 @@ export default function CreativesPage() {
           </div>
         </div>
 
+        {/* Competitor Filter */}
+        <div className="mb-6">
+          <label className="block text-sm font-bold mb-3 text-gray-700">
+            🏢 Filter by Competitor
+          </label>
+          <select
+            value={competitorFilter}
+            onChange={(e) => {
+              setCompetitorFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="select-glass w-full font-medium"
+          >
+            {competitors.map((competitor) => (
+              <option key={competitor} value={competitor}>
+                {competitor === 'all' ? '📊 All Competitors' : competitor}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-8">
           <input
@@ -216,14 +242,6 @@ export default function CreativesPage() {
             }}
             className="input-glass w-full"
           />
-        </div>
-
-        {/* Info Banner */}
-        <div className="mb-6 glass rounded-2xl p-4 text-center">
-          <p className="text-sm text-gray-600">
-            <span className="font-bold">🔍 Auto-analyzing:</span> First 6 pending creatives are being analyzed automatically.
-            <span className="ml-2">💡 Click "Analyze" button on any creative to analyze manually.</span>
-          </p>
         </div>
 
         {/* Pagination Info */}
