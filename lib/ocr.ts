@@ -21,7 +21,7 @@ export async function runOCR(imageBuffer: Buffer): Promise<OCRResult> {
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
       },
       body: JSON.stringify({
-        model: 'google/gemini-flash-1.5', // Gemini Flash with vision support
+        model: 'google/gemini-2.0-flash-exp:free', // Free Gemini 2.0 Flash with vision
         messages: [
           {
             role: 'user',
