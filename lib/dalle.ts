@@ -78,10 +78,44 @@ export async function generateBackground(
  */
 export async function editImageWithMask(params: EditImageParams): Promise<Buffer> {
   try {
+    const sharp = (await import('sharp')).default;
+    
+    console.log('🔄 Preparing images for DALL·E (PNG + size check)...');
+    
+    // Convert image to PNG and ensure < 4MB
+    let imagePng = await sharp(params.image)
+      .png({ quality: 90, compressionLevel: 9 })
+      .toBuffer();
+    
+    // If image > 4MB, resize it down
+    if (imagePng.length > 4 * 1024 * 1024) {
+      console.warn(`⚠️ Image too large (${(imagePng.length / 1024 / 1024).toFixed(2)} MB), resizing...`);
+      imagePng = await sharp(params.image)
+        .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .png({ quality: 85, compressionLevel: 9 })
+        .toBuffer();
+      console.log(`✅ Resized to ${(imagePng.length / 1024 / 1024).toFixed(2)} MB`);
+    }
+    
+    // Convert mask to PNG and ensure < 4MB
+    let maskPng = await sharp(params.mask)
+      .png({ quality: 90, compressionLevel: 9 })
+      .toBuffer();
+    
+    if (maskPng.length > 4 * 1024 * 1024) {
+      console.warn(`⚠️ Mask too large (${(maskPng.length / 1024 / 1024).toFixed(2)} MB), resizing...`);
+      maskPng = await sharp(params.mask)
+        .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .png({ quality: 85, compressionLevel: 9 })
+        .toBuffer();
+      console.log(`✅ Mask resized to ${(maskPng.length / 1024 / 1024).toFixed(2)} MB`);
+    }
+    
+    console.log(`📊 Final sizes: image=${(imagePng.length / 1024).toFixed(0)}KB, mask=${(maskPng.length / 1024).toFixed(0)}KB`);
+    
     // Convert buffers to File objects for DALL·E API
-    // Use Uint8Array to properly convert Buffer to BlobPart
-    const imageBlob = new Blob([new Uint8Array(params.image)], { type: 'image/png' });
-    const maskBlob = new Blob([new Uint8Array(params.mask)], { type: 'image/png' });
+    const imageBlob = new Blob([new Uint8Array(imagePng)], { type: 'image/png' });
+    const maskBlob = new Blob([new Uint8Array(maskPng)], { type: 'image/png' });
     const imageFile = new File([imageBlob], 'image.png', { type: 'image/png' });
     const maskFile = new File([maskBlob], 'mask.png', { type: 'image/png' });
 
