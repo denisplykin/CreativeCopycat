@@ -19,6 +19,39 @@ export default function CreativesPage() {
     fetchCreatives();
   }, []);
 
+  // Auto-analyze first 6 pending creatives
+  useEffect(() => {
+    if (creatives.length > 0) {
+      autoAnalyzeFirst6();
+    }
+  }, [creatives.length]);
+
+  const autoAnalyzeFirst6 = async () => {
+    const pendingCreatives = creatives
+      .filter(c => c.status === 'pending')
+      .slice(0, 6);
+
+    if (pendingCreatives.length === 0) return;
+
+    console.log(`🔍 Auto-analyzing first ${pendingCreatives.length} creatives...`);
+
+    for (const creative of pendingCreatives) {
+      try {
+        // Start analysis (don't wait)
+        fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ creativeId: creative.id }),
+        }).catch(err => console.error('Auto-analyze error:', err));
+
+        // Small delay between requests
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (err) {
+        console.error('Failed to start auto-analysis:', err);
+      }
+    }
+  };
+
   const fetchCreatives = async () => {
     try {
       const response = await fetch('/api/creatives');
@@ -29,6 +62,28 @@ export default function CreativesPage() {
       setError(err instanceof Error ? err.message : 'Failed to fetch');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnalyzeCreative = async (creativeId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Don't open modal
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creativeId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+
+      // Refresh list to show updated status
+      setTimeout(fetchCreatives, 1000);
+    } catch (err) {
+      alert('❌ Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -107,14 +162,14 @@ export default function CreativesPage() {
   }
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-12 px-4 content-wrapper">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12 text-center animate-fade-in">
           <h1 className="text-6xl font-black mb-4 gradient-text">
             🎨 Creative Copycat
           </h1>
-          <p className="text-xl text-gray-300 font-medium">
+          <p className="text-xl text-gray-600 font-medium">
             Analyze & generate competitor creatives powered by AI 🔥
           </p>
         </div>
@@ -163,8 +218,16 @@ export default function CreativesPage() {
           />
         </div>
 
+        {/* Info Banner */}
+        <div className="mb-6 glass rounded-2xl p-4 text-center">
+          <p className="text-sm text-gray-600">
+            <span className="font-bold">🔍 Auto-analyzing:</span> First 6 pending creatives are being analyzed automatically.
+            <span className="ml-2">💡 Click "Analyze" button on any creative to analyze manually.</span>
+          </p>
+        </div>
+
         {/* Pagination Info */}
-        <div className="mb-6 text-center text-gray-300 font-medium">
+        <div className="mb-6 text-center text-gray-600 font-medium">
           Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredCreatives.length)} of {filteredCreatives.length}
         </div>
 
@@ -183,7 +246,7 @@ export default function CreativesPage() {
                 className="glass-card cursor-pointer group overflow-hidden animate-fade-in"
               >
                 {/* Image */}
-                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-500/20 to-purple-500/20 rounded-2xl">
+                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-500/10 to-purple-500/10 rounded-2xl">
                   <img
                     src={creative.original_image_url}
                     alt={creative.competitor_name || 'Creative'}
@@ -193,30 +256,44 @@ export default function CreativesPage() {
                   
                   {/* Status Badge */}
                   <div className="absolute top-3 right-3">
-                    <span className={`status-badge ${
-                      creative.status === 'completed' ? 'bg-green-500/90' : ''
-                    }${
-                      creative.status === 'pending' ? 'bg-yellow-500/90' : ''
-                    }${
-                      creative.status === 'analyzing' ? 'bg-purple-500/90' : ''
-                    }${
-                      creative.status === 'failed' ? 'bg-red-500/90' : ''
-                    }`}>
-                      {creative.status === 'completed' && '✅'}
-                      {creative.status === 'pending' && '⏳'}
-                      {creative.status === 'analyzing' && '🔍'}
-                      {creative.status === 'failed' && '❌'}
-                    </span>
+                    {creative.status === 'analyzing' ? (
+                      <span className="analyzing-badge">
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Analyzing
+                      </span>
+                    ) : (
+                      <span className={`status-badge ${
+                        creative.status === 'completed' ? 'bg-green-500/90 text-white' : ''
+                      }${
+                        creative.status === 'pending' ? 'bg-yellow-500/90 text-white' : ''
+                      }${
+                        creative.status === 'failed' ? 'bg-red-500/90 text-white' : ''
+                      }`}>
+                        {creative.status === 'completed' && '✅'}
+                        {creative.status === 'pending' && '⏳'}
+                        {creative.status === 'failed' && '❌'}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Analyze Button - Show for pending/failed */}
+                  {(creative.status === 'pending' || creative.status === 'failed') && !creative.analysis && (
+                    <button
+                      onClick={(e) => handleAnalyzeCreative(creative.id, e)}
+                      className="analyze-btn"
+                    >
+                      🔍 Analyze
+                    </button>
+                  )}
                 </div>
 
                 {/* Info */}
                 <div className="p-4">
-                  <h3 className="font-bold text-white mb-2 line-clamp-2 group-hover:text-orange-400 transition-colors">
+                  <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-orange-500 transition-colors">
                     {creative.competitor_name || 'Unknown'}
                   </h3>
                   
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
                     <span>🕐 {new Date(creative.created_at).toLocaleDateString('en')}</span>
                   </div>
 
@@ -224,12 +301,12 @@ export default function CreativesPage() {
                   {creative.analysis && (
                     <div className="mt-2 flex gap-1 flex-wrap">
                       {creative.analysis.ocr && (
-                        <span className="px-2 py-1 glass-dark text-cyan-300 rounded-lg text-xs font-medium">
+                        <span className="px-2 py-1 glass-dark text-cyan-700 rounded-lg text-xs font-medium">
                           📝 {creative.analysis.ocr.blocks?.length || 0} blocks
                         </span>
                       )}
                       {creative.analysis.dominant_colors && creative.analysis.dominant_colors.length > 0 && (
-                        <span className="px-2 py-1 glass-dark text-pink-300 rounded-lg text-xs font-medium">
+                        <span className="px-2 py-1 glass-dark text-pink-700 rounded-lg text-xs font-medium">
                           🎨 {creative.analysis.dominant_colors.length} colors
                         </span>
                       )}

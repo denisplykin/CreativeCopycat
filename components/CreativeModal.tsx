@@ -16,10 +16,18 @@ interface GenerationConfig {
 }
 
 const ASPECT_RATIOS = [
-  { value: '1:1', label: '1:1 (Square)', emoji: '⬛' },
-  { value: '16:9', label: '16:9 (Landscape)', emoji: '🖥️' },
-  { value: '9:16', label: '9:16 (Portrait)', emoji: '📱' },
-  { value: '4:5', label: '4:5 (Instagram)', emoji: '📸' },
+  { value: '9:16', label: '9:16 📱 Portrait (Facebook)', emoji: '📱' },
+  { value: '1:1', label: '1:1 ⬛ Square', emoji: '⬛' },
+  { value: '16:9', label: '16:9 🖥️ Landscape', emoji: '🖥️' },
+  { value: '4:5', label: '4:5 📸 Instagram', emoji: '📸' },
+];
+
+const NUM_VARIATIONS_OPTIONS = [
+  { value: 1, label: '1 variation' },
+  { value: 2, label: '2 variations' },
+  { value: 3, label: '3 variations' },
+  { value: 5, label: '5 variations' },
+  { value: 10, label: '10 variations' },
 ];
 
 const GENERATION_MODES = [
@@ -47,7 +55,7 @@ const GENERATION_MODES = [
 ];
 
 export default function CreativeModal({ creative, onClose, onGenerate }: CreativeModalProps) {
-  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [aspectRatio, setAspectRatio] = useState('9:16'); // Default to Facebook portrait
   const [numVariations, setNumVariations] = useState(3);
   const [selectedMode, setSelectedMode] = useState<'clone' | 'similar' | 'new_background'>('clone');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -187,53 +195,43 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
           <div className="space-y-6">
             {/* Aspect Ratio */}
             <div>
-              <label className="block text-sm font-bold mb-3 text-gray-300">
+              <label className="block text-sm font-bold mb-3 text-gray-700">
                 📐 Aspect Ratio
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <select
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+                className="select-glass w-full font-medium"
+              >
                 {ASPECT_RATIOS.map((ratio) => (
-                  <button
-                    key={ratio.value}
-                    onClick={() => setAspectRatio(ratio.value)}
-                    className={`aspect-ratio-btn ${
-                      aspectRatio === ratio.value ? 'active' : ''
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{ratio.emoji}</div>
-                    <div className="font-bold">{ratio.value}</div>
-                    <div className="text-xs text-gray-400">{ratio.label.split('(')[1]?.replace(')', '')}</div>
-                  </button>
+                  <option key={ratio.value} value={ratio.value}>
+                    {ratio.label}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Number of Variations */}
             <div>
-              <label className="block text-sm font-bold mb-3 text-gray-300">
+              <label className="block text-sm font-bold mb-3 text-gray-700">
                 🔢 Number of Variations
               </label>
-              <div className="glass-dark rounded-2xl p-4">
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={numVariations}
-                  onChange={(e) => setNumVariations(parseInt(e.target.value))}
-                  className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    background: `linear-gradient(to right, #FF6B35 0%, #FF6B35 ${numVariations * 10}%, rgba(255,255,255,0.1) ${numVariations * 10}%, rgba(255,255,255,0.1) 100%)`
-                  }}
-                />
-                <div className="flex justify-between mt-2">
-                  <span className="text-2xl font-black gradient-text">{numVariations}</span>
-                  <span className="text-sm text-gray-400">variations</span>
-                </div>
-              </div>
+              <select
+                value={numVariations}
+                onChange={(e) => setNumVariations(parseInt(e.target.value))}
+                className="select-glass w-full font-medium"
+              >
+                {NUM_VARIATIONS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Generation Mode */}
             <div>
-              <label className="block text-sm font-bold mb-3 text-gray-300">
+              <label className="block text-sm font-bold mb-3 text-gray-700">
                 🎨 Generation Mode
               </label>
               <div className="space-y-3">
