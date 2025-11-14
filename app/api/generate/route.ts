@@ -145,12 +145,14 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error generating:', error);
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     // Log failed run
     const latency = Date.now() - startTime;
     try {
       await createRun(
-        { request: body },
-        { error: error instanceof Error ? error.message : 'Unknown error' },
+        { action: 'generate', error: 'failed' },
+        { error: errorMessage },
         'failed',
         latency
       );
@@ -158,20 +160,8 @@ export async function POST(request: Request) {
       console.error('Failed to log error run:', logError);
     }
 
-    // Update status to failed
-    try {
-      const body: GenerateRequest = await request.json();
-      if (body.creativeId) {
-        await updateCreativeStatus(
-          body.creativeId,
-          'failed',
-          error instanceof Error ? error.message : 'Generation failed'
-        );
-      }
-    } catch {}
-
     return NextResponse.json(
-      { error: 'Failed to generate', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate', details: errorMessage },
       { status: 500 }
     );
   }
