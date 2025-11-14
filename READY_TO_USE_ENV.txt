@@ -1,0 +1,55 @@
+=====================================================
+ГОТОВАЯ КОНФИГУРАЦИЯ .env.local
+=====================================================
+
+Скопируйте ВСЁ содержимое ниже и создайте файл .env.local в корне проекта:
+
+NEXT_PUBLIC_SUPABASE_URL=https://osokxlweresllgbclkme.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zb2t4bHdlcmVzbGxnYmNsa21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNDAxMzAsImV4cCI6MjA3NzkxNjEzMH0.HZ1EjhvhUl882G7ra6xyWHvmswUle3JnhnSjkGSiYXg
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zb2t4bHdlcmVzbGxnYmNsa21lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjM0MDEzMCwiZXhwIjoyMDc3OTE2MTMwfQ.y2hqeEcnXxnE7sQo9w9lrHfKsPs6IpMuXfsG9G1LdtQ
+OPENROUTER_API_KEY=ваш_openrouter_ключ_здесь
+OPENAI_API_KEY=ваш_openai_ключ_здесь
+
+=====================================================
+ЧТО ДАЛЬШЕ:
+=====================================================
+
+1. СОЗДАЙТЕ ФАЙЛ .env.local
+   - В корне проекта (рядом с package.json)
+   - Скопируйте туда содержимое выше
+
+2. ПОЛУЧИТЕ API КЛЮЧИ:
+
+   OpenRouter (для генерации текста):
+   → https://openrouter.ai/keys
+   → Создайте ключ и пополните баланс на $5-10
+
+   OpenAI (для DALL·E):
+   → https://platform.openai.com/api-keys
+   → Создайте ключ и добавьте способ оплаты
+
+3. НАСТРОЙТЕ БАЗУ ДАННЫХ:
+   
+   → https://supabase.com/dashboard/project/osokxlweresllgbclkme/sql
+   → Откройте файл supabase/schema.sql из проекта
+   → Скопируйте и запустите SQL код
+
+4. СОЗДАЙТЕ STORAGE BUCKETS:
+   
+   → https://supabase.com/dashboard/project/osokxlweresllgbclkme/storage/buckets
+   → Создайте 3 публичных bucket'а:
+      - creatives
+      - backgrounds
+      - renders
+
+5. ЗАПУСТИТЕ ПРОЕКТ:
+   
+   npm run dev
+   
+   Откройте: http://localhost:3000
+
+=====================================================
+✅ Supabase полностью настроен!
+⏳ Осталось только получить OpenRouter и OpenAI ключи
+=====================================================
+

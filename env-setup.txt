@@ -1,0 +1,29 @@
+ИНСТРУКЦИЯ: Создайте файл .env.local в корне проекта со следующим содержимым:
+
+================================================
+NEXT_PUBLIC_SUPABASE_URL=https://osokxlweresllgbclkme.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zb2t4bHdlcmVzbGxnYmNsa21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNDAxMzAsImV4cCI6MjA3NzkxNjEzMH0.HZ1EjhvhUl882G7ra6xyWHvmswUle3JnhnSjkGSiYXg
+
+# TODO: Замените на service_role JWT ключ (начинается с eyJhbGc...)
+# Получите здесь: https://supabase.com/dashboard/project/osokxlweresllgbclkme/settings/api
+# Прокрутите до "Project API keys" → service_role (secret) → нажмите "Reveal"
+SUPABASE_SERVICE_ROLE_KEY=ваш_service_role_jwt_ключ_здесь
+
+# OpenRouter API (для LLM)
+# Получите на: https://openrouter.ai/keys
+OPENROUTER_API_KEY=ваш_openrouter_ключ
+
+# OpenAI API (для DALL·E)
+# Получите на: https://platform.openai.com/api-keys
+OPENAI_API_KEY=ваш_openai_ключ
+================================================
+
+ВАЖНО:
+1. Файл должен называться точно ".env.local" (с точкой в начале)
+2. Файл должен быть в корне проекта (рядом с package.json)
+3. После создания файла перезапустите сервер (npm run dev)
+
+ПРИМЕЧАНИЕ: 
+Ключ "sb_secret_ca-MUFemWuUMKlBtpvUWcw_PIhiOv23" - это database password,
+а не service_role API ключ. Для работы приложения нужен service_role JWT ключ.
+
