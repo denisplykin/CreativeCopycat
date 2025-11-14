@@ -29,7 +29,7 @@ const COMPETITOR_BRANDS = [
  * Replace all competitor brand names with Algonova in text
  */
 export function replaceBrandWithAlgonova(text: string): string {
-  if (!text) return text;
+  if (!text || typeof text !== 'string') return text;
   
   let result = text;
   
@@ -45,11 +45,20 @@ export function replaceBrandWithAlgonova(text: string): string {
 /**
  * Replace brand names in generated texts object
  */
-export function replaceBrandsInTexts(texts: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
+export function replaceBrandsInTexts(texts: Record<string, any>): Record<string, any> {
+  if (!texts || typeof texts !== 'object') {
+    return texts;
+  }
+  
+  const result: Record<string, any> = {};
   
   for (const [key, value] of Object.entries(texts)) {
-    result[key] = replaceBrandWithAlgonova(value);
+    // Only process strings
+    if (typeof value === 'string') {
+      result[key] = replaceBrandWithAlgonova(value);
+    } else {
+      result[key] = value; // Keep non-string values as-is
+    }
   }
   
   return result;
