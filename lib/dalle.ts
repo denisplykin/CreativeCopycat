@@ -46,8 +46,9 @@ export async function generateBackground(
 export async function editImageWithMask(params: EditImageParams): Promise<Buffer> {
   try {
     // Convert buffers to File objects for DALL·E API
-    const imageBlob = new Blob([params.image], { type: 'image/png' });
-    const maskBlob = new Blob([params.mask], { type: 'image/png' });
+    // Use Uint8Array to properly convert Buffer to BlobPart
+    const imageBlob = new Blob([new Uint8Array(params.image)], { type: 'image/png' });
+    const maskBlob = new Blob([new Uint8Array(params.mask)], { type: 'image/png' });
     const imageFile = new File([imageBlob], 'image.png', { type: 'image/png' });
     const maskFile = new File([maskBlob], 'mask.png', { type: 'image/png' });
 
