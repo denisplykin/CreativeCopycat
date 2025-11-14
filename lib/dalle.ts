@@ -192,6 +192,12 @@ export async function createTextMask(
  * Creates a detailed DALL·E prompt for background generation
  */
 export function generateBackgroundPrompt(designAnalysis: any, styleDescription?: string): string {
+  // Handle undefined or null designAnalysis
+  if (!designAnalysis) {
+    console.warn('⚠️ No design analysis provided, using generic background prompt');
+    return `${styleDescription || 'Modern, clean, professional'} background suitable for advertising creative. High quality, well-lit, vibrant and engaging. Educational technology style.`;
+  }
+  
   const background = designAnalysis.background;
   const colorPalette = designAnalysis.color_palette;
   
@@ -241,6 +247,12 @@ export function generateBackgroundPrompt(designAnalysis: any, styleDescription?:
  * Creates a prompt for DALL·E edit to remove text while keeping background
  */
 export function generateInpaintPrompt(designAnalysis: any): string {
+  // Handle undefined or null designAnalysis (for older creatives)
+  if (!designAnalysis) {
+    console.warn('⚠️ No design analysis provided, using generic inpaint prompt');
+    return 'Remove all text and logos, fill the area seamlessly with the background. Preserve all visual elements except text. Natural and seamless blending. High quality inpainting.';
+  }
+  
   const background = designAnalysis.background;
   const colorPalette = designAnalysis.color_palette;
   
