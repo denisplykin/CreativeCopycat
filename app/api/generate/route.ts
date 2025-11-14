@@ -144,8 +144,8 @@ export async function POST(request: Request) {
               allBoxes
             );
             
-            // Generate inpaint prompt
-            const inpaintPrompt = generateInpaintPrompt(creative.analysis.design);
+            // Generate inpaint prompt (handle undefined design)
+            const inpaintPrompt = generateInpaintPrompt(creative.analysis?.design || null);
             
             console.log('🎨 Running DALL·E inpaint...');
             bgBuffer = await editImageWithMask({
@@ -162,9 +162,9 @@ export async function POST(request: Request) {
             // New Background: Generate completely new background
             console.log('🌈 Mode: Background Regeneration (New BG)');
             
-            // Generate background prompt from design analysis
+            // Generate background prompt from design analysis (handle undefined)
             const bgPrompt = generateBackgroundPrompt(
-              creative.analysis.design,
+              creative.analysis?.design || null,
               stylePreset
             );
             
@@ -190,9 +190,9 @@ export async function POST(request: Request) {
             if (!prompts || !prompts.background) {
               console.warn('⚠️ No imageGenerationPrompts in analysis, using design description');
               
-              // Fallback: generate prompt from design analysis
+              // Fallback: generate prompt from design analysis (handle undefined)
               const bgPrompt = generateBackgroundPrompt(
-                creative.analysis.design,
+                creative.analysis?.design || null,
                 'realistic photorealistic studio lighting'
               );
               
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
             // Get base prompts from analysis
             const analysisPrompts = (creative.analysis as any).imageGenerationPrompts || {};
             const baseCharacterPrompt = analysisPrompts.character || 'portrait of person with surprised expression';
-            const baseBackgroundPrompt = analysisPrompts.background || generateBackgroundPrompt(creative.analysis.design);
+            const baseBackgroundPrompt = analysisPrompts.background || generateBackgroundPrompt(creative.analysis?.design || null);
             
             console.log('🎭 Generating 5 style variations...');
             
