@@ -5,6 +5,39 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+// DALL·E API limits
+const DALLE_EDIT_MAX_PROMPT_LENGTH = 1000; // DALL·E 2 edit/inpaint limit
+const DALLE_GENERATE_MAX_PROMPT_LENGTH = 4000; // DALL·E 3 generate limit
+
+/**
+ * Intelligently truncate a prompt to fit DALL·E limits
+ * Preserves the most important information
+ */
+function truncatePrompt(prompt: string, maxLength: number): string {
+  if (prompt.length <= maxLength) {
+    return prompt;
+  }
+
+  // Try to cut at sentence boundaries
+  const sentences = prompt.split('. ');
+  let truncated = '';
+  
+  for (const sentence of sentences) {
+    if ((truncated + sentence + '. ').length > maxLength - 50) {
+      break;
+    }
+    truncated += sentence + '. ';
+  }
+  
+  // If still too long, hard cut with ellipsis
+  if (truncated.length === 0 || truncated.length > maxLength) {
+    truncated = prompt.substring(0, maxLength - 3) + '...';
+  }
+  
+  console.log(`⚠️ Prompt truncated from ${prompt.length} to ${truncated.length} chars`);
+  return truncated.trim();
+}
+
 /**
  * Generate background image using DALL·E
  */
@@ -227,8 +260,11 @@ export function generateBackgroundPrompt(designAnalysis: any, styleDescription?:
       if (char.pose) prompt += `, ${char.pose}`;
       if (char.clothing) prompt += `, wearing ${char.clothing}`;
       if (char.facial_expression) prompt += `, ${char.facial_expression}`;
-      if (char.accessories && char.accessories.length > 0) {
-        prompt += `, with ${char.accessories.join(', ')}`;
+      if (char.accessories) {
+        const accessories = Array.isArray(char.accessories) ? char.accessories : [char.accessories];
+        if (accessories.length > 0) {
+          prompt += `, with ${accessories.join(', ')}`;
+        }
       }
       if (i < characters.length - 1) prompt += '; ';
     });
@@ -274,7 +310,8 @@ export function generateBackgroundPrompt(designAnalysis: any, styleDescription?:
   
   console.log(`📝 Generated DETAILED background prompt (${prompt.length} chars): ${prompt.substring(0, 150)}...`);
   
-  return prompt;
+  // Truncate if needed for DALL·E 3 (4000 char limit)
+  return truncatePrompt(prompt, DALLE_GENERATE_MAX_PROMPT_LENGTH);
 }
 
 /**
@@ -349,6 +386,7 @@ export function generateInpaintPrompt(designAnalysis: any): string {
   
   console.log(`📝 Generated DETAILED inpaint prompt (${prompt.length} chars): ${prompt.substring(0, 150)}...`);
   
-  return prompt;
+  // CRITICAL: Truncate for DALL·E 2 edit (1000 char limit)
+  return truncatePrompt(prompt, DALLE_EDIT_MAX_PROMPT_LENGTH);
 }
 
