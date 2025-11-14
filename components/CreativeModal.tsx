@@ -95,7 +95,7 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (config: GenerationConfig) => {
     if (!creative.analysis) {
       setError('Please analyze the creative first!');
       return;
@@ -111,16 +111,58 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
         setGenerationProgress(prev => Math.min(prev + 10, 90));
       }, 2000);
 
-      await onGenerate({
-        aspectRatio,
-        numVariations,
-        mode: selectedMode,
-      });
+      await onGenerate(config);
 
       clearInterval(progressInterval);
       setGenerationProgress(100);
       
       // Refresh after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Generation failed');
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationProgress(0);
+      }, 2500);
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (!creative.analysis) {
+      setError('Please analyze the creative first!');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setError(null);
+    
+    try {
+      console.log('🚀 Generating ALL variants...');
+      
+      // Generate all 4 modes sequentially
+      for (let i = 0; i < GENERATION_MODES.length; i++) {
+        const mode = GENERATION_MODES[i];
+        console.log(`🎨 Generating ${mode.title}...`);
+        
+        setGenerationProgress(Math.floor((i / GENERATION_MODES.length) * 100));
+        
+        await onGenerate({
+          aspectRatio,
+          numVariations: 1, // 1 variant per mode when generating all
+          mode: mode.id as any,
+        });
+        
+        // Small delay between generations
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      setGenerationProgress(100);
+      
+      // Refresh after completion
       setTimeout(() => {
         window.location.reload();
       }, 2000);
@@ -332,6 +374,22 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
               </div>
             </div>
 
+            {/* Progress Bar */}
+            {isGenerating && (
+              <div className="glass-dark rounded-2xl p-4">
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <div className="loading-spinner" />
+                  <span className="font-bold">Generating {generationProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div className="error-box">
@@ -342,34 +400,6 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
                 </div>
               </div>
             )}
-
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !creative.analysis}
-              className="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGenerating ? (
-                <span className="flex items-center justify-center gap-3">
-                  <div className="loading-spinner" />
-                  Generating {generationProgress}%
-                </span>
-              ) : !creative.analysis ? (
-                <span>⚠️ Analyze First</span>
-              ) : (
-                <span>🚀 Generate {numVariations} Variations</span>
-              )}
-            </button>
-
-            {/* Progress Bar */}
-            {isGenerating && (
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 transition-all duration-500"
-                  style={{ width: `${generationProgress}%` }}
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -378,23 +408,77 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
           <div className="mt-6 border-t border-gray-200 pt-6">
             <h3 className="text-2xl font-bold text-gray-800 mb-4">🎨 Generated Variants</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="glass-card overflow-hidden">
-                <img
-                  src={creative.generated_image_url}
-                  alt="Generated variant"
-                  className="w-full rounded-xl"
-                />
-                <div className="p-3 text-center">
-                  <a
-                    href={creative.generated_image_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    📥 Open Full Size
-                  </a>
+              {/* Main Generated Image */}
+              {creative.generated_image_url && (
+                <div className="glass-card overflow-hidden">
+                  <img
+                    src={creative.generated_image_url}
+                    alt="Generated variant"
+                    className="w-full rounded-xl"
+                  />
+                  <div className="p-3 text-center">
+                    <div className="font-bold text-gray-700 mb-2">
+                      🎯 Latest Generation
+                    </div>
+                    <a
+                      href={creative.generated_image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      📥 Open Full Size
+                    </a>
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Background variant */}
+              {creative.generated_background_url && (
+                <div className="glass-card overflow-hidden">
+                  <img
+                    src={creative.generated_background_url}
+                    alt="Generated background"
+                    className="w-full rounded-xl"
+                  />
+                  <div className="p-3 text-center">
+                    <div className="font-bold text-gray-700 mb-2">
+                      🌈 Background
+                    </div>
+                    <a
+                      href={creative.generated_background_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      📥 Open Full Size
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {/* Character variant */}
+              {creative.generated_character_url && (
+                <div className="glass-card overflow-hidden">
+                  <img
+                    src={creative.generated_character_url}
+                    alt="Generated character"
+                    className="w-full rounded-xl"
+                  />
+                  <div className="p-3 text-center">
+                    <div className="font-bold text-gray-700 mb-2">
+                      👤 Character
+                    </div>
+                    <a
+                      href={creative.generated_character_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      📥 Open Full Size
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
