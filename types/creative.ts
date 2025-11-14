@@ -166,12 +166,15 @@ export interface AnalyzeResponse {
 export interface GenerateRequest {
   creativeId: string;
   generationType: GenerationType;
+  copyMode?: CopyMode;
   stylePreset?: StylePreset;
   texts?: Record<string, string>;
   patternId?: string;
   llmModel?: string;
   temperature?: number;
   language?: string;
+  aspectRatio?: string;
+  numVariations?: number;
 }
 
 export interface GenerateResponse {

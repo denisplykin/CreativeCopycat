@@ -95,6 +95,13 @@ export default function CreativesPage() {
     if (!selectedCreative) return;
 
     try {
+      // Map UI mode to copyMode
+      const copyModeMap: Record<string, 'simple_overlay' | 'dalle_inpaint' | 'bg_regen'> = {
+        'clone': 'simple_overlay',
+        'similar': 'dalle_inpaint',
+        'new_background': 'bg_regen',
+      };
+
       // Call generate API
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -102,19 +109,25 @@ export default function CreativesPage() {
         body: JSON.stringify({
           creativeId: selectedCreative.id,
           generationType: 'full_creative',
-          copyMode: config.mode === 'clone' ? 'simple_overlay' : 
-                    config.mode === 'similar' ? 'dalle_inpaint' : 'bg_regen',
+          copyMode: copyModeMap[config.mode] || 'simple_overlay',
           aspectRatio: config.aspectRatio,
           numVariations: config.numVariations,
         }),
       });
 
-      if (!response.ok) throw new Error('Generation failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Generation failed');
+      }
 
-      alert('✅ Generation started! Check back in a few minutes.');
+      const result = await response.json();
+      console.log('✅ Generation result:', result);
+
+      alert('✅ Generation complete! Refresh to see results.');
       setSelectedCreative(null);
       fetchCreatives(); // Refresh list
     } catch (err) {
+      console.error('Generation error:', err);
       alert('❌ Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };

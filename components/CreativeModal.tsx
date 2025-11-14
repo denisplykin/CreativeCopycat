@@ -61,6 +61,8 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -93,17 +95,35 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
     }
 
     setIsGenerating(true);
+    setGenerationProgress(0);
     setError(null);
+    
     try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 10, 90));
+      }, 2000);
+
       await onGenerate({
         aspectRatio,
         numVariations,
         mode: selectedMode,
       });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      
+      // Refresh after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
-      setIsGenerating(false);
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationProgress(0);
+      }, 2500);
     }
   };
 
@@ -139,36 +159,73 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
 
             {/* Analysis Info */}
             {creative.analysis ? (
-              <div className="glass-dark rounded-2xl p-4 space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">📝 Text blocks:</span>
-                  <span className="font-bold">{creative.analysis.ocr?.blocks?.length || 0}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">🌐 Language:</span>
-                  <span className="font-bold uppercase">{creative.analysis.language || 'en'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">💯 Confidence:</span>
-                  <span className="font-bold">
-                    {((creative.analysis.ocr?.confidence || 0) * 100).toFixed(0)}%
-                  </span>
-                </div>
-                {creative.analysis.dominant_colors && (
+              <>
+                <div className="glass-dark rounded-2xl p-4 space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">🎨 Colors:</span>
-                    <div className="flex gap-1">
-                      {creative.analysis.dominant_colors.slice(0, 5).map((color, i) => (
-                        <div
-                          key={i}
-                          className="w-6 h-6 rounded-lg border border-white/20"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
+                    <span className="text-gray-400">📝 Text blocks:</span>
+                    <span className="font-bold">{creative.analysis.ocr?.blocks?.length || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">🌐 Language:</span>
+                    <span className="font-bold uppercase">{creative.analysis.language || 'en'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">💯 Confidence:</span>
+                    <span className="font-bold">
+                      {((creative.analysis.ocr?.confidence || 0) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  {creative.analysis.dominant_colors && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400">🎨 Colors:</span>
+                      <div className="flex gap-1">
+                        {creative.analysis.dominant_colors.slice(0, 5).map((color, i) => (
+                          <div
+                            key={i}
+                            className="w-6 h-6 rounded-lg border border-white/20"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  
+                  {/* Design elements summary */}
+                  {creative.analysis.design && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">👤 Characters:</span>
+                        <span className="font-bold">{creative.analysis.design.characters?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">🎯 Graphics:</span>
+                        <span className="font-bold">{creative.analysis.design.graphics?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">📐 Background:</span>
+                        <span className="font-bold">{creative.analysis.design.background?.type || 'unknown'}</span>
+                      </div>
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="w-full mt-3 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-medium"
+                  >
+                    {showDetails ? '📕 Hide Details' : '📖 Show Full Details'}
+                  </button>
+                </div>
+
+                {/* Full Details Panel */}
+                {showDetails && (
+                  <div className="glass-dark rounded-2xl p-4 max-h-96 overflow-y-auto">
+                    <h4 className="font-bold mb-3 text-gray-800">📊 Complete Analysis</h4>
+                    <pre className="text-xs bg-black/20 p-3 rounded-lg overflow-x-auto">
+                      {JSON.stringify(creative.analysis, null, 2)}
+                    </pre>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="glass-dark rounded-2xl p-6 text-center">
                 <div className="text-4xl mb-3">🔍</div>
@@ -288,7 +345,7 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
               {isGenerating ? (
                 <span className="flex items-center justify-center gap-3">
                   <div className="loading-spinner" />
-                  Generating...
+                  Generating {generationProgress}%
                 </span>
               ) : !creative.analysis ? (
                 <span>⚠️ Analyze First</span>
@@ -296,8 +353,44 @@ export default function CreativeModal({ creative, onClose, onGenerate }: Creativ
                 <span>🚀 Generate {numVariations} Variations</span>
               )}
             </button>
+
+            {/* Progress Bar */}
+            {isGenerating && (
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 transition-all duration-500"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Generated Variants Section */}
+        {creative.generated_image_url && (
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">🎨 Generated Variants</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="glass-card overflow-hidden">
+                <img
+                  src={creative.generated_image_url}
+                  alt="Generated variant"
+                  className="w-full rounded-xl"
+                />
+                <div className="p-3 text-center">
+                  <a
+                    href={creative.generated_image_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    📥 Open Full Size
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

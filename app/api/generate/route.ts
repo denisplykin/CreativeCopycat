@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun } from '@/lib/db';
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
-import { generateBackground } from '@/lib/dalle';
+import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { renderCreative } from '@/lib/render';
+import { extractImageMetadata } from '@/lib/ocr';
 import type { GenerateRequest, GenerateResponse } from '@/types/creative';
 
 export async function POST(request: Request) {
@@ -14,12 +15,17 @@ export async function POST(request: Request) {
     const {
       creativeId,
       generationType,
+      copyMode = 'simple_overlay',
       stylePreset = 'original',
       texts,
       llmModel,
       temperature,
       language = 'en',
+      aspectRatio = '1:1',
+      numVariations = 1,
     } = body;
+
+    console.log(`🎨 Generating creative: ${generationType}, copyMode: ${copyMode}, aspectRatio: ${aspectRatio}`);
 
     // Get creative
     const creative = await getCreativeById(creativeId);
@@ -78,10 +84,19 @@ export async function POST(request: Request) {
       }
 
       case 'full_creative': {
+        // Download original image
+        console.log('📥 Downloading original image...');
+        const imageResponse = await fetch(creative.original_image_url);
+        const originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const metadata = await extractImageMetadata(originalBuffer);
+        
+        console.log(`📐 Original size: ${metadata.width}x${metadata.height}`);
+
         // Generate new texts if not provided
         let finalTexts = texts || {};
         if (!texts || Object.keys(texts).length === 0) {
           if (creative.analysis.roles && creative.analysis.roles.length > 0) {
+            console.log('📝 Generating new texts...');
             const generated = await generateTexts(
               creative.analysis.roles,
               undefined,
@@ -93,16 +108,77 @@ export async function POST(request: Request) {
           }
         }
 
-        // Generate background
-        const prompt = generateImagePrompt(stylePreset, undefined, 'with space for text overlay');
-        const bgBuffer = await generateBackground({
-          stylePreset,
-          prompt,
-          width: 1080,
-          height: 1080,
-        });
+        let bgBuffer: Buffer;
 
-        // Render text over background (for MVP just returns background)
+        // Different strategies based on copyMode
+        switch (copyMode) {
+          case 'simple_overlay': {
+            // Clone: Just use original image
+            console.log('🎯 Mode: Simple Overlay (Clone)');
+            bgBuffer = originalBuffer;
+            break;
+          }
+
+          case 'dalle_inpaint': {
+            // Similar: Remove text using DALL·E inpaint
+            console.log('✨ Mode: DALL·E Inpaint (Similar Style)');
+            
+            // Create mask from OCR text blocks
+            const textBlocks = creative.analysis.ocr?.blocks || [];
+            const textBoxes = textBlocks.map(block => block.bbox);
+            
+            console.log(`🎭 Creating mask for ${textBoxes.length} text blocks...`);
+            const maskBuffer = await createTextMask(
+              metadata.width,
+              metadata.height,
+              textBoxes
+            );
+            
+            // Generate inpaint prompt
+            const inpaintPrompt = generateInpaintPrompt(creative.analysis.design);
+            
+            console.log('🎨 Running DALL·E inpaint...');
+            bgBuffer = await editImageWithMask({
+              image: originalBuffer,
+              mask: maskBuffer,
+              prompt: inpaintPrompt,
+            });
+            
+            console.log('✅ Inpaint complete!');
+            break;
+          }
+
+          case 'bg_regen': {
+            // New Background: Generate completely new background
+            console.log('🌈 Mode: Background Regeneration (New BG)');
+            
+            // Generate background prompt from design analysis
+            const bgPrompt = generateBackgroundPrompt(
+              creative.analysis.design,
+              stylePreset
+            );
+            
+            console.log('🎨 Generating new background with DALL·E...');
+            bgBuffer = await generateBackground({
+              stylePreset,
+              prompt: bgPrompt,
+              width: metadata.width,
+              height: metadata.height,
+            });
+            
+            console.log('✅ Background generation complete!');
+            break;
+          }
+
+          default: {
+            // Fallback to simple overlay
+            console.log('⚠️ Unknown copyMode, falling back to simple overlay');
+            bgBuffer = originalBuffer;
+          }
+        }
+
+        // Render text over background
+        console.log('📝 Rendering text overlay...');
         const finalBuffer = await renderCreative(
           creative.analysis.layout!,
           finalTexts,
@@ -114,6 +190,8 @@ export async function POST(request: Request) {
         await uploadFile('generated-creatives', creativePath, finalBuffer, 'image/png');
         generatedUrl = getPublicUrl('generated-creatives', creativePath);
         updates.generated_image_url = generatedUrl;
+        
+        console.log(`✅ Creative generated: ${generatedUrl}`);
         break;
       }
 

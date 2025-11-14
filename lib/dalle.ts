@@ -99,7 +99,7 @@ function getSizeString(width: number, height: number): '1024x1024' | '1792x1024'
 /**
  * Create mask from text bounding boxes
  * Returns a white mask on black background where text should be removed
- * MVP: Creates a simple mask using sharp
+ * Uses actual OCR text positions to create precise masks
  */
 export async function createTextMask(
   width: number,
@@ -108,8 +108,10 @@ export async function createTextMask(
 ): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
   
+  console.log(`🎭 Creating text mask for ${textBoxes.length} text blocks...`);
+  
   // Create black background
-  const blackBackground = await sharp({
+  let maskImage = await sharp({
     create: {
       width,
       height,
@@ -118,32 +120,130 @@ export async function createTextMask(
     }
   }).png().toBuffer();
   
-  // For MVP, create a simple mask
-  // TODO: Add white rectangles for text boxes using sharp composite
-  // For now, return a simple mask that covers the center area
-  const maskWidth = Math.floor(width * 0.8);
-  const maskHeight = Math.floor(height * 0.6);
-  const maskX = Math.floor((width - maskWidth) / 2);
-  const maskY = Math.floor((height - maskHeight) / 2);
+  // Create white rectangles for each text box
+  const whiteRects = await Promise.all(
+    textBoxes.map(async (box) => {
+      // Add padding around text boxes
+      const padding = 10;
+      const boxWidth = Math.max(1, box.width + padding * 2);
+      const boxHeight = Math.max(1, box.height + padding * 2);
+      const boxX = Math.max(0, box.x - padding);
+      const boxY = Math.max(0, box.y - padding);
+      
+      return {
+        input: await sharp({
+          create: {
+            width: Math.min(boxWidth, width - boxX),
+            height: Math.min(boxHeight, height - boxY),
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 1 }
+          }
+        }).png().toBuffer(),
+        top: boxY,
+        left: boxX
+      };
+    })
+  );
   
-  const whiteMask = await sharp({
-    create: {
-      width: maskWidth,
-      height: maskHeight,
-      channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 1 }
+  // Composite all white rectangles onto black background
+  if (whiteRects.length > 0) {
+    maskImage = await sharp(maskImage)
+      .composite(whiteRects)
+      .png()
+      .toBuffer();
+  }
+  
+  console.log(`✅ Text mask created with ${textBoxes.length} regions`);
+  
+  return maskImage;
+}
+
+/**
+ * Generate background prompt from design analysis
+ * Creates a detailed DALL·E prompt for background generation
+ */
+export function generateBackgroundPrompt(designAnalysis: any, styleDescription?: string): string {
+  const background = designAnalysis.background;
+  const colorPalette = designAnalysis.color_palette;
+  
+  let prompt = '';
+  
+  // Background type and colors
+  if (background?.type === 'gradient') {
+    prompt += `${background.type} background with colors ${background.colors.join(', ')}. `;
+  } else if (background?.type === 'solid') {
+    prompt += `Solid ${background.colors[0]} background. `;
+  } else {
+    prompt += `${background?.description || 'Abstract background'}. `;
+  }
+  
+  // Add color palette
+  if (colorPalette) {
+    prompt += `Color palette: primary ${colorPalette.primary}`;
+    if (colorPalette.secondary) {
+      prompt += `, secondary ${colorPalette.secondary}`;
     }
-  }).png().toBuffer();
+    if (colorPalette.accent && colorPalette.accent.length > 0) {
+      prompt += `, accents ${colorPalette.accent.slice(0, 2).join(', ')}`;
+    }
+    prompt += '. `;
+  }
   
-  const result = await sharp(blackBackground)
-    .composite([{
-      input: whiteMask,
-      top: maskY,
-      left: maskX
-    }])
-    .png()
-    .toBuffer();
+  // Style
+  if (styleDescription) {
+    prompt += `Style: ${styleDescription}. `;
+  } else {
+    prompt += 'Modern, clean, professional. ';
+  }
   
-  return result;
+  // For EdTech
+  prompt += 'Educational technology advertising style, vibrant and engaging. ';
+  
+  // Technical requirements
+  prompt += 'High quality, well-lit, suitable for text overlay.';
+  
+  console.log(`📝 Generated background prompt: ${prompt.substring(0, 100)}...`);
+  
+  return prompt;
+}
+
+/**
+ * Generate inpaint prompt to remove text and maintain style
+ * Creates a prompt for DALL·E edit to remove text while keeping background
+ */
+export function generateInpaintPrompt(designAnalysis: any): string {
+  const background = designAnalysis.background;
+  const colorPalette = designAnalysis.color_palette;
+  
+  let prompt = 'Remove all text and fill the area seamlessly with the background. ';
+  
+  // Describe what to keep
+  if (background?.description) {
+    prompt += background.description + '. ';
+  }
+  
+  // Maintain colors
+  if (colorPalette) {
+    prompt += `Keep the color scheme: ${colorPalette.primary}`;
+    if (colorPalette.secondary) {
+      prompt += `, ${colorPalette.secondary}`;
+    }
+    prompt += '. ';
+  }
+  
+  // Keep graphics and characters
+  if (designAnalysis.graphics && designAnalysis.graphics.length > 0) {
+    prompt += 'Preserve all graphics, icons, and illustrations. ';
+  }
+  
+  if (designAnalysis.characters && designAnalysis.characters.length > 0) {
+    prompt += 'Preserve all characters and people. ';
+  }
+  
+  prompt += 'Maintain the overall style and mood. Natural and seamless blending.';
+  
+  console.log(`📝 Generated inpaint prompt: ${prompt.substring(0, 100)}...`);
+  
+  return prompt;
 }
 
