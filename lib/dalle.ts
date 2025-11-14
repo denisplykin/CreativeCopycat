@@ -21,7 +21,11 @@ export async function generateBackground(
       response_format: 'url',
     });
 
-    const imageUrl = response.data[0].url;
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No data returned from DALL·E');
+    }
+
+    const imageUrl = response.data[0]?.url;
     if (!imageUrl) {
       throw new Error('No image URL returned from DALL·E');
     }
@@ -55,7 +59,11 @@ export async function editImageWithMask(params: EditImageParams): Promise<Buffer
       response_format: 'url',
     });
 
-    const imageUrl = response.data[0].url;
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No data returned from DALL·E');
+    }
+
+    const imageUrl = response.data[0]?.url;
     if (!imageUrl) {
       throw new Error('No image URL returned from DALL·E');
     }
