@@ -64,7 +64,6 @@ const GENERATION_MODES = [
 export default function CreativeModal({ creative, onClose, onGenerate }: CreativeModalProps) {
   const [aspectRatio, setAspectRatio] = useState('9:16'); // Default to Facebook portrait
   const [numVariations, setNumVariations] = useState(3);
-  const [selectedMode, setSelectedMode] = useState<'clone' | 'similar' | 'new_background' | 'old_style'>('clone');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
