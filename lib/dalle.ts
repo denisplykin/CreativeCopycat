@@ -186,7 +186,7 @@ export function generateBackgroundPrompt(designAnalysis: any, styleDescription?:
     if (colorPalette.accent && colorPalette.accent.length > 0) {
       prompt += `, accents ${colorPalette.accent.slice(0, 2).join(', ')}`;
     }
-    prompt += '. `;
+    prompt += '. ';
   }
   
   // Style
