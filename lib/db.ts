@@ -102,7 +102,7 @@ export async function updateCreativeAnalysis(
     .from('creatives')
     .update({
       analysis,
-      status: 'analyzed',
+      status: 'completed', // Must be 'completed', not 'analyzed' (constraint check)
       updated_at: new Date().toISOString(),
     })
     .eq('id', id);
