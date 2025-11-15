@@ -35,13 +35,19 @@ interface GenerateDialogProps {
 }
 
 export interface GenerationConfig {
-  aspectRatio: 'original' | '1:1' | '4:5' | '9:16' | '16:9'
-  variationMode: 'default' | 'random' | 'custom'
-  defaultOptions?: {
-    copycat: boolean
-    copycatWithColors: boolean
+  aspectRatio: '1:1' | '4:5' | '9:16' | '16:9'
+  generationType: 'simple' | 'custom'
+  
+  // Для простой генерации (чекбоксы)
+  simpleOptions?: {
+    simpleCopy: boolean
+    copyWithColor: boolean
+    slightlyDifferent: boolean
     fbData: boolean
+    randomVariations: boolean
   }
+  
+  // Для кастомной генерации
   customPrompt?: string
 }
 
@@ -52,12 +58,14 @@ export function GenerateDialog({
   onGenerate,
 }: GenerateDialogProps) {
   const [config, setConfig] = useState<GenerationConfig>({
-    aspectRatio: 'original',
-    variationMode: 'default',
-    defaultOptions: {
-      copycat: true,
-      copycatWithColors: false,
+    aspectRatio: '9:16',
+    generationType: 'simple',
+    simpleOptions: {
+      simpleCopy: true,           // ✅ По умолчанию включен
+      copyWithColor: false,
+      slightlyDifferent: false,
       fbData: false,
+      randomVariations: false,
     },
     customPrompt: '',
   })
@@ -113,144 +121,137 @@ export function GenerateDialog({
           <div className="space-y-6">
             {/* Aspect Ratio */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Aspect Ratio</Label>
-              <RadioGroup
+              <Label htmlFor="aspectRatio" className="text-base font-semibold mb-3 block">
+                Aspect Ratio
+              </Label>
+              <select
+                id="aspectRatio"
                 value={config.aspectRatio}
-                onValueChange={(value) =>
-                  setConfig({ ...config, aspectRatio: value as any })
-                }
+                onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as any })}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="original" id="original" />
-                  <Label htmlFor="original" className="font-normal cursor-pointer">
-                    Original
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1:1" id="square" />
-                  <Label htmlFor="square" className="font-normal cursor-pointer">
-                    Square 1:1
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="4:5" id="vertical" />
-                  <Label htmlFor="vertical" className="font-normal cursor-pointer">
-                    Vertical 4:5
-                  </Label>
-                </div>
-              </RadioGroup>
+                <option value="1:1">1:1 (Square)</option>
+                <option value="4:5">4:5 (Vertical)</option>
+                <option value="9:16">9:16 (Stories)</option>
+                <option value="16:9">16:9 (Horizontal)</option>
+              </select>
             </div>
 
-            {/* Variation Mode */}
+            {/* Generation Type */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Variations</Label>
+              <Label className="text-base font-semibold mb-3 block">Тип генерации</Label>
               <RadioGroup
-                value={config.variationMode}
+                value={config.generationType}
                 onValueChange={(value) =>
-                  setConfig({ ...config, variationMode: value as any })
+                  setConfig({ ...config, generationType: value as any })
                 }
               >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="default" id="default" />
-                    <Label htmlFor="default" className="font-normal cursor-pointer">
-                      1. Default variations
-                    </Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    Выбрать что именно изменить (мультивыбор)
-                  </p>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="simple" id="simple" />
+                  <Label htmlFor="simple" className="font-normal cursor-pointer">
+                    Простая (предустановленные настройки)
+                  </Label>
                 </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="random" id="random" />
-                    <Label htmlFor="random" className="font-normal cursor-pointer">
-                      2. 6 Random variations
-                    </Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    Случайные вариации
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom" />
-                    <Label htmlFor="custom" className="font-normal cursor-pointer">
-                      3. Custom variations
-                    </Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    Свой промпт
-                  </p>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="custom" id="custom" />
+                  <Label htmlFor="custom" className="font-normal cursor-pointer">
+                    Кастомная (свой промпт)
+                  </Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {/* Default Options (multi-select checkboxes) */}
-            {config.variationMode === 'default' && (
+            {/* Simple Options (multi-select checkboxes) */}
+            {config.generationType === 'simple' && (
               <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-                <Label className="text-sm font-semibold block">Select variations:</Label>
+                <Label className="text-sm font-semibold block">Выберите что генерировать:</Label>
                 
+                {/* Simple Copy */}
                 <div className="flex items-start space-x-2">
                   <Checkbox
-                    id="copycat"
-                    checked={config.defaultOptions?.copycat}
+                    id="simpleCopy"
+                    checked={config.simpleOptions?.simpleCopy}
                     onCheckedChange={(checked) =>
                       setConfig({
                         ...config,
-                        defaultOptions: {
-                          ...config.defaultOptions!,
-                          copycat: checked as boolean,
+                        simpleOptions: {
+                          ...config.simpleOptions!,
+                          simpleCopy: checked as boolean,
                         },
                       })
                     }
                   />
                   <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor="copycat" className="font-normal cursor-pointer">
-                      Copycat
+                    <Label htmlFor="simpleCopy" className="font-normal cursor-pointer">
+                      Simple Copy
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Replace brand name + logo only
+                      Меняем название и логотип на Algonova
                     </p>
                   </div>
                 </div>
 
+                {/* Copy + Color */}
                 <div className="flex items-start space-x-2">
                   <Checkbox
-                    id="copycatColors"
-                    checked={config.defaultOptions?.copycatWithColors}
+                    id="copyWithColor"
+                    checked={config.simpleOptions?.copyWithColor}
                     onCheckedChange={(checked) =>
                       setConfig({
                         ...config,
-                        defaultOptions: {
-                          ...config.defaultOptions!,
-                          copycatWithColors: checked as boolean,
+                        simpleOptions: {
+                          ...config.simpleOptions!,
+                          copyWithColor: checked as boolean,
                         },
                       })
                     }
                   />
                   <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor="copycatColors" className="font-normal cursor-pointer">
-                      Copycat + Algonova color scheme
+                    <Label htmlFor="copyWithColor" className="font-normal cursor-pointer">
+                      Copy + Color
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Replace brand + recolor with Algonova palette
+                      Меняем название, логотип и цветовую схему на Algonova
                     </p>
                   </div>
                 </div>
 
+                {/* Slightly Different */}
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="slightlyDifferent"
+                    checked={config.simpleOptions?.slightlyDifferent}
+                    onCheckedChange={(checked) =>
+                      setConfig({
+                        ...config,
+                        simpleOptions: {
+                          ...config.simpleOptions!,
+                          slightlyDifferent: checked as boolean,
+                        },
+                      })
+                    }
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="slightlyDifferent" className="font-normal cursor-pointer">
+                      Slightly Different
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Немного меняем персонажа (тип остаётся тот же)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Based on FB data - DISABLED */}
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="fbData"
                     disabled
-                    checked={config.defaultOptions?.fbData}
+                    checked={config.simpleOptions?.fbData}
                     onCheckedChange={(checked) =>
                       setConfig({
                         ...config,
-                        defaultOptions: {
-                          ...config.defaultOptions!,
+                        simpleOptions: {
+                          ...config.simpleOptions!,
                           fbData: checked as boolean,
                         },
                       })
@@ -260,28 +261,48 @@ export function GenerateDialog({
                     <Label htmlFor="fbData" className="font-normal cursor-pointer text-muted-foreground">
                       Based on FB data
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        Coming soon
+                        🔒 Пока не работает
                       </Badge>
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Use Facebook performance data
+                      Генерация на основе данных из Facebook
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6 Random Variations - DISABLED */}
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="randomVariations"
+                    disabled
+                    checked={config.simpleOptions?.randomVariations}
+                    onCheckedChange={(checked) =>
+                      setConfig({
+                        ...config,
+                        simpleOptions: {
+                          ...config.simpleOptions!,
+                          randomVariations: checked as boolean,
+                        },
+                      })
+                    }
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="randomVariations" className="font-normal cursor-pointer text-muted-foreground">
+                      6 Random Variations
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        🔒 Пока не работает
+                      </Badge>
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      6 случайных вариаций для родителей в Индонезии
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Random Variations Info */}
-            {config.variationMode === 'random' && (
-              <div className="p-4 border rounded-lg bg-muted/30">
-                <p className="text-sm text-muted-foreground">
-                  Generate 6 random variations with different styles, layouts, and brand replacements.
-                </p>
-              </div>
-            )}
-
             {/* Custom Prompt */}
-            {config.variationMode === 'custom' && (
+            {config.generationType === 'custom' && (
               <div className="space-y-2">
                 <Label htmlFor="customPrompt" className="text-sm font-semibold">
                   What changes do you want to make?
