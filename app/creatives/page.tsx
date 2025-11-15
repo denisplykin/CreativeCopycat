@@ -326,13 +326,13 @@ export default function CreativesPage() {
                     {creative.competitor_name || 'Unknown'}
                   </h3>
                   
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
                     <span>🕐 {new Date(creative.created_at).toLocaleDateString('en')}</span>
                   </div>
 
                   {/* Analysis Info */}
                   {creative.analysis && (
-                    <div className="mt-2 flex gap-1 flex-wrap">
+                    <div className="mt-2 flex gap-1 flex-wrap mb-3">
                       {creative.analysis.ocr && (
                         <span className="px-2 py-1 glass-dark text-cyan-700 rounded-lg text-xs font-medium">
                           📝 {creative.analysis.ocr.blocks?.length || 0} blocks
@@ -343,6 +343,68 @@ export default function CreativesPage() {
                           🎨 {creative.analysis.dominant_colors.length} colors
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Generated Variants Slots */}
+                  {(creative.generated_image_url || creative.generated_background_url || creative.generated_character_url) && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="text-xs font-bold text-gray-600 mb-2">🎨 Generated Variants:</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Full Creative */}
+                        {creative.generated_image_url && (
+                          <div className="relative group/img">
+                            <img
+                              src={creative.generated_image_url}
+                              alt="Generated"
+                              className="w-full h-20 object-cover rounded-lg border-2 border-green-400 hover:scale-105 transition-transform cursor-zoom-in"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(creative.generated_image_url!, '_blank');
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                              <span className="text-white text-xs font-bold text-center px-1">🎯 Full Creative</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Background */}
+                        {creative.generated_background_url && (
+                          <div className="relative group/img">
+                            <img
+                              src={creative.generated_background_url}
+                              alt="Background"
+                              className="w-full h-20 object-cover rounded-lg border-2 border-purple-400 hover:scale-105 transition-transform cursor-zoom-in"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(creative.generated_background_url!, '_blank');
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                              <span className="text-white text-xs font-bold text-center px-1">🌈 Background</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Character */}
+                        {creative.generated_character_url && (
+                          <div className="relative group/img">
+                            <img
+                              src={creative.generated_character_url}
+                              alt="Character"
+                              className="w-full h-20 object-cover rounded-lg border-2 border-blue-400 hover:scale-105 transition-transform cursor-zoom-in"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(creative.generated_character_url!, '_blank');
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                              <span className="text-white text-xs font-bold text-center px-1">👤 Character</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
