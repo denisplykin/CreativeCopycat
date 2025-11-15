@@ -21,8 +21,8 @@ interface Run {
   created_at: string
   result_url?: string | null
   creative?: {
-    competitor_name: string
-    image_url: string
+    competitor_name: string | null
+    original_image_url: string
   }
 }
 
