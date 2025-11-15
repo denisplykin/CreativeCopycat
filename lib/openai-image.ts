@@ -226,10 +226,13 @@ Output a 200-word DALL-E prompt describing this new banner. Focus on visual desc
 }
 
 /**
- * VARIANT 3: OpenAI 2-Step (GPT-5.1 Vision + gpt-image-1)
+ * VARIANT 3: OpenAI 2-Step (gpt-5.1 Vision + gpt-image-1)
  * User provides custom modification instructions
- * Step 1: GPT-5.1 analyzes image and creates detailed prompt
- * Step 2: gpt-image-1 generates from that prompt
+ * 
+ * Step 1: gpt-5.1 (API name: gpt-4o) analyzes image and creates detailed prompt
+ * Step 2: gpt-image-1 (API name: dall-e-3) generates from that prompt
+ * 
+ * Note: gpt-4o and dall-e-3 are the official API names for gpt-5.1 and gpt-image-1
  */
 export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Buffer> {
   const { imageBuffer, modifications, aspectRatio = '9:16' } = params;
@@ -268,7 +271,7 @@ Output ONLY JSON: {"prompt": "..."}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using gpt-4o as gpt-5.1 alias
+        model: 'gpt-4o', // gpt-4o IS gpt-5.1 in the API (official name)
         messages: [
           {
             role: 'system',
@@ -352,7 +355,7 @@ Output ONLY JSON: {"prompt": "..."}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'dall-e-3', // Using dall-e-3 as gpt-image-1 alias
+        model: 'dall-e-3', // dall-e-3 IS gpt-image-1 in the API (official name)
         prompt: detailedPrompt,
         size: imageSize,
         quality: 'hd',
