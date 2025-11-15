@@ -246,20 +246,24 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
     // STEP 1: GPT-5.1 Vision analyzes image and creates prompt
     console.log('👁️ Step 1: GPT-5.1 analyzing image...');
     
-    const visionPrompt = `Look at this advertising creative. Describe it as a detailed English prompt for the image model gpt-image-1 so that the layout, texts and visual elements stay the same, but apply these changes:
+    const visionPrompt = `You are analyzing an advertising creative to create a detailed prompt for the image generation model gpt-image-1.
 
-MODIFICATIONS:
-${modifications}
+TASK:
+1. Describe this banner in detail (150-300 words) for recreation
+2. Keep the same layout, text positions, and overall composition
+3. Apply these user-requested changes: ${modifications}
 
-Requirements:
-- Keep the same layout and composition
-- Maintain text positioning (you can note the text content)
-- Preserve the overall visual style
-- Apply the requested modifications
-- Output 150-300 words
-- Brand: "Algonova" (if brand change needed)
+IMPORTANT:
+- Preserve all text blocks and their positions (note the text content and style)
+- Keep the same visual layout and structure
+- Maintain the overall design aesthetic
+- Apply ONLY the changes specified above
+- If no brand is mentioned, use "Algonova" as the brand
 
-Output ONLY a JSON object: {"prompt": "..."}`;
+OUTPUT FORMAT:
+Return ONLY a JSON object: {"prompt": "your detailed 150-300 word prompt here"}
+
+The prompt should be a complete, detailed description for gpt-image-1 to recreate this banner with the requested modifications.`;
 
     const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -329,10 +333,13 @@ Output ONLY a JSON object: {"prompt": "..."}`;
     }
 
     console.log('✅ Step 1 complete! Generated prompt:');
-    console.log('📝', detailedPrompt.substring(0, 200) + '...');
+    console.log('📝 FULL PROMPT FOR DALL-E:');
+    console.log('---START---');
+    console.log(detailedPrompt);
+    console.log('---END---');
 
     // STEP 2: gpt-image-1 generates from the prompt
-    console.log('🎨 Step 2: gpt-image-1 generating...');
+    console.log('🎨 Step 2: gpt-image-1 generating with this prompt...');
 
     // Map aspect ratio to image size
     let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
