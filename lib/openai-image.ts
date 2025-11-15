@@ -235,10 +235,21 @@ Rules:
     }
 
     const editData: any = await editResponse.json();
+    console.log('📦 API Response:', JSON.stringify(editData, null, 2));
+    
+    // Check for b64_json format (if response_format was set)
+    const b64Image = editData.data?.[0]?.b64_json;
     const resultUrl = editData.data?.[0]?.url;
 
+    if (b64Image) {
+      console.log('✅ Got b64_json response');
+      // Convert base64 to buffer and return directly
+      return Buffer.from(b64Image, 'base64');
+    }
+
     if (!resultUrl) {
-      throw new Error('No edited image URL returned from API');
+      console.error('❌ No URL or b64_json in response:', editData);
+      throw new Error('No edited image URL or b64_json returned from API');
     }
 
     // Download the result
