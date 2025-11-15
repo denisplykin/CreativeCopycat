@@ -96,8 +96,8 @@ export default function CreativesNewPage() {
           generationType: 'full_creative',
           copyMode: 'mask_edit',
           aspectRatio: config.aspectRatio,
-          variationMode: config.variationMode,
-          defaultOptions: config.defaultOptions,
+          configGenerationType: config.generationType,
+          simpleOptions: config.simpleOptions,
           customPrompt: config.customPrompt,
         }),
       })
