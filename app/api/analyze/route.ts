@@ -53,30 +53,23 @@ export async function POST(request: Request) {
     const designAnalysis = await analyzeCreativeDesign(imageBuffer);
     console.log(`✅ Design analysis complete!`);
 
-    // Generate layout (old format from render.ts)
-    const oldLayoutJson = generateLayout(
-      ocrResult.blocks,
-      width,
-      height
-    );
-    
-    // Convert to new mask-based format
+    // Convert OCR blocks to new mask-based layout format
     const layoutJson = {
       image_size: { width, height },
       background: {
         color: designAnalysis.color_palette.background_colors?.[0] || '#FFFFFF',
         description: designAnalysis.background?.description || 'Solid background',
       },
-      elements: oldLayoutJson.elements.map((el, idx) => ({
+      elements: ocrResult.blocks.map((block, idx) => ({
         id: `text_${idx}`,
-        type: el.type as 'text',
+        type: 'text' as const,
         role: 'body' as const,
-        text: ocrResult.blocks[idx]?.text || '',
+        text: block.text,
         subtext: null,
-        font_style: `${el.style?.fontWeight || 'normal'} ${el.style?.fontFamily || 'sans-serif'}`,
-        color: el.style?.color || '#000000',
+        font_style: 'normal sans-serif',
+        color: '#000000',
         description: null,
-        bbox: el.bbox,
+        bbox: block.bbox,
         z_index: idx + 1,
       })),
     };
