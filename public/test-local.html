@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧪 Creative Test Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen p-8">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold text-white mb-8">
+      🧪 Creative Generation Test Lab
+    </h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Left: Controls -->
+      <div class="space-y-6">
+        <!-- Upload -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <h2 class="text-2xl font-bold text-white mb-4">📤 Upload Image</h2>
+          <input
+            type="file"
+            id="fileInput"
+            accept="image/*"
+            class="block w-full text-white bg-purple-600/50 border border-purple-400 rounded-lg px-4 py-3 cursor-pointer"
+          />
+          <div id="preview" class="mt-4 hidden">
+            <img id="previewImg" class="w-full rounded-lg border-2 border-purple-400" />
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <h2 class="text-2xl font-bold text-white mb-4">📝 Description</h2>
+          <textarea
+            id="description"
+            class="w-full bg-black/30 text-white border border-purple-400 rounded-lg px-4 py-3 h-24 resize-none"
+            placeholder="Tech education platform with modern design..."
+          >Tech education platform with modern design, engaging visuals</textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <h2 class="text-2xl font-bold text-white mb-4">🎨 Generation Modes</h2>
+          <div class="space-y-3">
+            <button
+              id="btnDalle"
+              onclick="testMode('dalle_simple')"
+              class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg"
+            >
+              🎨 DALL-E Direct
+            </button>
+            <button
+              id="btnCharacter"
+              onclick="testMode('character_swap')"
+              class="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg"
+            >
+              👧 Character Swap
+            </button>
+            <button
+              onclick="clearResults()"
+              class="w-full bg-red-500/50 hover:bg-red-600/70 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              🗑️ Clear Results
+            </button>
+          </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <h2 class="text-2xl font-bold text-white mb-4">📋 Logs</h2>
+          <div id="logs" class="bg-black/50 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm text-green-300">
+            <p class="text-gray-400">Ready to test...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Results -->
+      <div>
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 sticky top-8">
+          <h2 class="text-2xl font-bold text-white mb-4">🎯 Results</h2>
+          <div id="results" class="space-y-6 max-h-[800px] overflow-y-auto">
+            <div class="text-center text-purple-200 py-12">
+              <p class="text-xl">No results yet</p>
+              <p class="text-sm mt-2">Upload an image and click a generation button</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('previewImg');
+        const url = URL.createObjectURL(selectedFile);
+        previewImg.src = url;
+        preview.classList.remove('hidden');
+        addLog(`📁 File selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`);
+      }
+    });
+
+    function addLog(message) {
+      const logs = document.getElementById('logs');
+      const timestamp = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.textContent = `[${timestamp}] ${message}`;
+      line.classList.add('mb-1');
+      logs.appendChild(line);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    async function testMode(mode) {
+      if (!selectedFile) {
+        alert('Please upload an image first!');
+        return;
+      }
+
+      const btn = mode === 'dalle_simple' ? document.getElementById('btnDalle') : document.getElementById('btnCharacter');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="animate-pulse">⏳ Generating...</span>';
+
+      addLog(`🚀 Starting ${mode} generation...`);
+      const startTime = Date.now();
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        if (mode === 'dalle_simple') {
+          formData.append('description', document.getElementById('description').value);
+        }
+
+        addLog('📤 Uploading to API...');
+        const response = await fetch('/api/test-generate', {
+          method: 'POST',
+          headers: {
+            'X-Generation-Mode': mode,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Generation failed');
+        }
+
+        const result = await response.json();
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        addLog(`✅ Complete in ${duration}s`);
+
+        // Add result
+        const resultsDiv = document.getElementById('results');
+        if (resultsDiv.children[0].classList.contains('text-center')) {
+          resultsDiv.innerHTML = '';
+        }
+
+        const resultCard = document.createElement('div');
+        resultCard.className = 'bg-black/30 rounded-lg p-4 border border-purple-400/50';
+        resultCard.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold text-white">
+              ${mode === 'dalle_simple' ? '🎨 DALL-E Direct' : '👧 Character Swap'}
+            </h3>
+            <span class="text-xs text-purple-300">${duration}s</span>
+          </div>
+          <img src="${result.imageUrl}" class="w-full rounded-lg border-2 border-green-400" />
+          <a href="${result.imageUrl}" target="_blank" class="block mt-2 text-center text-sm text-cyan-300 hover:text-cyan-100 underline">
+            Open in new tab
+          </a>
+        `;
+        resultsDiv.insertBefore(resultCard, resultsDiv.firstChild);
+
+      } catch (error) {
+        addLog(`❌ Error: ${error.message}`);
+        
+        const resultsDiv = document.getElementById('results');
+        if (resultsDiv.children[0].classList.contains('text-center')) {
+          resultsDiv.innerHTML = '';
+        }
+
+        const errorCard = document.createElement('div');
+        errorCard.className = 'bg-red-500/20 border border-red-500 rounded-lg p-3 text-red-200 text-sm';
+        errorCard.textContent = `❌ ${error.message}`;
+        resultsDiv.insertBefore(errorCard, resultsDiv.firstChild);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = mode === 'dalle_simple' ? '🎨 DALL-E Direct' : '👧 Character Swap';
+      }
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = `
+        <div class="text-center text-purple-200 py-12">
+          <p class="text-xl">No results yet</p>
+          <p class="text-sm mt-2">Upload an image and click a generation button</p>
+        </div>
+      `;
+      document.getElementById('logs').innerHTML = '<p class="text-gray-400">Cleared...</p>';
+    }
+  </script>
+</body>
+</html>
+
