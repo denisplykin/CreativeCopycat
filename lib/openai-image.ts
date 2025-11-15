@@ -23,23 +23,23 @@ export async function generateWithGPTImage(params: GPTImageParams): Promise<Buff
     const mimeType = detectMimeType(inputBuffer);
 
     // Simple, natural prompt like talking to ChatGPT
-    const prompt = `Создай мне ровно такую же картинку (это рекламный креатив), но с небольшими изменениями.
+    const prompt = `Recreate this advertising creative image with these specifications:
 
-Что нужно СОХРАНИТЬ (точно как на оригинале):
-- Все тексты (те же слова, тот же язык, те же позиции)
-- Все блоки и элементы интерфейса
-- Цвета и стиль
-- Композицию и расположение всех элементов
-- Фон и декоративные элементы
-- Позы персонажей (если есть)
-- Размер и пропорции (${aspectRatio})
+KEEP EXACTLY THE SAME:
+- All text blocks (same words, same language, same positions)
+- All UI elements and layout structure
+- Colors and visual style
+- Composition and element positioning
+- Background and decorative elements
+- Character poses (if any)
+- Aspect ratio (${aspectRatio})
 
-Что нужно ИЗМЕНИТЬ:
-- Замени все упоминания конкурентных брендов на "Algonova"
-- Убери все видимые логотипы конкурентов
+MODIFICATIONS TO APPLY:
+- Replace any brand mentions with "Algonova"
+- Update branding elements to match Algonova style
 - ${modifications}
 
-ВАЖНО: Картинка должна быть максимально похожа на оригинал, только с указанными изменениями. Высокое качество, профессиональный рекламный креатив.`;
+Create a high-quality professional advertising creative that closely matches the original design with these branding updates.`;
 
 
     console.log('🎨 Calling GPT-5 Image via OpenRouter...');
@@ -97,8 +97,18 @@ export async function generateWithGPTImage(params: GPTImageParams): Promise<Buff
       console.log('🤖 Model used:', data.model);
     }
     
+    // Check for moderation block
+    const choice = data.choices?.[0];
+    if (choice?.error) {
+      console.error('🚨 OpenAI Error:', choice.error);
+      if (choice.error.code === 502 || choice.error.metadata?.raw?.code === 'moderation_blocked') {
+        throw new Error(`OpenAI blocked the request (safety system): ${choice.error.message}`);
+      }
+      throw new Error(`OpenAI error: ${choice.error.message}`);
+    }
+    
     // GPT-5 Image returns image in content
-    const content = data.choices?.[0]?.message?.content;
+    const content = choice?.message?.content;
     
     if (!content) {
       console.error('❌ No content from GPT-5 Image');
