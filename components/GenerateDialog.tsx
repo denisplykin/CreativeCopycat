@@ -107,7 +107,7 @@ export function GenerateDialog({
                 src={creative.original_image_url}
                 alt={creative.competitor_name || 'Creative'}
                 fill
-                className="object-cover"
+                className="object-contain"
               />
             </div>
             {creative.analysis?.aspect_ratio && (
@@ -139,7 +139,7 @@ export function GenerateDialog({
 
             {/* Generation Type */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Тип генерации</Label>
+              <Label className="text-base font-semibold mb-3 block">Generation Type</Label>
               <RadioGroup
                 value={config.generationType}
                 onValueChange={(value) =>
@@ -149,13 +149,13 @@ export function GenerateDialog({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="simple" id="simple" />
                   <Label htmlFor="simple" className="font-normal cursor-pointer">
-                    Простая (предустановленные настройки)
+                    Simple (preset options)
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
                   <Label htmlFor="custom" className="font-normal cursor-pointer">
-                    Кастомная (свой промпт)
+                    Custom (your own prompt)
                   </Label>
                 </div>
               </RadioGroup>
@@ -164,7 +164,7 @@ export function GenerateDialog({
             {/* Simple Options (multi-select checkboxes) */}
             {config.generationType === 'simple' && (
               <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-                <Label className="text-sm font-semibold block">Выберите что генерировать:</Label>
+                <Label className="text-sm font-semibold block">Select what to generate:</Label>
                 
                 {/* Simple Copy */}
                 <div className="flex items-start space-x-2">
@@ -186,7 +186,7 @@ export function GenerateDialog({
                       Simple Copy
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Меняем название и логотип на Algonova
+                      Replace brand name & logo with Algonova
                     </p>
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export function GenerateDialog({
                       Copy + Color
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Меняем название, логотип и цветовую схему на Algonova
+                      Replace brand, logo & recolor with Algonova palette
                     </p>
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export function GenerateDialog({
                       Slightly Different
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Немного меняем персонажа (тип остаётся тот же)
+                      Slightly change the character (same type)
                     </p>
                   </div>
                 </div>
@@ -261,11 +261,11 @@ export function GenerateDialog({
                     <Label htmlFor="fbData" className="font-normal cursor-pointer text-muted-foreground">
                       Based on FB data
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        🔒 Пока не работает
+                        🔒 Coming soon
                       </Badge>
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Генерация на основе данных из Facebook
+                      Generate based on Facebook performance data
                     </p>
                   </div>
                 </div>
@@ -290,11 +290,11 @@ export function GenerateDialog({
                     <Label htmlFor="randomVariations" className="font-normal cursor-pointer text-muted-foreground">
                       6 Random Variations
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        🔒 Пока не работает
+                        🔒 Coming soon
                       </Badge>
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      6 случайных вариаций для родителей в Индонезии
+                      6 random variations for Indonesian parents
                     </p>
                   </div>
                 </div>
