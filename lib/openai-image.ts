@@ -84,65 +84,63 @@ Include:
 }
 
 /**
- * VARIANT 2: Character swap via OpenRouter
- * Send image + instruction to replace character with 25yo Indonesian woman
+ * VARIANT 2: Character swap via GPT-4o Vision + DALL-E 3
+ * Use GPT-4o to analyze the image and create a detailed prompt
+ * Then use DALL-E 3 to generate with character swap
  */
 export async function generateCharacterSwap(params: CharacterSwapParams): Promise<Buffer> {
   const { imageBuffer, aspectRatio = '9:16' } = params;
 
   try {
-    console.log('👧 Character Swap: Sending to OpenRouter...');
+    console.log('👧 Character Swap: Using GPT-4o + DALL-E 3...');
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
 
-    // Natural prompt like talking to ChatGPT
-    const prompt = `Please recreate this advertising creative with these changes:
+    // STEP 1: GPT-4o analyzes the image and creates a detailed prompt
+    console.log('👁️ Step 1: GPT-4o analyzing image...');
+    
+    const analysisPrompt = `Analyze this advertising creative and create a detailed DALL-E prompt to recreate it with these changes:
 
 KEEP THE SAME:
-- Layout and composition
-- Text content and positioning
-- Colors and visual style
-- UI elements and graphics
-- Overall design concept
+- Overall layout and composition
+- Text content (all words) and positioning
+- Color scheme and visual style
+- UI elements, icons, graphics
+- Background design elements
 
-CHANGES TO MAKE:
+CHANGE:
 1. Replace the main character with a 25-year-old Indonesian woman
-   - Keep similar pose and expression
+   - Keep similar pose and body language
    - Professional, friendly appearance
    - Modern casual clothing
+   - Same framing and positioning
 
 2. Replace any brand names with "Algonova"
 
-Create a high-quality professional result that feels natural and cohesive.`;
+Create a detailed 200-250 word DALL-E prompt that will recreate this creative with these changes. Output ONLY the prompt text, no other commentary.`;
 
-    console.log('📝 Prompt:', prompt);
-    console.log('📷 Image size:', imageBuffer.length, 'bytes');
-
-    // Call via OpenRouter
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': 'Creative Copycat AI',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-image',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'You are a professional graphic designer helping to adapt advertising creatives for a new brand. This is legitimate commercial design work.',
+            content: 'You are a professional designer creating prompts for image generation. Focus on precise descriptions that maintain layout while changing specific elements.',
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: prompt,
+                text: analysisPrompt,
               },
               {
                 type: 'image_url',
@@ -153,69 +151,71 @@ Create a high-quality professional result that feels natural and cohesive.`;
             ],
           },
         ],
-        max_tokens: 4000,
+        max_tokens: 1000,
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ OpenRouter error:', response.status, errorText);
-      throw new Error(`OpenRouter API error: ${response.status}`);
+    if (!visionResponse.ok) {
+      const errorText = await visionResponse.text();
+      console.error('❌ GPT-4o error:', visionResponse.status, errorText);
+      throw new Error(`GPT-4o API error: ${visionResponse.status}`);
     }
 
-    const data = await response.json();
-    console.log('📦 Full response from OpenRouter:');
-    console.log(JSON.stringify(data, null, 2));
+    const visionData = await visionResponse.json();
+    const detailedPrompt = visionData.choices?.[0]?.message?.content;
 
-    // Check for errors
-    const choice = data.choices?.[0];
-    if (choice?.error) {
-      console.error('🚨 Error from model:', choice.error);
-      throw new Error(`Model error: ${choice.error.message || JSON.stringify(choice.error)}`);
+    if (!detailedPrompt || detailedPrompt.toLowerCase().includes("i'm sorry") || detailedPrompt.toLowerCase().includes("i can't")) {
+      console.error('❌ GPT-4o refused or returned invalid prompt:', detailedPrompt);
+      throw new Error('GPT-4o refused to create prompt or returned invalid response');
     }
 
-    const content = choice?.message?.content;
-    if (!content) {
-      console.error('❌ No content in response!');
-      console.error('Choice object:', JSON.stringify(choice, null, 2));
-      throw new Error('No content returned from model');
-    }
-    
-    console.log('📝 Content type:', typeof content);
-    console.log('📝 Content preview:', JSON.stringify(content).substring(0, 300));
+    console.log('✅ Step 1 complete! Generated prompt:');
+    console.log('📝', detailedPrompt.substring(0, 200) + '...');
 
-    // Parse response (image data)
-    let resultBuffer: Buffer;
+    // STEP 2: DALL-E 3 generates from the prompt
+    console.log('🎨 Step 2: DALL-E 3 generating...');
 
-    if (Array.isArray(content)) {
-      const imagePart = content.find((part: any) => part.type === 'image_url');
-      if (imagePart?.image_url?.url) {
-        const imageUrl = imagePart.image_url.url;
-        if (imageUrl.startsWith('data:')) {
-          const base64Data = imageUrl.split(',')[1];
-          resultBuffer = Buffer.from(base64Data, 'base64');
-        } else {
-          const imgResponse = await fetch(imageUrl);
-          resultBuffer = Buffer.from(await imgResponse.arrayBuffer());
-        }
-      } else {
-        throw new Error('No image in response');
-      }
-    } else if (typeof content === 'string') {
-      if (content.startsWith('data:')) {
-        const base64Data = content.split(',')[1];
-        resultBuffer = Buffer.from(base64Data, 'base64');
-      } else if (content.startsWith('http')) {
-        const imgResponse = await fetch(content);
-        resultBuffer = Buffer.from(await imgResponse.arrayBuffer());
-      } else {
-        resultBuffer = Buffer.from(content, 'base64');
-      }
-    } else {
-      throw new Error('Unexpected response format');
+    // Map aspect ratio to DALL-E size
+    let dalleSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
+    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
+      dalleSize = '1024x1792'; // vertical
+    } else if (aspectRatio === '16:9') {
+      dalleSize = '1792x1024'; // horizontal
     }
 
-    console.log(`✅ Character swap complete: ${resultBuffer.length} bytes`);
+    const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: detailedPrompt,
+        size: dalleSize,
+        quality: 'hd',
+        n: 1,
+        response_format: 'b64_json',
+      }),
+    });
+
+    if (!dalleResponse.ok) {
+      const errorText = await dalleResponse.text();
+      console.error('❌ DALL-E 3 error:', dalleResponse.status, errorText);
+      throw new Error(`DALL-E 3 API error: ${dalleResponse.status}`);
+    }
+
+    const dalleData = await dalleResponse.json();
+    const b64Image = dalleData.data?.[0]?.b64_json;
+
+    if (!b64Image) {
+      throw new Error('No image generated from DALL-E 3');
+    }
+
+    const resultBuffer = Buffer.from(b64Image, 'base64');
+    console.log(`✅ Step 2 complete! Image generated: ${resultBuffer.length} bytes`);
+    console.log('🎉 Character swap successful!');
+
     return resultBuffer;
   } catch (error) {
     console.error('❌ Character swap error:', error);
