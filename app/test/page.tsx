@@ -226,9 +226,7 @@ export default function TestPage() {
                     <div key={i} className="bg-black/30 rounded-lg p-4 border border-purple-400/50">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-lg font-semibold text-white">
-                          {result.mode === 'dalle_simple' ? '🎨 DALL-E Direct' : 
-                           result.mode === 'character_swap' ? '👧 Character Swap' : 
-                           '🤖 OpenAI 2-Step'}
+                          🎭 Mask Edit
                         </h3>
                         {result.duration && (
                           <span className="text-xs text-purple-300">
