@@ -226,11 +226,12 @@ Output a 200-word DALL-E prompt describing this new banner. Focus on visual desc
 }
 
 /**
- * VARIANT 3: OpenAI 2-Step (gpt-5.1 Vision + gpt-image-1)
+ * VARIANT 3: OpenAI 3-Step Pipeline (gpt-5.1 Vision + gpt-image-1)
  * User provides custom modification instructions
  * 
- * Step 1: gpt-5.1 (API name: gpt-4o) analyzes image and creates detailed prompt
- * Step 2: gpt-image-1 (API name: dall-e-3) generates from that prompt
+ * Step 1: gpt-5.1 analyzes image → structured JSON layout
+ * Step 2: JSON layout + modifications → detailed DALL-E prompt
+ * Step 3: gpt-image-1 generates from that prompt
  * 
  * Note: gpt-4o and dall-e-3 are the official API names for gpt-5.1 and gpt-image-1
  */
@@ -238,7 +239,7 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
   const { imageBuffer, modifications, aspectRatio = '9:16' } = params;
 
   try {
-    console.log('🤖 OpenAI 2-Step: GPT-5.1 → gpt-image-1...');
+    console.log('🤖 OpenAI 3-Step Pipeline: Analyze → Build Prompt → Generate...');
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     console.log(`📝 Modifications: ${modifications}`);
     
@@ -246,37 +247,47 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
 
-    // STEP 1: GPT-5.1 Vision analyzes image and creates prompt
-    console.log('👁️ Step 1: GPT-5.1 analyzing image...');
+    // ========== STEP 1: Analyze banner → JSON layout ==========
+    console.log('👁️ Step 1: GPT-5.1 analyzing banner structure...');
     
-    const visionPrompt = `You see a SINGLE advertising banner. Ignore any surrounding UI or other images if they exist. Your task:
+    const analysisPrompt = `You will see a SINGLE advertising banner. Ignore any surrounding UI. Your task is ONLY to analyze it and return a structured JSON description of the layout.
 
-1) Recreate this banner as a detailed text prompt for the image model gpt-image-1.
-2) The layout, typography and ALL text MUST stay the same: same paragraphs, same wording, same capitalization, same approximate positions.
-3) Keep the same background colors and decorative elements.
-4) MODIFY ONLY THIS: ${modifications}
-5) Use 150-300 English words. Describe background, text blocks (with full text), colors, UI elements, decorative shapes and any characters. Describe the composition from top-left to bottom-right.
-6) Output STRICTLY one JSON object: {"prompt": "..."} with no extra text.`;
+Return STRICTLY a JSON object with this shape:
+{
+  "background": string,
+  "text_blocks": [
+    {"id": string, "text": string, "font_style": string, "color": string, "approx_position": string}
+  ],
+  "cta": {"text": string, "subtext": string, "color": string, "approx_position": string},
+  "decor": string,
+  "character": {
+    "description": string,
+    "approx_position": string
+  }
+}
 
-    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+Rules:
+- Copy ALL visible text exactly as it appears (including punctuation and capitalization).
+- Use short human-readable ids for text_blocks, e.g. "headline", "body1", "body2".
+- approx_position is a simple description like "top-left", "center-right", "bottom-left".
+- Do NOT invent or translate text. If letters are unclear, copy them as best as possible.
+- Respond with JSON only, no explanations.`;
+
+    const step1Response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // gpt-4o IS gpt-5.1 in the API (official name)
+        model: 'gpt-4o',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a professional designer creating detailed prompts for image generation. Output only valid JSON.',
-          },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: visionPrompt,
+                text: analysisPrompt,
               },
               {
                 type: 'image_url',
@@ -287,52 +298,116 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
             ],
           },
         ],
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_tokens: 1500,
+        temperature: 0.3,
       }),
     });
 
-    if (!visionResponse.ok) {
-      const errorText = await visionResponse.text();
-      console.error('❌ GPT-5.1 Vision error:', visionResponse.status, errorText);
-      throw new Error(`GPT-5.1 Vision API error: ${visionResponse.status}`);
+    if (!step1Response.ok) {
+      const errorText = await step1Response.text();
+      console.error('❌ Step 1 error:', step1Response.status, errorText);
+      throw new Error(`Step 1 API error: ${step1Response.status}`);
     }
 
-    const visionData = await visionResponse.json();
-    const rawContent = visionData.choices?.[0]?.message?.content;
+    const step1Data = await step1Response.json();
+    const layoutRaw = step1Data.choices?.[0]?.message?.content;
 
-    if (!rawContent) {
-      throw new Error('No response from GPT-5.1 Vision');
+    if (!layoutRaw) {
+      throw new Error('No layout returned from Step 1');
     }
 
-    console.log('📦 Raw response:', rawContent.substring(0, 200));
+    // Parse layout JSON
+    let layoutJSON: any;
+    try {
+      const jsonMatch = layoutRaw.match(/```json\s*([\s\S]*?)\s*```/) || layoutRaw.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : layoutRaw;
+      layoutJSON = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('❌ Failed to parse layout JSON:', layoutRaw);
+      throw new Error('Invalid layout JSON from Step 1');
+    }
 
-    // Parse JSON from response
+    console.log('✅ Step 1 complete! Layout extracted:');
+    console.log(JSON.stringify(layoutJSON, null, 2));
+
+    // ========== STEP 2: Build strict prompt from JSON + modifications ==========
+    console.log('📝 Step 2: Building DALL-E prompt from layout...');
+
+    const promptBuilderInstruction = `You are preparing a prompt for the image model gpt-image-1.
+
+Here is the existing banner layout in JSON:
+---
+${JSON.stringify(layoutJSON, null, 2)}
+---
+
+Here is the user modification request:
+"${modifications}"
+
+Your task:
+- Write a single detailed English prompt (150-250 words) that instructs gpt-image-1 to recreate the SAME banner layout described in the JSON.
+- Preserve ALL text EXACTLY as in the JSON (do not translate or invent new words). Include each text block explicitly inside the prompt.
+- Explicitly describe: background, each text block and its relative position, CTA button, decorative shapes, and the character (with modifications applied).
+- Make it VERY clear that the layout, text and colors must stay the same, and ONLY apply the user's modifications.
+- Use conservative wording like "recreate the same layout" and "do not change...".
+
+Output STRICTLY JSON: {"prompt": "..."}`;
+
+    const step2Response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: promptBuilderInstruction,
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.5,
+      }),
+    });
+
+    if (!step2Response.ok) {
+      const errorText = await step2Response.text();
+      console.error('❌ Step 2 error:', step2Response.status, errorText);
+      throw new Error(`Step 2 API error: ${step2Response.status}`);
+    }
+
+    const step2Data = await step2Response.json();
+    const promptRaw = step2Data.choices?.[0]?.message?.content;
+
+    if (!promptRaw) {
+      throw new Error('No prompt returned from Step 2');
+    }
+
+    // Parse prompt JSON
     let detailedPrompt: string;
     try {
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/\{[\s\S]*"prompt"[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : rawContent;
+      const jsonMatch = promptRaw.match(/```json\s*([\s\S]*?)\s*```/) || promptRaw.match(/\{[\s\S]*"prompt"[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : promptRaw;
       const parsed = JSON.parse(jsonStr);
       detailedPrompt = parsed.prompt;
-    } catch (parseError) {
-      console.warn('⚠️ Failed to parse JSON, using raw content as prompt');
-      detailedPrompt = rawContent;
+    } catch (e) {
+      console.warn('⚠️ Failed to parse prompt JSON, using raw content');
+      detailedPrompt = promptRaw;
     }
 
     if (!detailedPrompt || detailedPrompt.toLowerCase().includes("i'm sorry") || detailedPrompt.toLowerCase().includes("i can't")) {
-      console.error('❌ GPT-5.1 refused or returned invalid prompt:', detailedPrompt);
-      throw new Error('GPT-5.1 refused to create prompt');
+      console.error('❌ Step 2 refused or invalid:', detailedPrompt);
+      throw new Error('Step 2 failed to create prompt');
     }
 
-    console.log('✅ Step 1 complete! Generated prompt:');
-    console.log('📝 FULL PROMPT FOR DALL-E:');
+    console.log('✅ Step 2 complete! DALL-E Prompt:');
     console.log('---START---');
     console.log(detailedPrompt);
     console.log('---END---');
 
-    // STEP 2: gpt-image-1 generates from the prompt
-    console.log('🎨 Step 2: gpt-image-1 generating with this prompt...');
+    // ========== STEP 3: Generate image with DALL-E ==========
+    console.log('🎨 Step 3: gpt-image-1 generating...');
 
     // Map aspect ratio to image size
     let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
