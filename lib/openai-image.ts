@@ -158,43 +158,31 @@ Rules:
     // ========== STEP 3: Edit image with mask using /v1/images/edits ==========
     console.log('\n✏️ STEP 3: Editing image with mask (gpt-image-1)...');
 
-    // Build edit prompt
-    const editPrompt = buildEditPrompt(layout, modifications, editTypes);
+    // Build minimal edit prompt (important: keep it short!)
+    const editPrompt = buildMinimalEditPrompt(modifications, editTypes);
     console.log('📝 Edit prompt:', editPrompt);
 
-    // Map aspect ratio to size for gpt-image-1 (supports non-square!)
-    let imageSize: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024';
-    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
-      imageSize = '1024x1536'; // vertical
-    } else if (aspectRatio === '16:9') {
-      imageSize = '1536x1024'; // horizontal
-    }
-
-    // Parse target dimensions
-    const [targetWidth, targetHeight] = imageSize.split('x').map(Number);
+    // IMPORTANT: For /images/edits, do NOT resize!
+    // Size must match original image size exactly
     const sharp = (await import('sharp')).default;
     
-    console.log(`🔄 Converting image and mask to ${imageSize} PNG with alpha channel...`);
+    console.log(`🔄 Converting image and mask to PNG (original size: ${layout.image_size.width}x${layout.image_size.height})...`);
     
-    // Convert image to RGBA PNG with target size
+    // Convert image to PNG (keep original size!)
     const convertedImage = await sharp(imageBuffer)
-      .resize(targetWidth, targetHeight, { fit: 'cover', position: 'center' })
       .png()
-      .ensureAlpha()
       .toBuffer();
     
-    // Convert mask to RGBA PNG with same size
+    // Mask is already correct size from generateMask
     const convertedMask = await sharp(maskBuffer)
-      .resize(targetWidth, targetHeight, { fit: 'cover', position: 'center' })
       .png()
-      .ensureAlpha()
       .toBuffer();
     
     console.log(`✅ Converted: image=${convertedImage.length} bytes, mask=${convertedMask.length} bytes`);
 
     // Prepare form data
     const formData = new FormData();
-    formData.append('model', 'gpt-image-1'); // NEW: gpt-image-1 supports non-square sizes!
+    formData.append('model', 'gpt-image-1');
     formData.append('image', convertedImage, {
       filename: 'image.png',
       contentType: 'image/png',
@@ -204,8 +192,8 @@ Rules:
       contentType: 'image/png',
     });
     formData.append('prompt', editPrompt);
-    formData.append('size', imageSize);
-    formData.append('quality', 'high'); // gpt-image-1 uses 'high' instead of 'hd'
+    // Note: 'size' is NOT needed for /images/edits - it uses input image size
+    formData.append('quality', 'high');
     formData.append('n', '1');
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
@@ -246,7 +234,20 @@ Rules:
 }
 
 /**
- * Build a precise edit prompt based on layout and user modifications
+ * Build a MINIMAL edit prompt for gpt-image-1
+ * According to docs: short prompts work better, model doesn't need detailed layout description
+ */
+function buildMinimalEditPrompt(modifications: string, editTypes: string[]): string {
+  // Super minimal prompt - only what needs to change
+  let prompt = `Replace ONLY the masked areas (${editTypes.join(', ')}). `;
+  prompt += modifications;
+  prompt += ` Do NOT change layout, text, colors, logo, or decorative shapes. Match lighting and perspective.`;
+  
+  return prompt;
+}
+
+/**
+ * Build a precise edit prompt based on layout and user modifications (OLD VERSION - TOO VERBOSE)
  */
 function buildEditPrompt(layout: BannerLayout, modifications: string, editTypes: string[]): string {
   const preservedElements = layout.elements.filter((el) => !editTypes.includes(el.type));
