@@ -22,37 +22,24 @@ export async function generateWithGPTImage(params: GPTImageParams): Promise<Buff
     const base64Image = inputBuffer.toString('base64');
     const mimeType = detectMimeType(inputBuffer);
 
-    // Build detailed prompt with better instructions
-    const prompt = `You are seeing an advertising creative banner. Your task is to generate a NEW version of this banner that:
+    // Simple, natural prompt like talking to ChatGPT
+    const prompt = `Создай мне ровно такую же картинку (это рекламный креатив), но с небольшими изменениями.
 
-1. ANALYZES the original banner and understands:
-   - The overall layout and composition
-   - All visual elements (characters, icons, UI elements, shapes, decorations)
-   - The color scheme and design style
-   - Text placement and hierarchy
-   - The mood and atmosphere
-   - What product/service it's advertising
+Что нужно СОХРАНИТЬ (точно как на оригинале):
+- Все тексты (те же слова, тот же язык, те же позиции)
+- Все блоки и элементы интерфейса
+- Цвета и стиль
+- Композицию и расположение всех элементов
+- Фон и декоративные элементы
+- Позы персонажей (если есть)
+- Размер и пропорции (${aspectRatio})
 
-2. RECREATES the banner with these EXACT requirements:
-   - Match the same layout structure and composition
-   - Keep all design elements in similar positions
-   - Preserve the color palette and visual style
-   - Maintain the same aspect ratio (${aspectRatio})
-   - Use high-quality, professional advertising creative quality
-   - Keep the same mood and energy
+Что нужно ИЗМЕНИТЬ:
+- Замени все упоминания конкурентных брендов на "Algonova"
+- Убери все видимые логотипы конкурентов
+- ${modifications}
 
-3. MODIFICATIONS to apply:
-   - Replace ANY competitor brand names with "Algonova"
-   - Remove ANY visible competitor logos
-   - ${modifications}
-
-4. TEXT REQUIREMENTS:
-   - If you see text in the original, recreate similar text blocks
-   - Keep text in the SAME language as the original
-   - Maintain text hierarchy (headlines vs body text)
-   - Use clean, readable fonts appropriate for the style
-
-IMPORTANT: Generate a complete, professional advertising banner that looks like a polished recreation of the original with the modifications applied. The output should be a full banner image, not a description.`;
+ВАЖНО: Картинка должна быть максимально похожа на оригинал, только с указанными изменениями. Высокое качество, профессиональный рекламный креатив.`;
 
 
     console.log('🎨 Calling GPT-5 Image via OpenRouter...');
