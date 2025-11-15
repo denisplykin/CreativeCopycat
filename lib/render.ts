@@ -103,16 +103,17 @@ export function generateLayout(
   elements: LayoutElement[];
   canvasSize: { width: number; height: number };
 } {
-  const elements: LayoutElement[] = ocrBlocks.map((block) => ({
-    type: 'text',
+  const elements: LayoutElement[] = ocrBlocks.map((block, idx) => ({
+    id: `text_${idx}`,
+    type: 'text' as const,
+    role: 'body' as const,
+    text: block.text,
+    subtext: null,
+    font_style: 'bold sans-serif',
+    color: '#FFFFFF',
+    description: null,
     bbox: block.bbox,
-    style: {
-      fontSize: Math.floor(block.bbox.height * 0.7),
-      fontFamily: 'Arial, sans-serif',
-      color: '#FFFFFF',
-      align: 'center',
-      fontWeight: 'bold',
-    },
+    z_index: idx + 1,
   }));
 
   return {
