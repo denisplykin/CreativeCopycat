@@ -249,20 +249,14 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
     // STEP 1: GPT-5.1 Vision analyzes image and creates prompt
     console.log('👁️ Step 1: GPT-5.1 analyzing image...');
     
-    const visionPrompt = `Create a DALL-E prompt for a professional advertising banner inspired by this image.
+    const visionPrompt = `You see a SINGLE advertising banner. Ignore any surrounding UI or other images if they exist. Your task:
 
-USER REQUESTED CHANGES:
-${modifications}
-
-Describe in 150-250 words:
-- Visual style and color palette
-- Layout and composition
-- Key design elements
-- Apply the user's requested changes above
-
-Brand: "Algonova" (tech education platform)
-
-Output ONLY JSON: {"prompt": "..."}`;
+1) Recreate this banner as a detailed text prompt for the image model gpt-image-1.
+2) The layout, typography and ALL text MUST stay the same: same paragraphs, same wording, same capitalization, same approximate positions.
+3) Keep the same background colors and decorative elements.
+4) MODIFY ONLY THIS: ${modifications}
+5) Use 150-300 English words. Describe background, text blocks (with full text), colors, UI elements, decorative shapes and any characters. Describe the composition from top-left to bottom-right.
+6) Output STRICTLY one JSON object: {"prompt": "..."} with no extra text.`;
 
     const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
