@@ -20,14 +20,15 @@ export async function renderCreative(
   try {
     // Create SVG overlay with text elements
     const svgTexts = layout.elements.map((element, index) => {
-      const text = texts[`text${index}`] || texts[index] || '';
+      const text = texts[`text${index}`] || texts[index] || element.text || '';
       if (!text) return '';
 
-      const { bbox, style } = element;
-      const fontSize = style?.fontSize || Math.floor(bbox.height * 0.7);
-      const fontFamily = style?.fontFamily || 'Arial, sans-serif';
-      const color = style?.color || '#FFFFFF';
-      const fontWeight = style?.fontWeight || 'bold';
+      const { bbox, font_style, color } = element;
+      // Parse font_style (e.g., "bold sans-serif")
+      const fontWeight = font_style?.includes('bold') ? 'bold' : 'normal';
+      const fontFamily = font_style?.replace('bold', '').trim() || 'Arial, sans-serif';
+      const fontSize = Math.floor(bbox.height * 0.7);
+      const textColor = color || '#FFFFFF';
       
       // Center text in bounding box
       const x = bbox.x + bbox.width / 2;
@@ -41,7 +42,7 @@ export async function renderCreative(
           font-size="${fontSize}"
           font-family="${fontFamily}"
           font-weight="${fontWeight}"
-          fill="${color}"
+          fill="${textColor}"
           text-anchor="middle"
           stroke="#000000"
           stroke-width="2"
