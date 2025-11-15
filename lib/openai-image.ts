@@ -102,25 +102,21 @@ export async function generateCharacterSwap(params: CharacterSwapParams): Promis
     // STEP 1: GPT-4o analyzes the image and creates a detailed prompt
     console.log('👁️ Step 1: GPT-4o analyzing image...');
     
-    const analysisPrompt = `Analyze this advertising creative and create a detailed DALL-E prompt to recreate it with these changes:
+    const analysisPrompt = `Create a DALL-E prompt to generate a professional advertising banner inspired by this image.
 
-KEEP THE SAME:
-- Overall layout and composition
-- Text content (all words) and positioning
-- Color scheme and visual style
-- UI elements, icons, graphics
-- Background design elements
+Describe the following elements:
+- Background: colors, style, decorative elements
+- Layout: position of text blocks and visual elements
+- Typography: style and placement (note the text but don't reproduce logos)
+- Main subject: Instead of the person shown, feature a confident 25-year-old Indonesian woman in professional attire, similar pose
+- Color palette: maintain the overall color scheme
+- Visual style: modern, clean, professional
+- Aspect: vertical mobile banner format
 
-CHANGE:
-1. Replace the main character with a 25-year-old Indonesian woman
-   - Keep similar pose and body language
-   - Professional, friendly appearance
-   - Modern casual clothing
-   - Same framing and positioning
+Brand: "Algonova" (tech education platform)
+Goal: Create an engaging, professional ad with similar visual impact
 
-2. Replace any brand names with "Algonova"
-
-Create a detailed 200-250 word DALL-E prompt that will recreate this creative with these changes. Output ONLY the prompt text, no other commentary.`;
+Output a 200-word DALL-E prompt describing this new banner. Focus on visual description, not text reproduction.`;
 
     const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
