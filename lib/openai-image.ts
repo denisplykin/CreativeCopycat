@@ -1,277 +1,83 @@
-interface DalleSimpleParams {
-  description: string;
-  aspectRatio?: string;
+import { BoundingBox, LayoutElement } from '@/types/creative';
+import { generateMask, filterBoxesByType } from './mask-generator';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
+
+interface BannerLayout {
+  image_size: { width: number; height: number };
+  background: {
+    color: string;
+    description: string;
+  };
+  elements: LayoutElement[];
 }
 
-interface CharacterSwapParams {
+interface MaskEditParams {
   imageBuffer: Buffer;
-  aspectRatio?: string;
-}
-
-interface OpenAI2StepParams {
-  imageBuffer: Buffer;
-  modifications: string; // User's instruction what to change
+  modifications: string; // User's instruction: what to change and how
+  editTypes?: string[]; // Which element types to edit (e.g., ['character', 'logo'])
   aspectRatio?: string;
 }
 
 /**
- * VARIANT 1: Simple DALL-E 3 text-to-image
- * No vision model, just a text prompt describing an Algonova ad
- */
-export async function generateDalleSimple(params: DalleSimpleParams): Promise<Buffer> {
-  const { description, aspectRatio = '9:16' } = params;
-
-  try {
-    console.log('🎨 DALL-E Simple: Generating from text prompt...');
-    console.log(`📐 Aspect ratio: ${aspectRatio}`);
-
-    // Map aspect ratio to DALL-E size
-    let dalleSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
-    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
-      dalleSize = '1024x1792'; // vertical
-    } else if (aspectRatio === '16:9') {
-      dalleSize = '1792x1024'; // horizontal
-    }
-
-    // Build creative prompt for Algonova
-    const prompt = `Create a professional advertising banner for "Algonova" - a modern tech education platform.
-
-Style: Modern, clean, tech-focused, engaging
-Colors: Orange, pink, purple, cyan accents on white/light background
-Target: Young adults interested in technology education
-
-Creative brief: ${description}
-
-Include:
-- "Algonova" branding prominently
-- Clear call-to-action
-- Modern UI elements
-- Professional high-quality design`;
-
-    console.log('📝 Prompt:', prompt);
-
-    const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        size: dalleSize,
-        quality: 'hd',
-        n: 1,
-        response_format: 'b64_json',
-      }),
-    });
-
-    if (!dalleResponse.ok) {
-      const errorText = await dalleResponse.text();
-      console.error('❌ DALL-E 3 error:', dalleResponse.status, errorText);
-      throw new Error(`DALL-E 3 API error: ${dalleResponse.status}`);
-    }
-
-    const dalleData = await dalleResponse.json();
-    const b64Image = dalleData.data?.[0]?.b64_json;
-
-    if (!b64Image) {
-      throw new Error('No image generated from DALL-E 3');
-    }
-
-    const imageBuffer = Buffer.from(b64Image, 'base64');
-    console.log(`✅ Image generated: ${imageBuffer.length} bytes`);
-
-    return imageBuffer;
-  } catch (error) {
-    console.error('❌ DALL-E Simple generation error:', error);
-    throw error;
-  }
-}
-
-/**
- * VARIANT 2: Character swap via GPT-4o Vision + DALL-E 3
- * Use GPT-4o to analyze the image and create a detailed prompt
- * Then use DALL-E 3 to generate with character swap
- */
-export async function generateCharacterSwap(params: CharacterSwapParams): Promise<Buffer> {
-  const { imageBuffer, aspectRatio = '9:16' } = params;
-
-  try {
-    console.log('👧 Character Swap: Using GPT-4o + DALL-E 3...');
-    console.log(`📐 Aspect ratio: ${aspectRatio}`);
-    
-    // Convert image to base64
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = detectMimeType(imageBuffer);
-
-    // STEP 1: GPT-4o analyzes the image and creates a detailed prompt
-    console.log('👁️ Step 1: GPT-4o analyzing image...');
-    
-    const analysisPrompt = `Create a DALL-E prompt to generate a professional advertising banner inspired by this image.
-
-Describe the following elements:
-- Background: colors, style, decorative elements
-- Layout: position of text blocks and visual elements
-- Typography: style and placement (note the text but don't reproduce logos)
-- Main subject: Instead of the person shown, feature a confident 25-year-old Indonesian woman in professional attire, similar pose
-- Color palette: maintain the overall color scheme
-- Visual style: modern, clean, professional
-- Aspect: vertical mobile banner format
-
-Brand: "Algonova" (tech education platform)
-Goal: Create an engaging, professional ad with similar visual impact
-
-Output a 200-word DALL-E prompt describing this new banner. Focus on visual description, not text reproduction.`;
-
-    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional designer creating prompts for image generation. Focus on precise descriptions that maintain layout while changing specific elements.',
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: analysisPrompt,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`,
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!visionResponse.ok) {
-      const errorText = await visionResponse.text();
-      console.error('❌ GPT-4o error:', visionResponse.status, errorText);
-      throw new Error(`GPT-4o API error: ${visionResponse.status}`);
-    }
-
-    const visionData = await visionResponse.json();
-    const detailedPrompt = visionData.choices?.[0]?.message?.content;
-
-    if (!detailedPrompt || detailedPrompt.toLowerCase().includes("i'm sorry") || detailedPrompt.toLowerCase().includes("i can't")) {
-      console.error('❌ GPT-4o refused or returned invalid prompt:', detailedPrompt);
-      throw new Error('GPT-4o refused to create prompt or returned invalid response');
-    }
-
-    console.log('✅ Step 1 complete! Generated prompt:');
-    console.log('📝', detailedPrompt.substring(0, 200) + '...');
-
-    // STEP 2: DALL-E 3 generates from the prompt
-    console.log('🎨 Step 2: DALL-E 3 generating...');
-
-    // Map aspect ratio to DALL-E size
-    let dalleSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
-    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
-      dalleSize = '1024x1792'; // vertical
-    } else if (aspectRatio === '16:9') {
-      dalleSize = '1792x1024'; // horizontal
-    }
-
-    const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: detailedPrompt,
-        size: dalleSize,
-        quality: 'hd',
-        n: 1,
-        response_format: 'b64_json',
-      }),
-    });
-
-    if (!dalleResponse.ok) {
-      const errorText = await dalleResponse.text();
-      console.error('❌ DALL-E 3 error:', dalleResponse.status, errorText);
-      throw new Error(`DALL-E 3 API error: ${dalleResponse.status}`);
-    }
-
-    const dalleData = await dalleResponse.json();
-    const b64Image = dalleData.data?.[0]?.b64_json;
-
-    if (!b64Image) {
-      throw new Error('No image generated from DALL-E 3');
-    }
-
-    const resultBuffer = Buffer.from(b64Image, 'base64');
-    console.log(`✅ Step 2 complete! Image generated: ${resultBuffer.length} bytes`);
-    console.log('🎉 Character swap successful!');
-
-    return resultBuffer;
-  } catch (error) {
-    console.error('❌ Character swap error:', error);
-    throw error;
-  }
-}
-
-/**
- * VARIANT 3: OpenAI 3-Step Pipeline (gpt-5.1 Vision + gpt-image-1)
- * User provides custom modification instructions
+ * MASK-BASED EDITING PIPELINE (3 steps)
+ * Based on ai_banner_editing_instruction.md
  * 
- * Step 1: gpt-5.1 analyzes image → structured JSON layout
- * Step 2: JSON layout + modifications → detailed DALL-E prompt
- * Step 3: gpt-image-1 generates from that prompt
- * 
- * Note: gpt-4o and dall-e-3 are the official API names for gpt-5.1 and gpt-image-1
+ * Step 1: Analyze banner → extract layout JSON with bounding boxes
+ * Step 2: Generate mask PNG from bounding boxes
+ * Step 3: Edit image using /v1/images/edits with mask
  */
-export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Buffer> {
-  const { imageBuffer, modifications, aspectRatio = '9:16' } = params;
+export async function generateMaskEdit(params: MaskEditParams): Promise<Buffer> {
+  const { imageBuffer, modifications, editTypes = ['character'], aspectRatio = '9:16' } = params;
 
   try {
-    console.log('🤖 OpenAI 3-Step Pipeline: Analyze → Build Prompt → Generate...');
+    console.log('🎭 MASK EDIT PIPELINE: Starting...');
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     console.log(`📝 Modifications: ${modifications}`);
-    
+    console.log(`🎯 Edit types: ${editTypes.join(', ')}`);
+
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
 
-    // ========== STEP 1: Analyze banner → JSON layout ==========
-    console.log('👁️ Step 1: GPT-5.1 analyzing banner structure...');
-    
-    const analysisPrompt = `You will see a SINGLE advertising banner. Ignore any surrounding UI. Your task is ONLY to analyze it and return a structured JSON description of the layout.
+    // ========== STEP 1: Analyze banner → JSON layout with bbox ==========
+    console.log('\n👁️ STEP 1: Analyzing banner structure...');
 
-Return STRICTLY a JSON object with this shape:
+    const analysisPrompt = `You will see a SINGLE advertising banner image. Ignore any surrounding UI.
+Your job is to analyze it and return a STRICT JSON description of its layout and main elements.
+
+Use this EXACT JSON shape:
 {
-  "background": string,
-  "text_blocks": [
-    {"id": string, "text": string, "font_style": string, "color": string, "approx_position": string}
-  ],
-  "cta": {"text": string, "subtext": string, "color": string, "approx_position": string},
-  "decor": string,
-  "character": {
-    "description": string,
-    "approx_position": string
-  }
+  "image_size": { "width": 0, "height": 0 },
+  "background": {
+    "color": "string",
+    "description": "string"
+  },
+  "elements": [
+    {
+      "id": "string",
+      "type": "text | character | logo | button | decor | other",
+      "role": "headline | body | cta | brand | primary | shape | other",
+      "text": "string | null",
+      "subtext": "string | null",
+      "font_style": "string | null",
+      "color": "string | null",
+      "description": "string | null",
+      "bbox": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "z_index": 0
+    }
+  ]
 }
 
 Rules:
-- Copy ALL visible text exactly as it appears (including punctuation and capitalization).
-- Use short human-readable ids for text_blocks, e.g. "headline", "body1", "body2".
-- approx_position is a simple description like "top-left", "center-right", "bottom-left".
-- Do NOT invent or translate text. If letters are unclear, copy them as best as possible.
-- Respond with JSON only, no explanations.`;
+- Coordinates must be in pixels.
+- x,y = top-left corner of element.
+- Copy ALL text exactly as it appears.
+- Identify all main elements: headline, body text, CTA button, character/person, logo, decorative shapes.
+- Provide font_style and color for text elements (e.g., "bold sans-serif", "pink").
+- Expand bounding boxes slightly to fully include each element.
+- z_index: larger numbers = on top (e.g., character=10, background shapes=1).
+- Return ONLY valid JSON, no explanations.`;
 
     const step1Response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -298,8 +104,8 @@ Rules:
             ],
           },
         ],
-        max_tokens: 1500,
-        temperature: 0.3,
+        max_tokens: 2000,
+        temperature: 0.2,
       }),
     });
 
@@ -309,7 +115,7 @@ Rules:
       throw new Error(`Step 1 API error: ${step1Response.status}`);
     }
 
-    const step1Data = await step1Response.json();
+    const step1Data: any = await step1Response.json();
     const layoutRaw = step1Data.choices?.[0]?.message?.content;
 
     if (!layoutRaw) {
@@ -317,99 +123,46 @@ Rules:
     }
 
     // Parse layout JSON
-    let layoutJSON: any;
+    let layout: BannerLayout;
     try {
       const jsonMatch = layoutRaw.match(/```json\s*([\s\S]*?)\s*```/) || layoutRaw.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : layoutRaw;
-      layoutJSON = JSON.parse(jsonStr);
+      layout = JSON.parse(jsonStr);
     } catch (e) {
       console.error('❌ Failed to parse layout JSON:', layoutRaw);
       throw new Error('Invalid layout JSON from Step 1');
     }
 
-    console.log('✅ Step 1 complete! Layout extracted:');
-    console.log(JSON.stringify(layoutJSON, null, 2));
+    console.log('✅ STEP 1 COMPLETE! Layout extracted:');
+    console.log(JSON.stringify(layout, null, 2));
 
-    // ========== STEP 2: Build strict prompt from JSON + modifications ==========
-    console.log('📝 Step 2: Building DALL-E prompt from layout...');
+    // ========== STEP 2: Generate mask from bounding boxes ==========
+    console.log('\n🎨 STEP 2: Generating mask...');
 
-    const promptBuilderInstruction = `You are preparing a prompt for the image model gpt-image-1.
+    const editBoxes = filterBoxesByType(layout.elements, editTypes);
 
-Here is the existing banner layout in JSON:
----
-${JSON.stringify(layoutJSON, null, 2)}
----
+    if (editBoxes.length === 0) {
+      console.warn('⚠️ No elements found for editing types:', editTypes);
+      throw new Error(`No elements of type [${editTypes.join(', ')}] found in the banner`);
+    }
 
-Here is the user modification request:
-"${modifications}"
-
-Your task:
-- Write a single detailed English prompt (150-250 words) that instructs gpt-image-1 to recreate the SAME banner layout described in the JSON.
-- Preserve ALL text EXACTLY as in the JSON (do not translate or invent new words). Include each text block explicitly inside the prompt.
-- Explicitly describe: background, each text block and its relative position, CTA button, decorative shapes, and the character (with modifications applied).
-- Make it VERY clear that the layout, text and colors must stay the same, and ONLY apply the user's modifications.
-- Use conservative wording like "recreate the same layout" and "do not change...".
-
-Output STRICTLY JSON: {"prompt": "..."}`;
-
-    const step2Response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: promptBuilderInstruction,
-          },
-        ],
-        max_tokens: 1000,
-        temperature: 0.5,
-      }),
+    const maskBuffer = await generateMask({
+      width: layout.image_size.width,
+      height: layout.image_size.height,
+      boxes: editBoxes,
+      padding: 30, // Extra pixels around each element
     });
 
-    if (!step2Response.ok) {
-      const errorText = await step2Response.text();
-      console.error('❌ Step 2 error:', step2Response.status, errorText);
-      throw new Error(`Step 2 API error: ${step2Response.status}`);
-    }
+    console.log('✅ STEP 2 COMPLETE! Mask generated.');
 
-    const step2Data = await step2Response.json();
-    const promptRaw = step2Data.choices?.[0]?.message?.content;
+    // ========== STEP 3: Edit image with mask using /v1/images/edits ==========
+    console.log('\n✏️ STEP 3: Editing image with mask...');
 
-    if (!promptRaw) {
-      throw new Error('No prompt returned from Step 2');
-    }
+    // Build edit prompt
+    const editPrompt = buildEditPrompt(layout, modifications, editTypes);
+    console.log('📝 Edit prompt:', editPrompt);
 
-    // Parse prompt JSON
-    let detailedPrompt: string;
-    try {
-      const jsonMatch = promptRaw.match(/```json\s*([\s\S]*?)\s*```/) || promptRaw.match(/\{[\s\S]*"prompt"[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : promptRaw;
-      const parsed = JSON.parse(jsonStr);
-      detailedPrompt = parsed.prompt;
-    } catch (e) {
-      console.warn('⚠️ Failed to parse prompt JSON, using raw content');
-      detailedPrompt = promptRaw;
-    }
-
-    if (!detailedPrompt || detailedPrompt.toLowerCase().includes("i'm sorry") || detailedPrompt.toLowerCase().includes("i can't")) {
-      console.error('❌ Step 2 refused or invalid:', detailedPrompt);
-      throw new Error('Step 2 failed to create prompt');
-    }
-
-    console.log('✅ Step 2 complete! DALL-E Prompt:');
-    console.log('---START---');
-    console.log(detailedPrompt);
-    console.log('---END---');
-
-    // ========== STEP 3: Generate image with DALL-E ==========
-    console.log('🎨 Step 3: gpt-image-1 generating...');
-
-    // Map aspect ratio to image size
+    // Map aspect ratio to size
     let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
     if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
       imageSize = '1024x1792'; // vertical
@@ -417,64 +170,110 @@ Output STRICTLY JSON: {"prompt": "..."}`;
       imageSize = '1792x1024'; // horizontal
     }
 
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('model', 'dall-e-2'); // Note: edits endpoint uses dall-e-2
+    formData.append('image', imageBuffer, {
+      filename: 'image.png',
+      contentType: 'image/png',
+    });
+    formData.append('mask', maskBuffer, {
+      filename: 'mask.png',
+      contentType: 'image/png',
+    });
+    formData.append('prompt', editPrompt);
+    formData.append('n', '1');
+    formData.append('size', imageSize);
+
+    const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+        ...formData.getHeaders(),
       },
-      body: JSON.stringify({
-        model: 'dall-e-3', // dall-e-3 IS gpt-image-1 in the API (official name)
-        prompt: detailedPrompt,
-        size: imageSize,
-        quality: 'hd',
-        n: 1,
-        response_format: 'b64_json',
-      }),
+      body: formData as any,
     });
 
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error('❌ gpt-image-1 (DALL-E 3) error:', imageResponse.status);
-      console.error('Error details:', errorText);
-      console.error('Prompt that was sent:', detailedPrompt);
-      
-      let errorMessage = `gpt-image-1 API error: ${imageResponse.status}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.message) {
-          errorMessage = `DALL-E error: ${errorJson.error.message}`;
-        }
-      } catch (e) {
-        // Not JSON, use raw text
-      }
-      
-      throw new Error(errorMessage);
+    if (!editResponse.ok) {
+      const errorText = await editResponse.text();
+      console.error('❌ Step 3 error:', editResponse.status, errorText);
+      throw new Error(`Image edit API error: ${editResponse.status}`);
     }
 
-    const imageData = await imageResponse.json();
-    const b64Image = imageData.data?.[0]?.b64_json;
+    const editData: any = await editResponse.json();
+    const resultUrl = editData.data?.[0]?.url;
 
-    if (!b64Image) {
-      throw new Error('No image generated from gpt-image-1');
+    if (!resultUrl) {
+      throw new Error('No edited image URL returned from API');
     }
 
-    const resultBuffer = Buffer.from(b64Image, 'base64');
-    console.log(`✅ Step 2 complete! Image generated: ${resultBuffer.length} bytes`);
-    console.log('🎉 OpenAI 2-Step generation successful!');
+    // Download the result
+    console.log('⬇️ Downloading edited image...');
+    const imageResponse = await fetch(resultUrl);
+    const resultBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    console.log(`✅ STEP 3 COMPLETE! Image edited: ${resultBuffer.length} bytes`);
+    console.log('🎉 Mask edit pipeline successful!\n');
 
     return resultBuffer;
   } catch (error) {
-    console.error('❌ OpenAI 2-Step error:', error);
+    console.error('❌ Mask edit pipeline error:', error);
     throw error;
   }
+}
+
+/**
+ * Build a precise edit prompt based on layout and user modifications
+ */
+function buildEditPrompt(layout: BannerLayout, modifications: string, editTypes: string[]): string {
+  const preservedElements = layout.elements.filter((el) => !editTypes.includes(el.type));
+  const editedElements = layout.elements.filter((el) => editTypes.includes(el.type));
+
+  let prompt = `Professional advertising banner. `;
+
+  // Describe what to preserve
+  prompt += `Preserve the following EXACTLY: `;
+  prompt += `- Background: ${layout.background.description}. `;
+  
+  if (preservedElements.length > 0) {
+    const textElements = preservedElements.filter((el) => el.type === 'text' && el.text);
+    if (textElements.length > 0) {
+      prompt += `- All text blocks: `;
+      textElements.forEach((el) => {
+        prompt += `"${el.text}" (${el.font_style}, ${el.color}), `;
+      });
+    }
+
+    const otherElements = preservedElements.filter((el) => el.type !== 'text');
+    if (otherElements.length > 0) {
+      prompt += `- Other elements: `;
+      otherElements.forEach((el) => {
+        if (el.description) {
+          prompt += `${el.description}, `;
+        }
+      });
+    }
+  }
+
+  // Describe what to change
+  prompt += `\n\nChange the following areas (white mask): `;
+  editedElements.forEach((el) => {
+    prompt += `${el.type} (${el.description || el.role}), `;
+  });
+
+  // Add user's modification instructions
+  prompt += `\n\nModifications: ${modifications}`;
+
+  // Add quality instructions
+  prompt += `\n\nMaintain high quality, professional design, same layout and composition.`;
+
+  return prompt;
 }
 
 /**
  * Detect MIME type from buffer
  */
 function detectMimeType(buffer: Buffer): string {
-  // Check magic numbers
   if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
     return 'image/jpeg';
   }
@@ -487,7 +286,5 @@ function detectMimeType(buffer: Buffer): string {
   if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
     return 'image/webp';
   }
-  // Default to PNG
   return 'image/png';
 }
-

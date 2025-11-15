@@ -12,7 +12,9 @@ interface CreativeModalProps {
 interface GenerationConfig {
   aspectRatio: string;
   numVariations: number;
-  mode: 'dalle_simple' | 'character_swap';
+  mode: 'mask_edit';
+  modifications?: string; // User's custom modification instructions
+  editTypes?: string[]; // Which elements to edit
 }
 
 const ASPECT_RATIOS = [
@@ -32,18 +34,11 @@ const NUM_VARIATIONS_OPTIONS = [
 
 const GENERATION_MODES = [
   {
-    id: 'dalle_simple',
-    title: '🎨 DALL-E Direct',
-    description: 'Simple DALL-E 3 generation from text prompt',
-    subtitle: 'Fast and creative',
-    color: 'from-purple-500 to-pink-600',
-  },
-  {
-    id: 'character_swap',
-    title: '👧 Character Swap',
-    description: 'Replace character with 25yo Indonesian woman + Algonova branding',
-    subtitle: 'AI-powered character replacement',
-    color: 'from-blue-500 to-cyan-600',
+    id: 'mask_edit',
+    title: '🎭 Mask Edit',
+    description: 'AI-powered precise editing: Replace character, logo, and update branding to Algonova',
+    subtitle: 'Mask-based editing preserves layout',
+    color: 'from-purple-500 via-pink-500 to-cyan-500',
   },
 ];
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
-type GenerationMode = 'dalle_simple' | 'character_swap' | 'openai_2step';
+type GenerationMode = 'mask_edit';
 
 interface TestResult {
   mode: GenerationMode;
@@ -16,8 +16,7 @@ interface TestResult {
 export default function TestPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [description, setDescription] = useState('Tech education platform with modern design, engaging visuals');
-  const [modifications, setModifications] = useState('Replace the child with a 18-22 year old male student');
+  const [modifications, setModifications] = useState('Replace the main character with a confident 25-year-old Indonesian woman. Update brand names to Algonova.');
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState<{ [key in GenerationMode]?: boolean }>({});
   const [logs, setLogs] = useState<string[]>([]);
@@ -49,15 +48,10 @@ export default function TestPage() {
     const startTime = Date.now();
 
     try {
-      // Upload image to temporary storage
+      // Upload image and parameters
       const formData = new FormData();
       formData.append('file', selectedFile);
-      
-      if (mode === 'dalle_simple') {
-        formData.append('description', description);
-      } else if (mode === 'openai_2step') {
-        formData.append('modifications', modifications);
-      }
+      formData.append('modifications', modifications);
 
       addLog(`📤 Uploading image...`);
       const uploadResponse = await fetch('/api/test-generate', {
@@ -149,49 +143,35 @@ export default function TestPage() {
               )}
             </div>
 
-            {/* Description for DALL-E Simple */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-              <h2 className="text-2xl font-bold text-white mb-4">📝 Description</h2>
-              <p className="text-purple-200 text-sm mb-2">
-                For DALL-E Simple mode (text-to-image)
-              </p>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-black/30 text-white border border-purple-400 rounded-lg px-4 py-3 h-24 resize-none"
-                placeholder="Describe the creative you want to generate..."
-              />
-            </div>
-
-            {/* Modifications for OpenAI 2-Step */}
+            {/* Modifications for Mask Edit */}
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
               <h2 className="text-2xl font-bold text-white mb-4">🔧 Modifications</h2>
               <p className="text-purple-200 text-sm mb-2">
-                For OpenAI 2-Step mode (required)
+                What changes do you want to make?
               </p>
               <textarea
                 value={modifications}
                 onChange={(e) => setModifications(e.target.value)}
-                className="w-full bg-black/30 text-white border border-purple-400 rounded-lg px-4 py-3 h-24 resize-none"
-                placeholder="Example: Replace the child with a 18-22 year old male student"
+                className="w-full bg-black/30 text-white border border-purple-400 rounded-lg px-4 py-3 h-32 resize-none"
+                placeholder="Example: Replace the main character with a 25-year-old Indonesian woman. Update brand names to Algonova."
               />
               <p className="text-purple-300 text-xs mt-2">
-                💡 Examples: "Change main color to purple" / "Replace character with a woman" / "Change background to sunset"
+                💡 Examples: "Replace character with a professional woman" / "Update logo to Algonova" / "Change character pose to standing"
               </p>
             </div>
 
-            {/* Generation Modes */}
+            {/* Generation Mode */}
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-              <h2 className="text-2xl font-bold text-white mb-4">🎨 Generation Modes</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">🎨 Generation Mode</h2>
               
               <div className="space-y-3">
-                {/* DALL-E Simple */}
+                {/* Mask Edit */}
                 <button
-                  onClick={() => testMode('dalle_simple')}
-                  disabled={loading.dalle_simple || !selectedFile}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg disabled:cursor-not-allowed"
+                  onClick={() => testMode('mask_edit')}
+                  disabled={loading.mask_edit || !selectedFile}
+                  className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg disabled:cursor-not-allowed"
                 >
-                  {loading.dalle_simple ? (
+                  {loading.mask_edit ? (
                     <span className="flex items-center justify-center">
                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -200,45 +180,7 @@ export default function TestPage() {
                       Generating...
                     </span>
                   ) : (
-                    '🎨 DALL-E Direct (Text → Image)'
-                  )}
-                </button>
-
-                {/* Character Swap */}
-                <button
-                  onClick={() => testMode('character_swap')}
-                  disabled={loading.character_swap || !selectedFile}
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg disabled:cursor-not-allowed"
-                >
-                  {loading.character_swap ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating...
-                    </span>
-                  ) : (
-                    '👧 Character Swap (25yo Indonesian woman)'
-                  )}
-                </button>
-
-                {/* OpenAI 2-Step */}
-                <button
-                  onClick={() => testMode('openai_2step')}
-                  disabled={loading.openai_2step || !selectedFile || !modifications.trim()}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition shadow-lg disabled:cursor-not-allowed"
-                >
-                  {loading.openai_2step ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating...
-                    </span>
-                  ) : (
-                    '🤖 OpenAI 2-Step (Custom Changes)'
+                    '🎭 Mask Edit (AI-Powered Precise Editing)'
                   )}
                 </button>
               </div>

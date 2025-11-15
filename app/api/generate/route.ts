@@ -3,7 +3,7 @@ import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun }
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
-import { generateDalleSimple, generateCharacterSwap } from '@/lib/openai-image';
+import { generateMaskEdit } from '@/lib/openai-image';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const {
       creativeId,
       generationType,
-      copyMode = 'simple_overlay',
+      copyMode = 'mask_edit',
       stylePreset = 'original',
       texts,
       llmModel,
@@ -117,46 +117,25 @@ export async function POST(request: Request) {
 
         let bgBuffer: Buffer;
 
-        // Different strategies based on copyMode
-        switch (copyMode) {
-          case 'dalle_simple': {
-            // VARIANT 1: Simple DALL-E 3 text-to-image
-            console.log('🎨 Mode: DALL-E Simple');
-            
-            // Build description from analysis
-            const description = creative.analysis.description || 
-              `Tech education platform advertisement with modern design`;
-            
-            bgBuffer = await generateDalleSimple({
-              description,
-              aspectRatio,
-            });
-            
-            console.log('✅ DALL-E Simple complete!');
-            break;
-          }
+        // MASK-BASED EDITING
+        console.log('🎭 Mode: Mask Edit');
+        
+        // Default modification: replace character with 25yo Indonesian woman + Algonova branding
+        const defaultModification = `Replace the main character with a confident 25-year-old Indonesian woman in modern, professional attire. Keep the same pose and overall composition. Update any brand names to "Algonova" and maintain high quality.`;
+        
+        // Default: edit character and logo elements
+        const defaultEditTypes = ['character', 'logo'];
+        
+        bgBuffer = await generateMaskEdit({
+          imageBuffer: originalBuffer,
+          modifications: defaultModification,
+          editTypes: defaultEditTypes,
+          aspectRatio,
+        });
+        
+        console.log('✅ Mask edit complete!');
 
-          case 'character_swap': {
-            // VARIANT 2: Character swap via OpenRouter
-            console.log('👧 Mode: Character Swap (25yo Indonesian woman)');
-            
-            bgBuffer = await generateCharacterSwap({
-              imageBuffer: originalBuffer,
-              aspectRatio,
-            });
-            
-            console.log('✅ Character swap complete!');
-            break;
-          }
-
-          default: {
-            console.log('⚠️ Unknown copyMode:', copyMode);
-            throw new Error(`Unknown copyMode: ${copyMode}`);
-          }
-        }
-
-        // For DALL-E Simple and Character Swap, we already have the final image
-        // No need to render text overlay
+        // Mask edit returns the final image
         const finalBuffer = bgBuffer;
 
         // Upload to storage

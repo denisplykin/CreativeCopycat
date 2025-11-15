@@ -12,8 +12,7 @@ interface TestResult {
 }
 
 const MODES = [
-  { id: 'dalle_simple', name: '🎨 DALL-E Direct', copyMode: 'dalle_simple' },
-  { id: 'character_swap', name: '👧 Character Swap', copyMode: 'character_swap' },
+  { id: 'mask_edit', name: '🎭 Mask Edit', copyMode: 'mask_edit' },
 ];
 
 export default function DebugPage() {

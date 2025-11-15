@@ -20,10 +20,14 @@ export interface AnalysisData {
   roles?: TextRole[];
   language?: string;
   
-  // Layout and elements
+  // Layout and elements (new mask-based format)
   layout?: {
+    image_size: { width: number; height: number };
+    background: {
+      color: string;
+      description: string;
+    };
     elements: LayoutElement[];
-    canvasSize: { width: number; height: number };
   };
   
   // Visual design
@@ -136,18 +140,19 @@ export interface TextRole {
 }
 
 export interface LayoutElement {
-  type: 'text' | 'image' | 'character' | 'logo';
+  id: string;
+  type: 'text' | 'character' | 'logo' | 'button' | 'decor' | 'other';
+  role: 'headline' | 'body' | 'cta' | 'brand' | 'primary' | 'shape' | 'other';
+  text?: string | null;
+  subtext?: string | null;
+  font_style?: string | null;
+  color?: string | null;
+  description?: string | null;
   bbox: BoundingBox;
-  style?: {
-    fontSize?: number;
-    fontFamily?: string;
-    color?: string;
-    align?: 'left' | 'center' | 'right';
-    fontWeight?: 'normal' | 'bold';
-  };
+  z_index: number;
 }
 
-export type CopyMode = 'dalle_simple' | 'character_swap' | 'openai_2step';
+export type CopyMode = 'mask_edit';
 
 export type GenerationType = 'character' | 'background' | 'full_creative';
 

@@ -96,9 +96,8 @@ export default function CreativesPage() {
 
     try {
       // Map UI mode to copyMode
-      const copyModeMap: Record<string, 'dalle_simple' | 'character_swap'> = {
-        'dalle_simple': 'dalle_simple',
-        'character_swap': 'character_swap',
+      const copyModeMap: Record<string, 'mask_edit'> = {
+        'mask_edit': 'mask_edit',
       };
 
       // Call generate API

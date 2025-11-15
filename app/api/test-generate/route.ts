@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateDalleSimple, generateCharacterSwap, generateOpenAI2Step } from '@/lib/openai-image';
+import { generateMaskEdit } from '@/lib/openai-image';
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -12,16 +12,16 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const mode = request.headers.get('X-Generation-Mode') as 'dalle_simple' | 'character_swap' | 'openai_2step';
+    const mode = request.headers.get('X-Generation-Mode') as 'mask_edit';
     
-    if (!mode || !['dalle_simple', 'character_swap', 'openai_2step'].includes(mode)) {
+    if (!mode || mode !== 'mask_edit') {
       return NextResponse.json(
-        { error: 'Invalid generation mode' },
+        { error: 'Invalid generation mode. Only mask_edit is supported.' },
         { status: 400 }
       );
     }
 
-    addLog(`🎨 Mode: ${mode}`);
+    addLog(`🎭 Mode: Mask Edit`);
 
     // Parse form data
     const formData = await request.formData();
@@ -40,53 +40,21 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const imageBuffer = Buffer.from(arrayBuffer);
 
-    let resultBuffer: Buffer;
+    // Get modifications from form data
+    const modifications = (formData.get('modifications') as string) || 
+      'Replace the main character with a confident 25-year-old Indonesian woman. Update brand names to Algonova.';
+    
+    addLog(`🔧 Modifications: ${modifications}`);
+    addLog(`🎭 Starting mask-based editing pipeline...`);
 
-    // Generate based on mode
-    switch (mode) {
-      case 'dalle_simple': {
-        const description = (formData.get('description') as string) || 'Modern tech education platform advertisement';
-        addLog(`📝 Description: ${description}`);
-        addLog(`🎨 Generating with DALL-E 3...`);
-        
-        resultBuffer = await generateDalleSimple({
-          description,
-          aspectRatio: '9:16',
-        });
-        
-        addLog(`✅ DALL-E generation complete: ${resultBuffer.length} bytes`);
-        break;
-      }
+    const resultBuffer = await generateMaskEdit({
+      imageBuffer,
+      modifications,
+      editTypes: ['character', 'logo'], // Default: edit character and logo
+      aspectRatio: '9:16',
+    });
 
-      case 'character_swap': {
-        addLog(`👧 Character swap: 25yo Indonesian woman...`);
-        
-        resultBuffer = await generateCharacterSwap({
-          imageBuffer,
-          aspectRatio: '9:16',
-        });
-        
-        addLog(`✅ Character swap complete: ${resultBuffer.length} bytes`);
-        break;
-      }
-
-      case 'openai_2step': {
-        const modifications = (formData.get('modifications') as string) || 'Keep everything the same';
-        addLog(`🤖 OpenAI 2-Step with modifications: ${modifications}`);
-        
-        resultBuffer = await generateOpenAI2Step({
-          imageBuffer,
-          modifications,
-          aspectRatio: '9:16',
-        });
-        
-        addLog(`✅ OpenAI 2-Step complete: ${resultBuffer.length} bytes`);
-        break;
-      }
-
-      default:
-        throw new Error('Invalid mode');
-    }
+    addLog(`✅ Mask edit complete: ${resultBuffer.length} bytes`);
 
     // Upload to Supabase
     addLog(`📤 Uploading to storage...`);
