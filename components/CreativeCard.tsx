@@ -36,12 +36,12 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
       )}
     >
       {/* Image */}
-      <div className="relative aspect-[9/16] w-full bg-muted overflow-hidden">
+      <div className="relative w-full h-[400px] bg-muted overflow-hidden">
         <Image
           src={creative.original_image_url}
           alt={`${creative.competitor_name || 'Creative'} creative`}
           fill
-          className="object-cover transition-transform group-hover:scale-105"
+          className="object-contain transition-transform group-hover:scale-105"
         />
         
         {/* Hover Overlay */}
@@ -70,20 +70,6 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
           <span>Created {new Date(creative.created_at).toLocaleDateString()}</span>
           <span>Active {daysActive}d</span>
         </div>
-
-        {/* Color Palette */}
-        {creative.analysis?.dominant_colors && creative.analysis.dominant_colors.length > 0 && (
-          <div className="flex gap-1">
-            {creative.analysis.dominant_colors.slice(0, 5).map((color, idx) => (
-              <div
-                key={idx}
-                className="w-6 h-6 rounded-full border border-border shadow-sm"
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </Card>
   )

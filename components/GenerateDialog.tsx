@@ -143,30 +143,47 @@ export function GenerateDialog({
 
             {/* Variation Mode */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Variation Mode</Label>
+              <Label className="text-base font-semibold mb-3 block">Variations</Label>
               <RadioGroup
                 value={config.variationMode}
                 onValueChange={(value) =>
                   setConfig({ ...config, variationMode: value as any })
                 }
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="default" id="default" />
-                  <Label htmlFor="default" className="font-normal cursor-pointer">
-                    Default variations
-                  </Label>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="default" id="default" />
+                    <Label htmlFor="default" className="font-normal cursor-pointer">
+                      1. Default variations
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Выбрать что именно изменить (мультивыбор)
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="random" id="random" />
-                  <Label htmlFor="random" className="font-normal cursor-pointer">
-                    6 random variations
-                  </Label>
+
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="random" id="random" />
+                    <Label htmlFor="random" className="font-normal cursor-pointer">
+                      2. 6 Random variations
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Случайные вариации
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="font-normal cursor-pointer">
-                    Custom variations
-                  </Label>
+
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="custom" id="custom" />
+                    <Label htmlFor="custom" className="font-normal cursor-pointer">
+                      3. Custom variations
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Свой промпт
+                  </p>
                 </div>
               </RadioGroup>
             </div>
