@@ -35,7 +35,7 @@ interface GenerateDialogProps {
 }
 
 export interface GenerationConfig {
-  aspectRatio: 'original' | '1:1' | '4:5'
+  aspectRatio: 'original' | '1:1' | '4:5' | '9:16' | '16:9'
   variationMode: 'default' | 'random' | 'custom'
   defaultOptions?: {
     copycat: boolean
