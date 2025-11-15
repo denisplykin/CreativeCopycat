@@ -72,12 +72,19 @@ export function GenerateDialog({
   const [isGenerating, setIsGenerating] = useState(false)
 
   const handleGenerate = async () => {
+    console.log('🚀 Generate button clicked!')
+    console.log('📦 Config:', config)
+    console.log('🎨 Creative:', creative?.id)
+    
     setIsGenerating(true)
     try {
+      console.log('📤 Calling onGenerate...')
       await onGenerate(config)
+      console.log('✅ onGenerate completed, closing dialog')
       onOpenChange(false)
     } catch (error) {
-      console.error('Generation failed:', error)
+      console.error('❌ Generation failed:', error)
+      alert(`Generation failed: ${error}`)
     } finally {
       setIsGenerating(false)
     }

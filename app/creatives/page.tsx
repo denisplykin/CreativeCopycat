@@ -85,9 +85,17 @@ export default function CreativesNewPage() {
 
   // Handle generate
   const handleGenerate = async (config: GenerationConfig) => {
-    if (!selectedCreative) return
+    console.log('🎯 handleGenerate called in page.tsx')
+    console.log('🎨 Selected creative:', selectedCreative?.id)
+    console.log('⚙️ Config:', config)
+    
+    if (!selectedCreative) {
+      console.error('❌ No creative selected!')
+      return
+    }
 
     try {
+      console.log('📤 Sending POST to /api/generate...')
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,14 +110,23 @@ export default function CreativesNewPage() {
         }),
       })
 
+      console.log('📊 Response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Generation failed')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ API error:', errorData)
+        throw new Error(`Generation failed: ${response.status}`)
       }
 
+      const result = await response.json()
+      console.log('✅ Generation started:', result)
+
       // Refresh runs
+      console.log('🔄 Refreshing runs...')
       await fetchRuns()
+      console.log('✅ Runs refreshed!')
     } catch (error) {
-      console.error('Generation error:', error)
+      console.error('❌ Generation error:', error)
       throw error
     }
   }
