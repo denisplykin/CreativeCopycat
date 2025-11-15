@@ -73,7 +73,6 @@ Generate a new banner that looks professionally recreated with these changes.`;
             ],
           },
         ],
-        temperature: 0.3, // Low for accuracy
         max_tokens: 4000,
       }),
     });
