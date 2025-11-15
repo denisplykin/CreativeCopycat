@@ -246,24 +246,20 @@ export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Bu
     // STEP 1: GPT-5.1 Vision analyzes image and creates prompt
     console.log('👁️ Step 1: GPT-5.1 analyzing image...');
     
-    const visionPrompt = `You are analyzing an advertising creative to create a detailed prompt for the image generation model gpt-image-1.
+    const visionPrompt = `Create a DALL-E prompt for a professional advertising banner inspired by this image.
 
-TASK:
-1. Describe this banner in detail (150-300 words) for recreation
-2. Keep the same layout, text positions, and overall composition
-3. Apply these user-requested changes: ${modifications}
+USER REQUESTED CHANGES:
+${modifications}
 
-IMPORTANT:
-- Preserve all text blocks and their positions (note the text content and style)
-- Keep the same visual layout and structure
-- Maintain the overall design aesthetic
-- Apply ONLY the changes specified above
-- If no brand is mentioned, use "Algonova" as the brand
+Describe in 150-250 words:
+- Visual style and color palette
+- Layout and composition
+- Key design elements
+- Apply the user's requested changes above
 
-OUTPUT FORMAT:
-Return ONLY a JSON object: {"prompt": "your detailed 150-300 word prompt here"}
+Brand: "Algonova" (tech education platform)
 
-The prompt should be a complete, detailed description for gpt-image-1 to recreate this banner with the requested modifications.`;
+Output ONLY JSON: {"prompt": "..."}`;
 
     const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -367,8 +363,21 @@ The prompt should be a complete, detailed description for gpt-image-1 to recreat
 
     if (!imageResponse.ok) {
       const errorText = await imageResponse.text();
-      console.error('❌ gpt-image-1 error:', imageResponse.status, errorText);
-      throw new Error(`gpt-image-1 API error: ${imageResponse.status}`);
+      console.error('❌ gpt-image-1 (DALL-E 3) error:', imageResponse.status);
+      console.error('Error details:', errorText);
+      console.error('Prompt that was sent:', detailedPrompt);
+      
+      let errorMessage = `gpt-image-1 API error: ${imageResponse.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorMessage = `DALL-E error: ${errorJson.error.message}`;
+        }
+      } catch (e) {
+        // Not JSON, use raw text
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const imageData = await imageResponse.json();
