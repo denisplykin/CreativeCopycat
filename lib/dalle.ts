@@ -82,8 +82,9 @@ export async function editImageWithMask(params: EditImageParams): Promise<Buffer
     
     console.log('🔄 Preparing images for DALL·E (PNG + size check)...');
     
-    // Convert image to PNG and ensure < 4MB
+    // Convert image to PNG with ALPHA channel (RGBA) - DALL·E requirement
     let imagePng = await sharp(params.image)
+      .ensureAlpha() // Add alpha channel if missing (RGB → RGBA)
       .png({ quality: 90, compressionLevel: 9 })
       .toBuffer();
     
@@ -92,13 +93,15 @@ export async function editImageWithMask(params: EditImageParams): Promise<Buffer
       console.warn(`⚠️ Image too large (${(imagePng.length / 1024 / 1024).toFixed(2)} MB), resizing...`);
       imagePng = await sharp(params.image)
         .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .ensureAlpha() // Add alpha channel
         .png({ quality: 85, compressionLevel: 9 })
         .toBuffer();
       console.log(`✅ Resized to ${(imagePng.length / 1024 / 1024).toFixed(2)} MB`);
     }
     
-    // Convert mask to PNG and ensure < 4MB
+    // Convert mask to PNG with ALPHA channel (RGBA)
     let maskPng = await sharp(params.mask)
+      .ensureAlpha() // Add alpha channel if missing
       .png({ quality: 90, compressionLevel: 9 })
       .toBuffer();
     
@@ -106,6 +109,7 @@ export async function editImageWithMask(params: EditImageParams): Promise<Buffer
       console.warn(`⚠️ Mask too large (${(maskPng.length / 1024 / 1024).toFixed(2)} MB), resizing...`);
       maskPng = await sharp(params.mask)
         .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .ensureAlpha() // Add alpha channel
         .png({ quality: 85, compressionLevel: 9 })
         .toBuffer();
       console.log(`✅ Mask resized to ${(maskPng.length / 1024 / 1024).toFixed(2)} MB`);
