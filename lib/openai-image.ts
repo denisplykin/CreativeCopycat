@@ -162,23 +162,46 @@ Rules:
     const editPrompt = buildMinimalEditPrompt(modifications, editTypes);
     console.log('📝 Edit prompt:', editPrompt);
 
-    // IMPORTANT: For /images/edits, do NOT resize!
-    // Size must match original image size exactly
+    // IMPORTANT: For /images/edits, both image and mask must be EXACTLY the same size
     const sharp = (await import('sharp')).default;
     
-    console.log(`🔄 Converting image and mask to PNG (original size: ${layout.image_size.width}x${layout.image_size.height})...`);
+    const targetWidth = layout.image_size.width;
+    const targetHeight = layout.image_size.height;
     
-    // Convert image to PNG (keep original size!)
+    console.log(`🔄 Converting image and mask to PNG (${targetWidth}x${targetHeight})...`);
+    
+    // Convert image to PNG with explicit size (ensure exact dimensions)
     const convertedImage = await sharp(imageBuffer)
+      .resize(targetWidth, targetHeight, { 
+        fit: 'fill', // Force exact dimensions
+        kernel: 'nearest' 
+      })
       .png()
       .toBuffer();
     
-    // Mask is already correct size from generateMask
+    // Get actual image dimensions after conversion
+    const imageMetadata = await sharp(convertedImage).metadata();
+    console.log(`📐 Image after conversion: ${imageMetadata.width}x${imageMetadata.height}`);
+    
+    // Convert mask to PNG with SAME exact size
     const convertedMask = await sharp(maskBuffer)
+      .resize(targetWidth, targetHeight, { 
+        fit: 'fill',
+        kernel: 'nearest' 
+      })
       .png()
       .toBuffer();
+    
+    // Get actual mask dimensions after conversion
+    const maskMetadata = await sharp(convertedMask).metadata();
+    console.log(`📐 Mask after conversion: ${maskMetadata.width}x${maskMetadata.height}`);
     
     console.log(`✅ Converted: image=${convertedImage.length} bytes, mask=${convertedMask.length} bytes`);
+    
+    // Verify sizes match
+    if (imageMetadata.width !== maskMetadata.width || imageMetadata.height !== maskMetadata.height) {
+      throw new Error(`Size mismatch! Image: ${imageMetadata.width}x${imageMetadata.height}, Mask: ${maskMetadata.width}x${maskMetadata.height}`);
+    }
 
     // Prepare form data
     const formData = new FormData();
