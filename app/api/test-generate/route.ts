@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateDalleSimple, generateCharacterSwap } from '@/lib/openai-image';
+import { generateDalleSimple, generateCharacterSwap, generateOpenAI2Step } from '@/lib/openai-image';
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const mode = request.headers.get('X-Generation-Mode') as 'dalle_simple' | 'character_swap';
+    const mode = request.headers.get('X-Generation-Mode') as 'dalle_simple' | 'character_swap' | 'openai_2step';
     
-    if (!mode || !['dalle_simple', 'character_swap'].includes(mode)) {
+    if (!mode || !['dalle_simple', 'character_swap', 'openai_2step'].includes(mode)) {
       return NextResponse.json(
         { error: 'Invalid generation mode' },
         { status: 400 }
@@ -67,6 +67,20 @@ export async function POST(request: NextRequest) {
         });
         
         addLog(`✅ Character swap complete: ${resultBuffer.length} bytes`);
+        break;
+      }
+
+      case 'openai_2step': {
+        const modifications = (formData.get('modifications') as string) || 'Keep everything the same';
+        addLog(`🤖 OpenAI 2-Step with modifications: ${modifications}`);
+        
+        resultBuffer = await generateOpenAI2Step({
+          imageBuffer,
+          modifications,
+          aspectRatio: '9:16',
+        });
+        
+        addLog(`✅ OpenAI 2-Step complete: ${resultBuffer.length} bytes`);
         break;
       }
 

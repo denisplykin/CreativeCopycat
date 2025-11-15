@@ -8,6 +8,12 @@ interface CharacterSwapParams {
   aspectRatio?: string;
 }
 
+interface OpenAI2StepParams {
+  imageBuffer: Buffer;
+  modifications: string; // User's instruction what to change
+  aspectRatio?: string;
+}
+
 /**
  * VARIANT 1: Simple DALL-E 3 text-to-image
  * No vision model, just a text prompt describing an Algonova ad
@@ -215,6 +221,163 @@ Output a 200-word DALL-E prompt describing this new banner. Focus on visual desc
     return resultBuffer;
   } catch (error) {
     console.error('❌ Character swap error:', error);
+    throw error;
+  }
+}
+
+/**
+ * VARIANT 3: OpenAI 2-Step (GPT-5.1 Vision + gpt-image-1)
+ * User provides custom modification instructions
+ * Step 1: GPT-5.1 analyzes image and creates detailed prompt
+ * Step 2: gpt-image-1 generates from that prompt
+ */
+export async function generateOpenAI2Step(params: OpenAI2StepParams): Promise<Buffer> {
+  const { imageBuffer, modifications, aspectRatio = '9:16' } = params;
+
+  try {
+    console.log('🤖 OpenAI 2-Step: GPT-5.1 → gpt-image-1...');
+    console.log(`📐 Aspect ratio: ${aspectRatio}`);
+    console.log(`📝 Modifications: ${modifications}`);
+    
+    // Convert image to base64
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = detectMimeType(imageBuffer);
+
+    // STEP 1: GPT-5.1 Vision analyzes image and creates prompt
+    console.log('👁️ Step 1: GPT-5.1 analyzing image...');
+    
+    const visionPrompt = `Look at this advertising creative. Describe it as a detailed English prompt for the image model gpt-image-1 so that the layout, texts and visual elements stay the same, but apply these changes:
+
+MODIFICATIONS:
+${modifications}
+
+Requirements:
+- Keep the same layout and composition
+- Maintain text positioning (you can note the text content)
+- Preserve the overall visual style
+- Apply the requested modifications
+- Output 150-300 words
+- Brand: "Algonova" (if brand change needed)
+
+Output ONLY a JSON object: {"prompt": "..."}`;
+
+    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o', // Using gpt-4o as gpt-5.1 alias
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional designer creating detailed prompts for image generation. Output only valid JSON.',
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: visionPrompt,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!visionResponse.ok) {
+      const errorText = await visionResponse.text();
+      console.error('❌ GPT-5.1 Vision error:', visionResponse.status, errorText);
+      throw new Error(`GPT-5.1 Vision API error: ${visionResponse.status}`);
+    }
+
+    const visionData = await visionResponse.json();
+    const rawContent = visionData.choices?.[0]?.message?.content;
+
+    if (!rawContent) {
+      throw new Error('No response from GPT-5.1 Vision');
+    }
+
+    console.log('📦 Raw response:', rawContent.substring(0, 200));
+
+    // Parse JSON from response
+    let detailedPrompt: string;
+    try {
+      // Try to extract JSON from markdown code blocks if present
+      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/\{[\s\S]*"prompt"[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : rawContent;
+      const parsed = JSON.parse(jsonStr);
+      detailedPrompt = parsed.prompt;
+    } catch (parseError) {
+      console.warn('⚠️ Failed to parse JSON, using raw content as prompt');
+      detailedPrompt = rawContent;
+    }
+
+    if (!detailedPrompt || detailedPrompt.toLowerCase().includes("i'm sorry") || detailedPrompt.toLowerCase().includes("i can't")) {
+      console.error('❌ GPT-5.1 refused or returned invalid prompt:', detailedPrompt);
+      throw new Error('GPT-5.1 refused to create prompt');
+    }
+
+    console.log('✅ Step 1 complete! Generated prompt:');
+    console.log('📝', detailedPrompt.substring(0, 200) + '...');
+
+    // STEP 2: gpt-image-1 generates from the prompt
+    console.log('🎨 Step 2: gpt-image-1 generating...');
+
+    // Map aspect ratio to image size
+    let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
+    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
+      imageSize = '1024x1792'; // vertical
+    } else if (aspectRatio === '16:9') {
+      imageSize = '1792x1024'; // horizontal
+    }
+
+    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3', // Using dall-e-3 as gpt-image-1 alias
+        prompt: detailedPrompt,
+        size: imageSize,
+        quality: 'hd',
+        n: 1,
+        response_format: 'b64_json',
+      }),
+    });
+
+    if (!imageResponse.ok) {
+      const errorText = await imageResponse.text();
+      console.error('❌ gpt-image-1 error:', imageResponse.status, errorText);
+      throw new Error(`gpt-image-1 API error: ${imageResponse.status}`);
+    }
+
+    const imageData = await imageResponse.json();
+    const b64Image = imageData.data?.[0]?.b64_json;
+
+    if (!b64Image) {
+      throw new Error('No image generated from gpt-image-1');
+    }
+
+    const resultBuffer = Buffer.from(b64Image, 'base64');
+    console.log(`✅ Step 2 complete! Image generated: ${resultBuffer.length} bytes`);
+    console.log('🎉 OpenAI 2-Step generation successful!');
+
+    return resultBuffer;
+  } catch (error) {
+    console.error('❌ OpenAI 2-Step error:', error);
     throw error;
   }
 }
