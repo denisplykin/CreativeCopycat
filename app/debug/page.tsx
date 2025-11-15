@@ -12,9 +12,8 @@ interface TestResult {
 }
 
 const MODES = [
-  { id: 'clone', name: '🎯 Full Clone', copyMode: 'simple_overlay' },
-  { id: 'similar', name: '✨ Similar Style', copyMode: 'dalle_inpaint' },
-  { id: 'gpt_image', name: '🤖 GPT Image', copyMode: 'gpt_image' },
+  { id: 'dalle_simple', name: '🎨 DALL-E Direct', copyMode: 'dalle_simple' },
+  { id: 'character_swap', name: '👧 Character Swap', copyMode: 'character_swap' },
 ];
 
 export default function DebugPage() {

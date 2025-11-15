@@ -3,7 +3,7 @@ import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun }
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
-import { generateWithGPTImage } from '@/lib/openai-image';
+import { generateDalleSimple, generateCharacterSwap } from '@/lib/openai-image';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
@@ -119,164 +119,45 @@ export async function POST(request: Request) {
 
         // Different strategies based on copyMode
         switch (copyMode) {
-          case 'simple_overlay': {
-            // Clone: Just use original image
-            console.log('🎯 Mode: Simple Overlay (Clone)');
-            bgBuffer = originalBuffer;
-            break;
-          }
-
-          case 'dalle_inpaint': {
-            // Similar: Remove text + logos using DALL·E inpaint
-            console.log('✨ Mode: DALL·E Inpaint (Similar Style)');
+          case 'dalle_simple': {
+            // VARIANT 1: Simple DALL-E 3 text-to-image
+            console.log('🎨 Mode: DALL-E Simple');
             
-            // Create mask from OCR text blocks + logos
-            const textBlocks = creative.analysis.ocr?.blocks || [];
-            const textBoxes = textBlocks.map(block => block.bbox);
+            // Build description from analysis
+            const description = creative.analysis.description || 
+              `Tech education platform advertisement with modern design`;
             
-            // Add logo bounding boxes to mask
-            const logoBoxes = getLogoBoundingBoxes(creative.analysis, metadata.width, metadata.height);
-            const allBoxes = [...textBoxes, ...logoBoxes];
-            
-            console.log(`🎭 Creating mask for ${textBoxes.length} text blocks + ${logoBoxes.length} logos...`);
-            const maskBuffer = await createTextMask(
-              metadata.width,
-              metadata.height,
-              allBoxes
-            );
-            
-            // Generate inpaint prompt (handle undefined design)
-            const inpaintPrompt = generateInpaintPrompt(creative.analysis?.design || null);
-            
-            console.log('🎨 Running DALL·E inpaint...');
-            bgBuffer = await editImageWithMask({
-              image: originalBuffer,
-              mask: maskBuffer,
-              prompt: inpaintPrompt,
-            });
-            
-            console.log('✅ Inpaint complete!');
-            break;
-          }
-
-          case 'gpt_image': {
-            // GPT Image: Full recreation using GPT-5.1 + gpt-image-1
-            console.log('🤖 Mode: GPT Image (GPT-5.1 + gpt-image-1)');
-            
-            // Generate with GPT-5.1 vision + gpt-image-1
-            bgBuffer = await generateWithGPTImage({
-              imageBuffer: originalBuffer,
-              modifications: 'Keep the same composition and style, but replace any competitor brand names with Algonova and remove any visible logos',
+            bgBuffer = await generateDalleSimple({
+              description,
               aspectRatio,
             });
             
-            console.log('✅ GPT Image generation complete!');
+            console.log('✅ DALL-E Simple complete!');
             break;
           }
 
-          case 'style_variations': {
-            // Style Variations: Generate multiple creative styles (anime, asian, western, 3d, realistic)
-            console.log('🎨✨ Mode: Style Variations (Multiple Styles)');
+          case 'character_swap': {
+            // VARIANT 2: Character swap via OpenRouter
+            console.log('👧 Mode: Character Swap (25yo Indonesian woman)');
             
-            // Get base prompts from analysis
-            const analysisPrompts = (creative.analysis as any).imageGenerationPrompts || {};
-            const baseCharacterPrompt = analysisPrompts.character || 'portrait of person with surprised expression';
-            const baseBackgroundPrompt = analysisPrompts.background || generateBackgroundPrompt(creative.analysis?.design || null);
+            bgBuffer = await generateCharacterSwap({
+              imageBuffer: originalBuffer,
+              aspectRatio,
+            });
             
-            console.log('🎭 Generating 5 style variations...');
-            
-            // Generate ALL style variations
-            const generatedVariants: string[] = [];
-            
-            for (let i = 0; i < STYLE_VARIANTS.length; i++) {
-              const styleVariant = STYLE_VARIANTS[i];
-              console.log(`\n${i + 1}/${STYLE_VARIANTS.length} 🎨 Generating ${styleVariant.emoji} ${styleVariant.name}...`);
-              
-              // Apply style modifiers
-              const styledCharacterPrompt = applyStyleToCharacterPrompt(baseCharacterPrompt, styleVariant.id);
-              const styledBackgroundPrompt = applyStyleToBackgroundPrompt(baseBackgroundPrompt, styleVariant.id);
-              
-              // For anime style, extract character and composite over original background
-              if (styleVariant.id === 'anime') {
-                // Generate anime character
-                console.log('👤 Generating anime character...');
-                const animeCharacterPrompt = `${styledCharacterPrompt}, isolated character on white background, transparent background style`;
-                const animeCharBuffer = await generateBackground({
-                  stylePreset: 'anime',
-                  prompt: animeCharacterPrompt,
-                  width: metadata.width,
-                  height: metadata.height,
-                });
-                
-                // Composite over original background (keep cosmic stars, etc)
-                bgBuffer = originalBuffer; // Use original background
-                const styledBuffer = await renderCreative(
-                  creative.analysis.layout!,
-                  finalTexts,
-                  bgBuffer
-                );
-                
-                // Upload anime variant
-                const animePath = `style-variations/${creativeId}_anime_${Date.now()}.png`;
-                await uploadFile('generated-creatives', animePath, styledBuffer, 'image/png');
-                const animeUrl = getPublicUrl('generated-creatives', animePath);
-                generatedVariants.push(animeUrl);
-                console.log(`✅ Anime style complete: ${animeUrl}`);
-              } else {
-                // For other styles, generate full scene
-                console.log(`🌈 Generating ${styleVariant.name} background...`);
-                const styledBgBuffer = await generateBackground({
-                  stylePreset: styleVariant.id as any,
-                  prompt: styledBackgroundPrompt,
-                  width: metadata.width,
-                  height: metadata.height,
-                });
-                
-                // Render text over styled background
-                const styledBuffer = await renderCreative(
-                  creative.analysis.layout!,
-                  finalTexts,
-                  styledBgBuffer
-                );
-                
-                // Upload variant
-                const variantPath = `style-variations/${creativeId}_${styleVariant.id}_${Date.now()}.png`;
-                await uploadFile('generated-creatives', variantPath, styledBuffer, 'image/png');
-                const variantUrl = getPublicUrl('generated-creatives', variantPath);
-                generatedVariants.push(variantUrl);
-                console.log(`✅ ${styleVariant.name} complete: ${variantUrl}`);
-              }
-              
-              // Small delay between generations to avoid rate limits
-              if (i < STYLE_VARIANTS.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            }
-            
-            console.log(`\n🎉 All ${STYLE_VARIANTS.length} style variations generated!`);
-            console.log('Generated URLs:', generatedVariants);
-            
-            // Store all variants in generated_image_url (last one)
-            // In the future, we could create a separate table for style_variations
-            bgBuffer = originalBuffer; // Use original for final render
-            
+            console.log('✅ Character swap complete!');
             break;
           }
 
           default: {
-            // Fallback to simple overlay
-            console.log('⚠️ Unknown copyMode, falling back to simple overlay');
-            bgBuffer = originalBuffer;
+            console.log('⚠️ Unknown copyMode:', copyMode);
+            throw new Error(`Unknown copyMode: ${copyMode}`);
           }
         }
 
-        // Render text over background
-        console.log('📝 Rendering text overlay...');
-        const finalBuffer = await renderCreative(
-          creative.analysis.layout!,
-          finalTexts,
-          bgBuffer
-        );
+        // For DALL-E Simple and Character Swap, we already have the final image
+        // No need to render text overlay
+        const finalBuffer = bgBuffer;
 
         // Upload to storage
         const creativePath = `generated-creatives/${creativeId}_${Date.now()}.png`;

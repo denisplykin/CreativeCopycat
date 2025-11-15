@@ -12,7 +12,7 @@ interface CreativeModalProps {
 interface GenerationConfig {
   aspectRatio: string;
   numVariations: number;
-  mode: 'clone' | 'similar' | 'gpt_image' | 'style_variations';
+  mode: 'dalle_simple' | 'character_swap';
 }
 
 const ASPECT_RATIOS = [
@@ -32,32 +32,18 @@ const NUM_VARIATIONS_OPTIONS = [
 
 const GENERATION_MODES = [
   {
-    id: 'clone',
-    title: '🎯 Full Clone',
-    description: 'Exact copy adapted for Algonova branding',
-    subtitle: 'Same style, Algonova colors',
-    color: 'from-green-500 to-emerald-600',
+    id: 'dalle_simple',
+    title: '🎨 DALL-E Direct',
+    description: 'Simple DALL-E 3 generation from text prompt',
+    subtitle: 'Fast and creative',
+    color: 'from-purple-500 to-pink-600',
   },
   {
-    id: 'similar',
-    title: '✨ Similar Style',
-    description: 'Similar concept with creative variations',
-    subtitle: 'Keep vibe, change details',
+    id: 'character_swap',
+    title: '👧 Character Swap',
+    description: 'Replace character with 25yo Indonesian woman + Algonova branding',
+    subtitle: 'AI-powered character replacement',
     color: 'from-blue-500 to-cyan-600',
-  },
-  {
-    id: 'gpt_image',
-    title: '🤖 GPT Image',
-    description: 'Full recreation using GPT-5.1 + gpt-image-1',
-    subtitle: 'AI-powered recreation',
-    color: 'from-indigo-500 to-purple-600',
-  },
-  {
-    id: 'style_variations',
-    title: '🎨✨ Style Variations',
-    description: 'Generate 5 different styles: anime, asian, western, 3D, realistic',
-    subtitle: '5 unique creative styles at once',
-    color: 'from-rose-500 via-fuchsia-500 to-purple-600',
   },
 ];
 
