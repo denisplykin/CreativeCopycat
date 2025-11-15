@@ -137,6 +137,10 @@ async function generateImageFromPrompt(
     response_format: 'b64_json',
   });
 
+  if (!response.data || response.data.length === 0) {
+    throw new Error('No data returned from gpt-image-1');
+  }
+
   const b64Json = response.data[0]?.b64_json;
   if (!b64Json) {
     throw new Error('No image data returned from gpt-image-1');
