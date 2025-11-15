@@ -162,28 +162,42 @@ Rules:
     const editPrompt = buildEditPrompt(layout, modifications, editTypes);
     console.log('📝 Edit prompt:', editPrompt);
 
-    // Map aspect ratio to size
-    let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
-    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
-      imageSize = '1024x1792'; // vertical
-    } else if (aspectRatio === '16:9') {
-      imageSize = '1792x1024'; // horizontal
-    }
+    // IMPORTANT: /v1/images/edits only supports square images (256x256, 512x512, 1024x1024)
+    // We need to convert both image and mask to 1024x1024
+    const sharp = (await import('sharp')).default;
+    
+    console.log('🔄 Converting image and mask to 1024x1024 PNG with alpha channel...');
+    
+    // Convert image to RGBA PNG 1024x1024
+    const convertedImage = await sharp(imageBuffer)
+      .resize(1024, 1024, { fit: 'cover', position: 'center' })
+      .png()
+      .ensureAlpha()
+      .toBuffer();
+    
+    // Convert mask to RGBA PNG 1024x1024
+    const convertedMask = await sharp(maskBuffer)
+      .resize(1024, 1024, { fit: 'cover', position: 'center' })
+      .png()
+      .ensureAlpha()
+      .toBuffer();
+    
+    console.log(`✅ Converted: image=${convertedImage.length} bytes, mask=${convertedMask.length} bytes`);
 
     // Prepare form data
     const formData = new FormData();
     formData.append('model', 'dall-e-2'); // Note: edits endpoint uses dall-e-2
-    formData.append('image', imageBuffer, {
+    formData.append('image', convertedImage, {
       filename: 'image.png',
       contentType: 'image/png',
     });
-    formData.append('mask', maskBuffer, {
+    formData.append('mask', convertedMask, {
       filename: 'mask.png',
       contentType: 'image/png',
     });
     formData.append('prompt', editPrompt);
     formData.append('n', '1');
-    formData.append('size', imageSize);
+    formData.append('size', '1024x1024'); // Only square sizes supported for edits
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
