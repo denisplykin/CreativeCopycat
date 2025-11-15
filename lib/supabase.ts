@@ -20,6 +20,7 @@ export function getPublicUrl(bucket: string, path: string): string {
 
 /**
  * Upload file to Supabase Storage
+ * Auto-creates bucket if it doesn't exist
  */
 export async function uploadFile(
   bucket: string,
@@ -27,18 +28,57 @@ export async function uploadFile(
   file: Buffer | File,
   contentType?: string
 ): Promise<string> {
-  const { data, error } = await supabaseAdmin.storage
-    .from(bucket)
-    .upload(path, file, {
-      contentType,
-      upsert: true,
-    });
+  try {
+    // First, try to upload
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(path, file, {
+        contentType,
+        upsert: true,
+      });
 
-  if (error) {
-    throw new Error(`Failed to upload file: ${error.message}`);
+    if (error) {
+      console.error(`❌ Upload error for ${bucket}/${path}:`, error);
+      
+      // If bucket doesn't exist, try to create it
+      if (error.message.includes('not found') || error.message.includes('does not exist')) {
+        console.log(`📦 Bucket '${bucket}' not found, creating...`);
+        
+        const { error: createError } = await supabaseAdmin.storage.createBucket(bucket, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        
+        if (createError) {
+          console.error(`❌ Failed to create bucket:`, createError);
+        } else {
+          console.log(`✅ Bucket '${bucket}' created, retrying upload...`);
+          
+          // Retry upload
+          const { data: retryData, error: retryError } = await supabaseAdmin.storage
+            .from(bucket)
+            .upload(path, file, {
+              contentType,
+              upsert: true,
+            });
+          
+          if (retryError) {
+            throw new Error(`Failed to upload file after bucket creation: ${retryError.message}`);
+          }
+          
+          return retryData!.path;
+        }
+      }
+      
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+
+    console.log(`✅ Uploaded to ${bucket}/${data.path}`);
+    return data.path;
+  } catch (err) {
+    console.error(`❌ Upload exception:`, err);
+    throw err;
   }
-
-  return data.path;
 }
 
 /**
