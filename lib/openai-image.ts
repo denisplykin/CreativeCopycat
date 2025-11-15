@@ -12,15 +12,15 @@ interface GPTImageParams {
  * - Generates output image based on prompt + input
  */
 export async function generateWithGPTImage(params: GPTImageParams): Promise<Buffer> {
-  const { imageBuffer, modifications = 'keep the same composition and style', aspectRatio = '9:16' } = params;
+  const { imageBuffer: inputBuffer, modifications = 'keep the same composition and style', aspectRatio = '9:16' } = params;
 
   try {
     console.log('🤖 Starting GPT-5 Image generation via OpenRouter...');
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     
     // Convert image to base64
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = detectMimeType(imageBuffer);
+    const base64Image = inputBuffer.toString('base64');
+    const mimeType = detectMimeType(inputBuffer);
 
     // Build detailed prompt
     const prompt = `Recreate this advertising banner EXACTLY as shown, but with these modifications:
@@ -42,7 +42,7 @@ Generate a new banner that looks professionally recreated with these changes.`;
 
     console.log('🎨 Calling GPT-5 Image via OpenRouter...');
     console.log('📝 Prompt:', prompt);
-    console.log('📷 Image size:', imageBuffer.length, 'bytes');
+    console.log('📷 Image size:', inputBuffer.length, 'bytes');
     console.log('🎯 MIME type:', mimeType);
 
     // Call GPT-5 Image via OpenRouter
