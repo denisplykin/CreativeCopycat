@@ -2,7 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Algonova Brand Colors */
+/* Import Figma Color System */
+@import './colors.css';
+
+/* Legacy Algonova Brand Colors (for backward compatibility) */
 :root {
   --primary-orange: #FF6B35;
   --primary-pink: #FF006E;

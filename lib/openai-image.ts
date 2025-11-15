@@ -163,40 +163,56 @@ Rules:
     console.log('📝 Edit prompt:', editPrompt);
 
     // IMPORTANT: For /images/edits, both image and mask must be EXACTLY the same size
+    // AND under 4MB each (OpenAI limit)
     const sharp = (await import('sharp')).default;
     
-    const targetWidth = layout.image_size.width;
-    const targetHeight = layout.image_size.height;
+    let targetWidth = layout.image_size.width;
+    let targetHeight = layout.image_size.height;
+    
+    // If image is too large, scale it down (max 1024x1024 to stay under 4MB)
+    const maxDimension = 1024;
+    if (targetWidth > maxDimension || targetHeight > maxDimension) {
+      const scale = Math.min(maxDimension / targetWidth, maxDimension / targetHeight);
+      targetWidth = Math.round(targetWidth * scale);
+      targetHeight = Math.round(targetHeight * scale);
+      console.log(`⚠️ Scaling down from ${layout.image_size.width}x${layout.image_size.height} to ${targetWidth}x${targetHeight} (OpenAI limit)`);
+    }
     
     console.log(`🔄 Converting image and mask to PNG (${targetWidth}x${targetHeight})...`);
     
-    // Convert image to PNG with explicit size (ensure exact dimensions)
+    // Convert image to PNG with compression (quality 80 to reduce file size)
     const convertedImage = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, { 
-        fit: 'fill', // Force exact dimensions
-        kernel: 'nearest' 
+        fit: 'fill',
+        kernel: 'lanczos3' // Better quality for downscaling
       })
-      .png()
+      .png({ 
+        compressionLevel: 6, // Balance between size and quality
+        quality: 80 
+      })
       .toBuffer();
     
     // Get actual image dimensions after conversion
     const imageMetadata = await sharp(convertedImage).metadata();
-    console.log(`📐 Image after conversion: ${imageMetadata.width}x${imageMetadata.height}`);
+    console.log(`📐 Image: ${imageMetadata.width}x${imageMetadata.height}, size: ${(convertedImage.length / 1024 / 1024).toFixed(2)}MB`);
+    
+    // Check if image is still too large
+    if (convertedImage.length > 4 * 1024 * 1024) {
+      throw new Error(`Image still too large: ${(convertedImage.length / 1024 / 1024).toFixed(2)}MB (max 4MB). Try a smaller image.`);
+    }
     
     // Convert mask to PNG with SAME exact size
     const convertedMask = await sharp(maskBuffer)
       .resize(targetWidth, targetHeight, { 
         fit: 'fill',
-        kernel: 'nearest' 
+        kernel: 'nearest' // Sharp edges for mask
       })
-      .png()
+      .png({ compressionLevel: 9 }) // Max compression for mask (black/white compresses well)
       .toBuffer();
     
     // Get actual mask dimensions after conversion
     const maskMetadata = await sharp(convertedMask).metadata();
-    console.log(`📐 Mask after conversion: ${maskMetadata.width}x${maskMetadata.height}`);
-    
-    console.log(`✅ Converted: image=${convertedImage.length} bytes, mask=${convertedMask.length} bytes`);
+    console.log(`📐 Mask: ${maskMetadata.width}x${maskMetadata.height}, size: ${(convertedMask.length / 1024 / 1024).toFixed(2)}MB`);
     
     // Verify sizes match
     if (imageMetadata.width !== maskMetadata.width || imageMetadata.height !== maskMetadata.height) {
