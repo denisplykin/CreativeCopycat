@@ -228,13 +228,27 @@ Rules:
       body: formData as any,
     });
 
+    console.log(`📊 Response status: ${editResponse.status} ${editResponse.statusText}`);
+
     if (!editResponse.ok) {
       const errorText = await editResponse.text();
       console.error('❌ Step 3 error:', editResponse.status, errorText);
-      throw new Error(`Image edit API error: ${editResponse.status}`);
+      throw new Error(`Image edit API error: ${editResponse.status} - ${errorText.substring(0, 200)}`);
     }
 
-    const editData: any = await editResponse.json();
+    // Try to parse JSON
+    const responseText = await editResponse.text();
+    console.log('📦 Raw response (first 500 chars):', responseText.substring(0, 500));
+    
+    let editData: any;
+    try {
+      editData = JSON.parse(responseText);
+      console.log('✅ Parsed JSON successfully');
+    } catch (e) {
+      console.error('❌ Failed to parse JSON. Full response:', responseText);
+      throw new Error(`Invalid JSON response from API: ${responseText.substring(0, 200)}`);
+    }
+    
     console.log('📦 API Response:', JSON.stringify(editData, null, 2));
     
     // Check for b64_json format (if response_format was set)
