@@ -12,7 +12,7 @@ interface CreativeModalProps {
 interface GenerationConfig {
   aspectRatio: string;
   numVariations: number;
-  mode: 'clone' | 'similar' | 'new_background' | 'old_style' | 'style_variations';
+  mode: 'clone' | 'similar' | 'gpt_image' | 'style_variations';
 }
 
 const ASPECT_RATIOS = [
@@ -46,18 +46,11 @@ const GENERATION_MODES = [
     color: 'from-blue-500 to-cyan-600',
   },
   {
-    id: 'new_background',
-    title: '🌈 New Background',
-    description: 'Fresh background, keep text structure',
-    subtitle: 'Bold new look',
-    color: 'from-purple-500 to-pink-600',
-  },
-  {
-    id: 'old_style',
-    title: '🎨 Old Style (Midjourney)',
-    description: 'Uses analyzed prompts for Midjourney/Flux generation',
-    subtitle: 'AI-generated from scratch',
-    color: 'from-yellow-500 to-orange-600',
+    id: 'gpt_image',
+    title: '🤖 GPT Image',
+    description: 'Full recreation using GPT-5.1 + gpt-image-1',
+    subtitle: 'AI-powered recreation',
+    color: 'from-indigo-500 to-purple-600',
   },
   {
     id: 'style_variations',

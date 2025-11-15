@@ -14,8 +14,7 @@ interface TestResult {
 const MODES = [
   { id: 'clone', name: '🎯 Full Clone', copyMode: 'simple_overlay' },
   { id: 'similar', name: '✨ Similar Style', copyMode: 'dalle_inpaint' },
-  { id: 'new_bg', name: '🌈 New Background', copyMode: 'bg_regen' },
-  { id: 'old_style', name: '🎨 Old Style', copyMode: 'old_style' },
+  { id: 'gpt_image', name: '🤖 GPT Image', copyMode: 'gpt_image' },
 ];
 
 export default function DebugPage() {

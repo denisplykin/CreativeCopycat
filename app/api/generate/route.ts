@@ -3,6 +3,7 @@ import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun }
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
+import { generateWithGPTImage } from '@/lib/openai-image';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
@@ -158,63 +159,18 @@ export async function POST(request: Request) {
             break;
           }
 
-          case 'bg_regen': {
-            // New Background: Generate completely new background
-            console.log('🌈 Mode: Background Regeneration (New BG)');
+          case 'gpt_image': {
+            // GPT Image: Full recreation using GPT-5.1 + gpt-image-1
+            console.log('🤖 Mode: GPT Image (GPT-5.1 + gpt-image-1)');
             
-            // Generate background prompt from design analysis (handle undefined)
-            const bgPrompt = generateBackgroundPrompt(
-              creative.analysis?.design || null,
-              stylePreset
-            );
-            
-            console.log('🎨 Generating new background with DALL·E...');
-            bgBuffer = await generateBackground({
-              stylePreset,
-              prompt: bgPrompt,
-              width: metadata.width,
-              height: metadata.height,
+            // Generate with GPT-5.1 vision + gpt-image-1
+            bgBuffer = await generateWithGPTImage({
+              imageBuffer: originalBuffer,
+              modifications: 'Keep the same composition and style, but replace any competitor brand names with Algonova and remove any visible logos',
+              aspectRatio,
             });
             
-            console.log('✅ Background generation complete!');
-            break;
-          }
-
-          case 'old_style': {
-            // Old Style: Use prompts from Claude analysis (Midjourney/Flux approach)
-            console.log('🎨 Mode: Old Style (Midjourney/Flux)');
-            
-            // Check if analysis has imageGenerationPrompts
-            const prompts = (creative.analysis as any).imageGenerationPrompts;
-            
-            if (!prompts || !prompts.background) {
-              console.warn('⚠️ No imageGenerationPrompts in analysis, using design description');
-              
-              // Fallback: generate prompt from design analysis (handle undefined)
-              const bgPrompt = generateBackgroundPrompt(
-                creative.analysis?.design || null,
-                'realistic photorealistic studio lighting'
-              );
-              
-              bgBuffer = await generateBackground({
-                stylePreset: 'realistic',
-                prompt: bgPrompt,
-                width: metadata.width,
-                height: metadata.height,
-              });
-            } else {
-              // Use Claude's generated prompt
-              console.log(`📝 Using Claude prompt: ${prompts.background.substring(0, 100)}...`);
-              
-              bgBuffer = await generateBackground({
-                stylePreset: 'realistic',
-                prompt: prompts.background,
-                width: metadata.width,
-                height: metadata.height,
-              });
-            }
-            
-            console.log('✅ Old Style background generated!');
+            console.log('✅ GPT Image generation complete!');
             break;
           }
 
