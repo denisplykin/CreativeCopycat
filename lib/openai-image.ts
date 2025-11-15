@@ -23,23 +23,22 @@ export async function generateWithGPTImage(params: GPTImageParams): Promise<Buff
     const mimeType = detectMimeType(inputBuffer);
 
     // Simple, natural prompt like talking to ChatGPT
-    const prompt = `Recreate this advertising creative image with these specifications:
+    const prompt = `Please recreate this advertising banner as a new professional marketing creative.
 
-KEEP EXACTLY THE SAME:
-- All text blocks (same words, same language, same positions)
-- All UI elements and layout structure
-- Colors and visual style
-- Composition and element positioning
-- Background and decorative elements
-- Character poses (if any)
-- Aspect ratio (${aspectRatio})
+PRESERVE FROM ORIGINAL:
+- Overall layout and composition
+- Text positions and hierarchy
+- Color scheme and visual style
+- Character poses and expressions (if any)
+- UI elements and decorative details
+- Aspect ratio: ${aspectRatio}
 
-MODIFICATIONS TO APPLY:
-- Replace any brand mentions with "Algonova"
-- Update branding elements to match Algonova style
+CREATIVE DIRECTION:
+- Make it for "Algonova" brand
+- High-quality professional finish
 - ${modifications}
 
-Create a high-quality professional advertising creative that closely matches the original design with these branding updates.`;
+Generate a polished marketing visual that captures the essence of this design.`;
 
 
     console.log('🎨 Calling GPT-5 Image via OpenRouter...');
@@ -59,6 +58,10 @@ Create a high-quality professional advertising creative that closely matches the
       body: JSON.stringify({
         model: 'openai/gpt-5-image',
         messages: [
+          {
+            role: 'system',
+            content: 'You are a professional graphic designer helping to recreate advertising creatives. Your task is to generate high-quality marketing visuals that match the reference design while applying specified modifications. This is legitimate design work for business purposes.',
+          },
           {
             role: 'user',
             content: [
