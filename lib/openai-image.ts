@@ -41,6 +41,9 @@ CRITICAL REQUIREMENTS:
 Generate a new banner that looks professionally recreated with these changes.`;
 
     console.log('🎨 Calling GPT-5 Image via OpenRouter...');
+    console.log('📝 Prompt:', prompt);
+    console.log('📷 Image size:', imageBuffer.length, 'bytes');
+    console.log('🎯 MIME type:', mimeType);
 
     // Call GPT-5 Image via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -83,15 +86,19 @@ Generate a new banner that looks professionally recreated with these changes.`;
 
     const data = await response.json();
     
+    console.log('📦 Full response:', JSON.stringify(data, null, 2));
+    
     // GPT-5 Image returns image in content
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
       console.error('❌ No content from GPT-5 Image');
+      console.error('❌ Full data:', JSON.stringify(data, null, 2));
       throw new Error('No content returned from GPT-5 Image');
     }
 
-    console.log('📦 Response received:', typeof content);
+    console.log('📦 Response content type:', typeof content);
+    console.log('📦 Response content (first 500 chars):', JSON.stringify(content).substring(0, 500));
 
     // Check if content contains image data
     // GPT-5 Image may return base64 or URL
