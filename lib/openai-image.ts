@@ -156,28 +156,36 @@ Rules:
     console.log('✅ STEP 2 COMPLETE! Mask generated.');
 
     // ========== STEP 3: Edit image with mask using /v1/images/edits ==========
-    console.log('\n✏️ STEP 3: Editing image with mask...');
+    console.log('\n✏️ STEP 3: Editing image with mask (gpt-image-1)...');
 
     // Build edit prompt
     const editPrompt = buildEditPrompt(layout, modifications, editTypes);
     console.log('📝 Edit prompt:', editPrompt);
 
-    // IMPORTANT: /v1/images/edits only supports square images (256x256, 512x512, 1024x1024)
-    // We need to convert both image and mask to 1024x1024
+    // Map aspect ratio to size for gpt-image-1 (supports non-square!)
+    let imageSize: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024';
+    if (aspectRatio === '9:16' || aspectRatio === '1080x1920') {
+      imageSize = '1024x1536'; // vertical
+    } else if (aspectRatio === '16:9') {
+      imageSize = '1536x1024'; // horizontal
+    }
+
+    // Parse target dimensions
+    const [targetWidth, targetHeight] = imageSize.split('x').map(Number);
     const sharp = (await import('sharp')).default;
     
-    console.log('🔄 Converting image and mask to 1024x1024 PNG with alpha channel...');
+    console.log(`🔄 Converting image and mask to ${imageSize} PNG with alpha channel...`);
     
-    // Convert image to RGBA PNG 1024x1024
+    // Convert image to RGBA PNG with target size
     const convertedImage = await sharp(imageBuffer)
-      .resize(1024, 1024, { fit: 'cover', position: 'center' })
+      .resize(targetWidth, targetHeight, { fit: 'cover', position: 'center' })
       .png()
       .ensureAlpha()
       .toBuffer();
     
-    // Convert mask to RGBA PNG 1024x1024
+    // Convert mask to RGBA PNG with same size
     const convertedMask = await sharp(maskBuffer)
-      .resize(1024, 1024, { fit: 'cover', position: 'center' })
+      .resize(targetWidth, targetHeight, { fit: 'cover', position: 'center' })
       .png()
       .ensureAlpha()
       .toBuffer();
@@ -186,7 +194,7 @@ Rules:
 
     // Prepare form data
     const formData = new FormData();
-    formData.append('model', 'dall-e-2'); // Note: edits endpoint uses dall-e-2
+    formData.append('model', 'gpt-image-1'); // NEW: gpt-image-1 supports non-square sizes!
     formData.append('image', convertedImage, {
       filename: 'image.png',
       contentType: 'image/png',
@@ -196,8 +204,9 @@ Rules:
       contentType: 'image/png',
     });
     formData.append('prompt', editPrompt);
+    formData.append('size', imageSize);
+    formData.append('quality', 'hd');
     formData.append('n', '1');
-    formData.append('size', '1024x1024'); // Only square sizes supported for edits
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
