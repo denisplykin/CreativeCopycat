@@ -205,7 +205,7 @@ Rules:
     });
     formData.append('prompt', editPrompt);
     formData.append('size', imageSize);
-    formData.append('quality', 'hd');
+    formData.append('quality', 'high'); // gpt-image-1 uses 'high' instead of 'hd'
     formData.append('n', '1');
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
