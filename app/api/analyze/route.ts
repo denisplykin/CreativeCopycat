@@ -48,17 +48,38 @@ export async function POST(request: Request) {
     const rolesJson = await extractRoles(ocrResult.fullText);
     console.log(`✅ Roles extracted: ${rolesJson.roles.length} roles`);
 
-    // Generate layout
-    const layoutJson = generateLayout(
-      ocrResult.blocks,
-      width,
-      height
-    );
-
     // Full design analysis (background, characters, graphics, colors, typography)
     console.log('🎨 Running full design analysis...');
     const designAnalysis = await analyzeCreativeDesign(imageBuffer);
     console.log(`✅ Design analysis complete!`);
+
+    // Generate layout (old format from render.ts)
+    const oldLayoutJson = generateLayout(
+      ocrResult.blocks,
+      width,
+      height
+    );
+    
+    // Convert to new mask-based format
+    const layoutJson = {
+      image_size: { width, height },
+      background: {
+        color: designAnalysis.color_palette.background_colors?.[0] || '#FFFFFF',
+        description: designAnalysis.background?.description || 'Solid background',
+      },
+      elements: oldLayoutJson.elements.map((el, idx) => ({
+        id: `text_${idx}`,
+        type: el.type as 'text',
+        role: 'body' as const,
+        text: ocrResult.blocks[idx]?.text || '',
+        subtext: null,
+        font_style: `${el.style?.fontWeight || 'normal'} ${el.style?.fontFamily || 'sans-serif'}`,
+        color: el.style?.color || '#000000',
+        description: null,
+        bbox: el.bbox,
+        z_index: idx + 1,
+      })),
+    };
 
     // Extract dominant colors from color palette
     const dominantColors = [
