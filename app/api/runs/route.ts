@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = supabaseAdmin;
 
     // Fetch all runs with creative info
     const { data: runs, error } = await supabase

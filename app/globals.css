@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Figma Color System */
+/* Import after tailwind directives */
 @import './colors.css';
 
 /* Legacy Algonova Brand Colors (for backward compatibility) */
