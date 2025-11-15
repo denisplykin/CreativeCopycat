@@ -8,8 +8,8 @@ import Image from 'next/image'
 
 interface Creative {
   id: string
-  competitor_name: string
-  image_url: string
+  competitor_name: string | null
+  original_image_url: string
   created_at: string
   analysis?: {
     aspect_ratio?: string
@@ -38,8 +38,8 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
       {/* Image */}
       <div className="relative aspect-[9/16] w-full bg-muted overflow-hidden">
         <Image
-          src={creative.image_url}
-          alt={`${creative.competitor_name} creative`}
+          src={creative.original_image_url}
+          alt={`${creative.competitor_name || 'Creative'} creative`}
           fill
           className="object-cover transition-transform group-hover:scale-105"
         />
@@ -62,7 +62,7 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-sm truncate">
-            {creative.competitor_name}
+            {creative.competitor_name || 'Unknown'}
           </h3>
         </div>
 

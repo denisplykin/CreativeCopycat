@@ -18,7 +18,7 @@ export async function GET() {
         result_url,
         creative:creatives (
           competitor_name,
-          image_url
+          original_image_url
         )
       `)
       .order('created_at', { ascending: false })

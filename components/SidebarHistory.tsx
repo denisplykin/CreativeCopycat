@@ -17,8 +17,8 @@ interface HistoryItem {
   created_at: string
   result_url?: string | null
   creative?: {
-    competitor_name: string
-    image_url: string
+    competitor_name: string | null
+    original_image_url: string
   }
 }
 
@@ -111,9 +111,9 @@ function HistoryItemCard({
       <div className="flex gap-3">
         {/* Thumbnail */}
         <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-muted">
-          {item.result_url || item.creative?.image_url ? (
+          {item.result_url || item.creative?.original_image_url ? (
             <Image
-              src={item.result_url || item.creative!.image_url}
+              src={item.result_url || item.creative!.original_image_url}
               alt="Creative"
               fill
               className={cn(

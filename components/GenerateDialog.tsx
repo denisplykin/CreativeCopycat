@@ -20,8 +20,8 @@ import { Loader2 } from 'lucide-react'
 
 interface Creative {
   id: string
-  competitor_name: string
-  image_url: string
+  competitor_name: string | null
+  original_image_url: string
   analysis?: {
     aspect_ratio?: string
   } | null
@@ -86,7 +86,7 @@ export function GenerateDialog({
         <DialogHeader>
           <DialogTitle>Generate Variations</DialogTitle>
           <DialogDescription>
-            Configure and generate creative variations for {creative.competitor_name}
+            Configure and generate creative variations for {creative.competitor_name || 'this creative'}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,8 +96,8 @@ export function GenerateDialog({
             <Label className="text-base font-semibold mb-3 block">Preview</Label>
             <div className="relative aspect-[9/16] w-full max-w-sm mx-auto bg-muted rounded-lg overflow-hidden border">
               <Image
-                src={creative.image_url}
-                alt={creative.competitor_name}
+                src={creative.original_image_url}
+                alt={creative.competitor_name || 'Creative'}
                 fill
                 className="object-cover"
               />
