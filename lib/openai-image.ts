@@ -164,19 +164,25 @@ Create a high-quality professional result that feels natural and cohesive.`;
     }
 
     const data = await response.json();
-    console.log('📦 Response received');
+    console.log('📦 Full response from OpenRouter:');
+    console.log(JSON.stringify(data, null, 2));
 
     // Check for errors
     const choice = data.choices?.[0];
     if (choice?.error) {
       console.error('🚨 Error from model:', choice.error);
-      throw new Error(`Model error: ${choice.error.message}`);
+      throw new Error(`Model error: ${choice.error.message || JSON.stringify(choice.error)}`);
     }
 
     const content = choice?.message?.content;
     if (!content) {
-      throw new Error('No content returned');
+      console.error('❌ No content in response!');
+      console.error('Choice object:', JSON.stringify(choice, null, 2));
+      throw new Error('No content returned from model');
     }
+    
+    console.log('📝 Content type:', typeof content);
+    console.log('📝 Content preview:', JSON.stringify(content).substring(0, 300));
 
     // Parse response (image data)
     let resultBuffer: Buffer;
