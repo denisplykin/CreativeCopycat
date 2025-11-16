@@ -173,12 +173,19 @@ export default function CreativesNewPage() {
       const promises = modesToGenerate.map(async ({ mode, config: genConfig }) => {
         try {
           console.log(`📤 Sending ${mode} request to /api/generate...`)
+          
+          // Add timeout (60 seconds max)
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 60000)
+          
           const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(genConfig),
+            signal: controller.signal,
           })
-
+          
+          clearTimeout(timeoutId)
           console.log(`📥 ${mode} response: ${response.status}`)
 
           if (!response.ok) {
@@ -186,18 +193,23 @@ export default function CreativesNewPage() {
             console.error(`❌ ${mode} generation failed:`, errorData)
             // Refresh history to show failed status
             await fetchRuns()
-            return { success: false, mode }
+            return { success: false, mode, error: errorData }
           }
 
           const result = await response.json()
           console.log(`✅ ${mode} generation complete:`, result)
           // Refresh history to show completion
           await fetchRuns()
-          return { success: true, mode }
-        } catch (error) {
+          return { success: true, mode, result }
+        } catch (error: any) {
           console.error(`❌ ${mode} generation error:`, error)
+          
+          if (error.name === 'AbortError') {
+            console.error(`⏱️ ${mode} request timed out after 60 seconds`)
+          }
+          
           await fetchRuns()
-          return { success: false, mode }
+          return { success: false, mode, error: error.message }
         }
       })
 
