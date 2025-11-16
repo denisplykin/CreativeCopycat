@@ -199,6 +199,74 @@ export async function createRun(
 }
 
 /**
+ * Create creative run (for generation history)
+ */
+export async function createCreativeRun(params: {
+  creative_id: string;
+  generation_type: string;
+  copy_mode?: string;
+  config?: any;
+}): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from('creative_runs')
+    .insert({
+      creative_id: params.creative_id,
+      generation_type: params.generation_type,
+      copy_mode: params.copy_mode,
+      config: params.config,
+      status: 'running',
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('❌ Failed to create creative run:', error.message);
+    throw new Error(`Failed to create creative run: ${error.message}`);
+  }
+
+  console.log('✅ Creative run created:', data.id);
+  return data.id;
+}
+
+/**
+ * Update creative run status and result
+ */
+export async function updateCreativeRun(
+  runId: string,
+  status: 'running' | 'completed' | 'failed',
+  result_url?: string,
+  error_message?: string
+): Promise<void> {
+  const updateData: any = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (status === 'completed') {
+    updateData.completed_at = new Date().toISOString();
+    if (result_url) {
+      updateData.result_url = result_url;
+    }
+  }
+
+  if (error_message) {
+    updateData.error_message = error_message;
+  }
+
+  const { error } = await supabaseAdmin
+    .from('creative_runs')
+    .update(updateData)
+    .eq('id', runId);
+
+  if (error) {
+    console.error('❌ Failed to update creative run:', error.message);
+    throw new Error(`Failed to update creative run: ${error.message}`);
+  }
+
+  console.log(`✅ Creative run ${runId} updated: ${status}`);
+}
+
+/**
  * Get recent runs
  */
 export async function getRecentRuns(limit: number = 10): Promise<Run[]> {

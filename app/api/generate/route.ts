@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun } from '@/lib/db';
+import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun, createCreativeRun, updateCreativeRun } from '@/lib/db';
 import { uploadFile, getPublicUrl } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
@@ -12,6 +12,7 @@ import type { GenerateRequest, GenerateResponse } from '@/types/creative';
 
 export async function POST(request: Request) {
   const startTime = Date.now();
+  let runId: string | null = null;
   
   try {
     const body: GenerateRequest = await request.json();
@@ -42,6 +43,21 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // ✅ CREATE RUN RECORD FIRST (shows in history with "running" status)
+    console.log('📝 Creating run record in history...');
+    runId = await createCreativeRun({
+      creative_id: creativeId,
+      generation_type: generationType,
+      copy_mode: copyMode,
+      config: {
+        aspectRatio,
+        stylePreset,
+        numVariations,
+        language,
+      },
+    });
+    console.log(`✅ Run ${runId} created, starting generation...`);
 
     // Update status to generating
     await updateCreativeStatus(creativeId, 'generating');
@@ -155,7 +171,12 @@ export async function POST(request: Request) {
     // Update creative with generated URLs
     await updateGeneratedUrls(creativeId, updates);
 
-    // Log run
+    // ✅ UPDATE RUN STATUS TO COMPLETED
+    if (runId) {
+      await updateCreativeRun(runId, 'completed', generatedUrl);
+    }
+
+    // Log run (old format for backward compatibility)
     const latency = Date.now() - startTime;
     await createRun(
       { creativeId, generationType, stylePreset },
@@ -178,7 +199,16 @@ export async function POST(request: Request) {
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // Log failed run
+    // ✅ UPDATE RUN STATUS TO FAILED
+    if (runId) {
+      try {
+        await updateCreativeRun(runId, 'failed', undefined, errorMessage);
+      } catch (updateError) {
+        console.error('Failed to update run status:', updateError);
+      }
+    }
+    
+    // Log failed run (old format for backward compatibility)
     const latency = Date.now() - startTime;
     try {
       await createRun(
