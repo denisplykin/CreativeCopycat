@@ -247,7 +247,7 @@ Return valid JSON only.`;
     });
     formData.append('prompt', editPrompt);
     // Note: 'size' is NOT needed for /images/edits - it uses input image size
-    formData.append('quality', 'high');
+    formData.append('quality', 'standard'); // $0.04 instead of $0.17 (4x cheaper!)
     formData.append('n', '1');
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
