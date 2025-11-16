@@ -25,8 +25,10 @@ export async function POST(request: Request) {
       llmModel,
       temperature,
       language = 'en',
-      aspectRatio = '1:1',
+      aspectRatio = 'original',
       numVariations = 1,
+      configGenerationType,
+      customPrompt,
     } = body;
 
     console.log(`🎨 Generating creative: ${generationType}, copyMode: ${copyMode}, aspectRatio: ${aspectRatio}`);
@@ -180,18 +182,62 @@ export async function POST(request: Request) {
         let bgBuffer: Buffer;
 
         // MASK-BASED EDITING
-        console.log('🎭 Mode: Mask Edit');
+        console.log(`🎭 Mode: ${copyMode}`);
         
-        // Default modification: replace character with 25yo Indonesian woman + Algonova branding
-        const defaultModification = `Replace the main character with a confident 25-year-old Indonesian woman in modern, professional attire. Keep the same pose and overall composition. Update any brand names to "Algonova" and maintain high quality.`;
-        
-        // Default: edit character and logo elements
-        const defaultEditTypes = ['character', 'logo'];
+        // Determine modifications and edit types based on copyMode
+        let modifications: string;
+        let editTypes: string[];
+
+        switch (copyMode) {
+          case 'simple_copy':
+            // Simple Copy: только замена логотипа и названия бренда
+            console.log('📝 Simple Copy: Replace logo and brand name only');
+            modifications = `Replace all competitor logos with the Algonova logo. Update any brand names in text to "Algonova". Keep everything else identical - same character, pose, colors, layout, and background.`;
+            editTypes = ['logo'];
+            break;
+
+          case 'copy_with_color':
+            // Copy + Color: замена логотипа + перекрашивание в цвета Algonova
+            console.log('🎨 Copy + Color: Replace logo + apply Algonova colors');
+            modifications = `Replace all competitor logos with the Algonova logo. Update any brand names to "Algonova". Recolor decorative elements and accents to match Algonova brand colors: vibrant orange (#FF6B35), hot pink (#FF006E), deep purple (#8338EC), and cyan (#00D9FF). Keep the character, layout, and overall composition identical.`;
+            editTypes = ['logo', 'decor'];
+            break;
+
+          case 'slightly_different':
+            // Slightly Different: замена логотипа + небольшое изменение персонажа и фона
+            console.log('👤 Slightly Different: Modify character and background slightly');
+            modifications = `Replace all logos with Algonova logo and brand names with "Algonova". Slightly modify the main character - keep the same type, age, and pose but change their appearance (different face, hair, clothing details). Also subtly vary the background while keeping the same style and composition.`;
+            editTypes = ['character', 'logo', 'background'];
+            break;
+
+          case 'mask_edit':
+            // Custom Prompt Mode
+            if (configGenerationType === 'custom' && customPrompt) {
+              console.log('✏️ Custom Prompt Mode');
+              modifications = `${customPrompt} Additionally, replace all competitor logos with Algonova logo and update brand names to "Algonova".`;
+              editTypes = ['character', 'logo', 'text', 'button', 'decor', 'background'];
+            } else {
+              // Fallback to default
+              console.log('⚙️ Default Mode');
+              modifications = `Replace the main character with a confident 25-year-old Indonesian woman in modern, professional attire. Keep the same pose and overall composition. Update any brand names to "Algonova" and replace logos with Algonova logo.`;
+              editTypes = ['character', 'logo'];
+            }
+            break;
+
+          default:
+            // Fallback
+            console.log('⚠️ Unknown mode, using default');
+            modifications = `Replace all logos with Algonova logo and update brand names to "Algonova". Keep everything else identical.`;
+            editTypes = ['logo'];
+        }
+
+        console.log(`📝 Modifications: ${modifications.substring(0, 100)}...`);
+        console.log(`🎯 Edit types: ${editTypes.join(', ')}`);
         
         bgBuffer = await generateMaskEdit({
           imageBuffer: originalBuffer,
-          modifications: defaultModification,
-          editTypes: defaultEditTypes,
+          modifications,
+          editTypes,
           aspectRatio,
         });
         

@@ -86,7 +86,7 @@ export default function CreativesNewPage() {
     return true
   })
 
-  // Handle generate
+  // Handle generate - supports multiple generation modes
   const handleGenerate = async (config: GenerationConfig) => {
     console.log('🎯 handleGenerate called in page.tsx')
     console.log('🎨 Selected creative:', selectedCreative?.id)
@@ -97,41 +97,98 @@ export default function CreativesNewPage() {
       return
     }
 
-    try {
-      console.log('📤 Sending POST to /api/generate...')
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    // Determine which modes to generate
+    const modesToGenerate: Array<{ mode: string; config: any }> = []
+
+    if (config.generationType === 'custom') {
+      // Custom mode - single generation with custom prompt
+      modesToGenerate.push({
+        mode: 'custom',
+        config: {
           creativeId: selectedCreative.id,
           generationType: 'full_creative',
           copyMode: 'mask_edit',
           aspectRatio: config.aspectRatio,
-          configGenerationType: config.generationType,
-          simpleOptions: config.simpleOptions,
+          configGenerationType: 'custom',
           customPrompt: config.customPrompt,
-        }),
+        }
       })
-
-      console.log('📊 Response status:', response.status)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('❌ API error:', errorData)
-        throw new Error(`Generation failed: ${response.status}`)
+    } else {
+      // Simple mode - generate for each selected option
+      const options = config.simpleOptions || {}
+      
+      if (options.simpleCopy) {
+        modesToGenerate.push({
+          mode: 'simple_copy',
+          config: {
+            creativeId: selectedCreative.id,
+            generationType: 'full_creative',
+            copyMode: 'simple_copy',
+            aspectRatio: config.aspectRatio,
+            configGenerationType: 'simple',
+          }
+        })
       }
-
-      const result = await response.json()
-      console.log('✅ Generation started:', result)
-
-      // Refresh runs
-      console.log('🔄 Refreshing runs...')
-      await fetchRuns()
-      console.log('✅ Runs refreshed!')
-    } catch (error) {
-      console.error('❌ Generation error:', error)
-      throw error
+      
+      if (options.copyWithColor) {
+        modesToGenerate.push({
+          mode: 'copy_with_color',
+          config: {
+            creativeId: selectedCreative.id,
+            generationType: 'full_creative',
+            copyMode: 'copy_with_color',
+            aspectRatio: config.aspectRatio,
+            configGenerationType: 'simple',
+          }
+        })
+      }
+      
+      if (options.slightlyDifferent) {
+        modesToGenerate.push({
+          mode: 'slightly_different',
+          config: {
+            creativeId: selectedCreative.id,
+            generationType: 'full_creative',
+            copyMode: 'slightly_different',
+            aspectRatio: config.aspectRatio,
+            configGenerationType: 'simple',
+          }
+        })
+      }
     }
+
+    console.log(`🚀 Starting ${modesToGenerate.length} generation(s)...`)
+
+    // Start all generations (don't wait for them to complete)
+    const generatePromises = modesToGenerate.map(async ({ mode, config: genConfig }) => {
+      try {
+        console.log(`📤 Starting ${mode} generation...`)
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(genConfig),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          console.error(`❌ ${mode} generation failed:`, errorData)
+          return
+        }
+
+        const result = await response.json()
+        console.log(`✅ ${mode} generation started:`, result)
+      } catch (error) {
+        console.error(`❌ ${mode} generation error:`, error)
+      }
+    })
+
+    // Wait for all generation requests to be sent
+    await Promise.all(generatePromises)
+
+    // Refresh runs to show progress
+    console.log('🔄 Refreshing runs...')
+    await fetchRuns()
+    console.log('✅ Runs refreshed!')
   }
 
   // Handle creative card click

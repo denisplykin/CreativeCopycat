@@ -34,7 +34,7 @@ interface GenerateDialogProps {
 }
 
 export interface GenerationConfig {
-  aspectRatio: '1:1' | '4:5' | '9:16' | '16:9'
+  aspectRatio: 'original' | '1:1' | '4:5' | '9:16' | '16:9'
   generationType: 'simple' | 'custom'
   
   // Для простой генерации (чекбоксы)
@@ -57,7 +57,7 @@ export function GenerateDialog({
   onGenerate,
 }: GenerateDialogProps) {
   const [config, setConfig] = useState<GenerationConfig>({
-    aspectRatio: '9:16',
+    aspectRatio: 'original',      // ✅ Original size по умолчанию
     generationType: 'simple',
     simpleOptions: {
       simpleCopy: true,           // ✅ По умолчанию включен
@@ -136,6 +136,7 @@ export function GenerateDialog({
                 onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as any })}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
+                <option value="original">Original (Keep same as source)</option>
                 <option value="1:1">1:1 (Square)</option>
                 <option value="4:5">4:5 (Vertical)</option>
                 <option value="9:16">9:16 (Stories)</option>
