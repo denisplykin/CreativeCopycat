@@ -67,9 +67,27 @@ export default function CreativesNewPage() {
   const fetchRuns = async () => {
     try {
       console.log('🔄 Fetching runs from /api/runs...')
-      const response = await fetch('/api/runs')
+      // Add timestamp to prevent browser caching
+      const timestamp = Date.now()
+      const response = await fetch(`/api/runs?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
       const data = await response.json()
-      console.log(`✅ Received ${data.runs?.length || 0} runs:`, data.runs)
+      console.log(`✅ Received ${data.runs?.length || 0} runs (timestamp: ${timestamp})`)
+      
+      // Log first 3 runs for debugging
+      if (data.runs && data.runs.length > 0) {
+        console.log('📋 First 3 runs:', data.runs.slice(0, 3).map((r: any) => ({
+          id: r.id.substring(0, 8),
+          status: r.status,
+          mode: r.copy_mode,
+          created: new Date(r.created_at).toLocaleTimeString(),
+        })))
+      }
+      
       setRuns(data.runs || [])
     } catch (error) {
       console.error('❌ Failed to fetch runs:', error)
