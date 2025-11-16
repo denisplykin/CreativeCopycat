@@ -162,47 +162,62 @@ export default function CreativesNewPage() {
 
     console.log(`🚀 Starting ${modesToGenerate.length} generation(s)...`)
 
-    // Start all generations and refresh history immediately after
+    // Immediately refresh history to show the new "running" items
+    // (they get created in the API before generation starts)
+    console.log('🔄 Initial history refresh (expecting new running items)...')
+    setTimeout(() => fetchRuns(), 200) // Small delay to let API create the run record
+
+    // Start all generations in background
     const startGenerations = async () => {
       // Send all requests in parallel
       const promises = modesToGenerate.map(async ({ mode, config: genConfig }) => {
         try {
-          console.log(`📤 Starting ${mode} generation...`)
+          console.log(`📤 Sending ${mode} request to /api/generate...`)
           const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(genConfig),
           })
 
+          console.log(`📥 ${mode} response: ${response.status}`)
+
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             console.error(`❌ ${mode} generation failed:`, errorData)
+            // Refresh history to show failed status
+            await fetchRuns()
             return { success: false, mode }
           }
 
           const result = await response.json()
-          console.log(`✅ ${mode} generation started:`, result)
+          console.log(`✅ ${mode} generation complete:`, result)
+          // Refresh history to show completion
+          await fetchRuns()
           return { success: true, mode }
         } catch (error) {
           console.error(`❌ ${mode} generation error:`, error)
+          await fetchRuns()
           return { success: false, mode }
         }
       })
 
       // Wait for all requests to complete
-      await Promise.all(promises)
+      const results = await Promise.all(promises)
+      console.log(`🏁 All generations complete:`, results)
       
-      // Refresh runs immediately after all requests sent
-      console.log('🔄 Refreshing history after generation start...')
+      // Final refresh
       await fetchRuns()
     }
 
-    // Start generations (don't wait)
-    startGenerations()
+    // Start generations (don't wait for completion)
+    startGenerations().catch(err => {
+      console.error('❌ startGenerations error:', err)
+      fetchRuns() // Refresh even on error
+    })
 
     // Also refresh runs with progressive delays to catch updates
     console.log('🔄 Setting up progressive history refresh...')
-    const delays = [500, 1500, 3000] // 500ms, 1.5s, 3s
+    const delays = [1000, 2000, 4000, 8000] // 1s, 2s, 4s, 8s
     delays.forEach(delay => {
       setTimeout(() => {
         console.log(`⏰ Progressive refresh at ${delay}ms`)

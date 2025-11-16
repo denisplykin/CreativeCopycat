@@ -92,13 +92,30 @@ export async function generateMask(options: MaskOptions): Promise<Buffer> {
 /**
  * Helper: Generate mask for specific element types
  * e.g., only 'character', or 'character' + 'logo'
+ * 
+ * IMPORTANT: If 'logo' is requested but not found, fallback to elements with role: 'brand'
  */
 export function filterBoxesByType(
-  elements: Array<{ type: string; bbox: BoundingBox }>,
+  elements: Array<{ type: string; role?: string; bbox: BoundingBox }>,
   types: string[]
 ): BoundingBox[] {
-  return elements
+  const boxes = elements
     .filter((el) => types.includes(el.type))
     .map((el) => el.bbox);
+  
+  // Fallback: if 'logo' was requested but not found, try elements with role: 'brand'
+  if (types.includes('logo') && boxes.length === 0) {
+    console.log('⚠️ No logo found, falling back to elements with role: "brand"');
+    const brandBoxes = elements
+      .filter((el) => el.role === 'brand')
+      .map((el) => el.bbox);
+    
+    if (brandBoxes.length > 0) {
+      console.log(`✅ Found ${brandBoxes.length} brand element(s) as logo replacement`);
+      return brandBoxes;
+    }
+  }
+  
+  return boxes;
 }
 

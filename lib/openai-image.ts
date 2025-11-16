@@ -64,7 +64,13 @@ JSON structure:
   ]
 }
 
-Return valid JSON only. Include pixel coordinates for all elements.`;
+Important: 
+- Mark company logos and brand names as type: "logo" (not "text")
+- Mark brand text as role: "brand"
+- Include all text exactly as shown
+- Provide pixel coordinates for every element
+
+Return valid JSON only.`;
 
     // Use direct OpenAI API (no Azure content filters)
     console.log('🔄 Calling OpenAI GPT-4o for analysis...');
@@ -131,17 +137,33 @@ Return valid JSON only. Include pixel coordinates for all elements.`;
 
     const editBoxes = filterBoxesByType(layout.elements, editTypes);
 
-    if (editBoxes.length === 0) {
-      console.warn('⚠️ No elements found for editing types:', editTypes);
-      throw new Error(`No elements of type [${editTypes.join(', ')}] found in the banner`);
-    }
+    let maskBuffer: Buffer;
 
-    const maskBuffer = await generateMask({
-      width: layout.image_size.width,
-      height: layout.image_size.height,
-      boxes: editBoxes,
-      padding: 30, // Extra pixels around each element
-    });
+    if (editBoxes.length === 0) {
+      console.warn('⚠️ No specific elements found for editing types:', editTypes);
+      console.log('💡 Fallback: Creating full-image mask (edit entire image)');
+      
+      // Create a full white mask = edit the entire image
+      maskBuffer = await generateMask({
+        width: layout.image_size.width,
+        height: layout.image_size.height,
+        boxes: [{
+          x: 0,
+          y: 0,
+          width: layout.image_size.width,
+          height: layout.image_size.height,
+        }],
+        padding: 0,
+      });
+    } else {
+      console.log(`✅ Found ${editBoxes.length} element(s) to edit`);
+      maskBuffer = await generateMask({
+        width: layout.image_size.width,
+        height: layout.image_size.height,
+        boxes: editBoxes,
+        padding: 30, // Extra pixels around each element
+      });
+    }
 
     console.log('✅ STEP 2 COMPLETE! Mask generated.');
 

@@ -191,37 +191,37 @@ export async function POST(request: Request) {
         switch (copyMode) {
           case 'simple_copy':
             console.log('📝 Simple Copy: Logo only');
-            modifications = `Update the company logo to Algonova branding.`;
+            modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
             editTypes = ['logo'];
             break;
 
           case 'copy_with_color':
             console.log('🎨 Copy + Color: Logo + colors');
-            modifications = `Update company logo to Algonova. Apply brand colors: orange, pink, purple, cyan.`;
+            modifications = `If there is a company logo, update it to Algonova. Apply brand colors (orange, pink, purple, cyan) to decorative elements if present.`;
             editTypes = ['logo', 'decor'];
             break;
 
           case 'slightly_different':
             console.log('👤 Slightly Different: Character + logo');
-            modifications = `Update company logo to Algonova. Slightly modify the character while keeping the same type.`;
+            modifications = `If there is a company logo, update it to Algonova. If there is a main character, slightly modify them while keeping the same type (e.g., child stays a child, but with different pose or expression).`;
             editTypes = ['character', 'logo', 'background'];
             break;
 
           case 'mask_edit':
             if (configGenerationType === 'custom' && customPrompt) {
               console.log('✏️ Custom Prompt Mode');
-              modifications = `${customPrompt}. Update company logo to Algonova.`;
+              modifications = `${customPrompt}. Also, if there is a company logo visible, update it to Algonova branding.`;
               editTypes = ['character', 'logo', 'text', 'button', 'decor', 'background'];
             } else {
               console.log('⚙️ Default Mode');
-              modifications = `Update company logo to Algonova branding.`;
+              modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
               editTypes = ['character', 'logo'];
             }
             break;
 
           default:
             console.log('⚠️ Unknown mode, using default');
-            modifications = `Update company logo to Algonova.`;
+            modifications = `If there is a company logo visible, update it to Algonova. Otherwise, keep the design as is.`;
             editTypes = ['logo'];
         }
 
