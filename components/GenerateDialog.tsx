@@ -55,6 +55,8 @@ export function GenerateDialog({
   creative,
   onGenerate,
 }: GenerateDialogProps) {
+  console.log('🎭 GenerateDialog render - open:', open, 'creative:', creative?.id)
+  
   const [config, setConfig] = useState<GenerationConfig>({
     aspectRatio: 'original',      // ✅ Original size по умолчанию
     generationType: 'simple',
@@ -73,8 +75,9 @@ export function GenerateDialog({
     e.stopPropagation()
     
     console.log('🚀 Generate button clicked!')
-    console.log('📦 Config:', config)
+    console.log('📦 Config:', JSON.stringify(config, null, 2))
     console.log('🎨 Creative:', creative?.id)
+    console.log('✅ onGenerate type:', typeof onGenerate)
     
     // Close dialog FIRST
     console.log('🚪 Closing dialog...')
@@ -84,10 +87,13 @@ export function GenerateDialog({
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Then start generation
-    console.log('📤 Starting generation...')
-    onGenerate(config).catch((error) => {
-      console.error('❌ Generation failed:', error)
-    })
+    console.log('📤 Calling onGenerate...')
+    try {
+      await onGenerate(config)
+      console.log('✅ onGenerate completed')
+    } catch (error) {
+      console.error('❌ onGenerate error:', error)
+    }
   }
 
   if (!creative) return null

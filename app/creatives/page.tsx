@@ -228,8 +228,10 @@ export default function CreativesNewPage() {
 
   // Handle creative card click
   const handleCreativeClick = (creative: Creative) => {
+    console.log('🖼️ Creative card clicked:', creative.id, creative.competitor_name)
     setSelectedCreative(creative)
     setDialogOpen(true)
+    console.log('📂 Dialog should now be open')
   }
 
   // Handle file upload
