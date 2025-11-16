@@ -79,14 +79,16 @@ Rules:
 - z_index: larger numbers = on top (e.g., character=10, background shapes=1).
 - Return ONLY valid JSON, no explanations.`;
 
-    const step1Response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const step1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://creative-copycat.vercel.app',
+        'X-Title': 'Creative Copycat',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'user',

@@ -50,21 +50,27 @@ interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement
 const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
   ({ className, value, checked, onCheckedChange, ...props }, ref) => {
     return (
-      <div className="relative flex items-center">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={checked}
+        onClick={onCheckedChange}
+        className="relative flex items-center cursor-pointer"
+      >
         <input
           ref={ref}
           type="radio"
           value={value}
           checked={checked}
-          onChange={onCheckedChange}
+          onChange={() => {}}
           className="sr-only"
+          tabIndex={-1}
           {...props}
         />
         <div
           className={cn(
-            "aspect-square h-4 w-4 rounded-full border-2 border-primary transition-all",
-            checked && "border-primary",
-            !checked && "border-input",
+            "aspect-square h-4 w-4 rounded-full border-2 transition-all",
+            checked ? "border-primary" : "border-input",
             className
           )}
         >
@@ -74,7 +80,7 @@ const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
             </div>
           )}
         </div>
-      </div>
+      </button>
     )
   }
 )
