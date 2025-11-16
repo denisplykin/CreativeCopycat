@@ -159,8 +159,8 @@ export default function CreativesNewPage() {
 
     console.log(`🚀 Starting ${modesToGenerate.length} generation(s)...`)
 
-    // Start all generations (don't wait for them to complete)
-    const generatePromises = modesToGenerate.map(async ({ mode, config: genConfig }) => {
+    // Start all generations in parallel (fire and forget)
+    modesToGenerate.forEach(async ({ mode, config: genConfig }) => {
       try {
         console.log(`📤 Starting ${mode} generation...`)
         const response = await fetch('/api/generate', {
@@ -182,13 +182,12 @@ export default function CreativesNewPage() {
       }
     })
 
-    // Wait for all generation requests to be sent
-    await Promise.all(generatePromises)
-
-    // Refresh runs to show progress
-    console.log('🔄 Refreshing runs...')
-    await fetchRuns()
-    console.log('✅ Runs refreshed!')
+    // Refresh runs immediately to show new items in history
+    console.log('🔄 Refreshing runs immediately...')
+    setTimeout(() => {
+      fetchRuns()
+      console.log('✅ Runs refreshed!')
+    }, 500) // Small delay to ensure server created the records
   }
 
   // Handle creative card click

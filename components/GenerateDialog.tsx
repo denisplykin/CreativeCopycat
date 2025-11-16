@@ -68,7 +68,7 @@ export function GenerateDialog({
     customPrompt: '',
   })
 
-  const handleGenerate = (e: React.MouseEvent) => {
+  const handleGenerate = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -76,17 +76,18 @@ export function GenerateDialog({
     console.log('📦 Config:', config)
     console.log('🎨 Creative:', creative?.id)
     
-    // Start generation in background first
-    console.log('📤 Starting generation in background...')
+    // Close dialog FIRST
+    console.log('🚪 Closing dialog...')
+    onOpenChange(false)
+    
+    // Wait a tiny bit to ensure modal closes first
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Then start generation
+    console.log('📤 Starting generation...')
     onGenerate(config).catch((error) => {
       console.error('❌ Generation failed:', error)
     })
-    
-    // Close dialog immediately using setTimeout to ensure it happens after state update
-    console.log('🚪 Closing dialog...')
-    setTimeout(() => {
-      onOpenChange(false)
-    }, 0)
   }
 
   if (!creative) return null
