@@ -1,7 +1,7 @@
 import { BoundingBox, LayoutElement } from '@/types/creative';
 import { generateMask, filterBoxesByType } from './mask-generator';
 import FormData from 'form-data';
-import fetch from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 
 interface BannerLayout {
   image_size: { width: number; height: number };
