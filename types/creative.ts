@@ -150,6 +150,7 @@ export interface LayoutElement {
   description?: string | null;
   bbox: BoundingBox;
   z_index: number;
+  text_effects?: string | null; // "strikethrough", "underline", "shadow", "outline", "gradient", etc.
 }
 
 export type CopyMode = 'mask_edit' | 'simple_copy' | 'copy_with_color' | 'slightly_different';
