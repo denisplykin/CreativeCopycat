@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun, createCreativeRun, updateCreativeRun } from '@/lib/db';
-import { uploadFile, getPublicUrl } from '@/lib/supabase';
+import { uploadFile, getPublicUrl, supabaseAdmin } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { generateMaskEdit } from '@/lib/openai-image';
@@ -37,11 +37,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Creative not found' }, { status: 404 });
     }
 
+    // If not analyzed, run analysis first
     if (!creative.analysis) {
-      return NextResponse.json(
-        { error: 'Creative not analyzed yet. Run analysis first.' },
-        { status: 400 }
-      );
+      console.log('⚠️ Creative not analyzed, running analysis first...');
+      try {
+        await updateCreativeStatus(creativeId, 'analyzing');
+        
+        // Download original image
+        const imageResponse = await fetch(creative.original_image_url);
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        
+        // Extract metadata
+        const metadata = await extractImageMetadata(imageBuffer);
+        
+        // Store analysis
+        const analysisData = {
+          ocr: { blocks: [], fullText: '' },
+          layout: {
+            image_size: { width: metadata.width, height: metadata.height },
+            background: { color: '#FFFFFF', description: 'Auto-analyzed background' },
+            elements: []
+          },
+          roles: [],
+          dominant_colors: [],
+          language: 'en',
+          aspect_ratio: `${metadata.width}:${metadata.height}`,
+        };
+        
+        const { error: updateError } = await supabaseAdmin
+          .from('creatives')
+          .update({ 
+            analysis: analysisData,
+            status: 'completed'
+          })
+          .eq('id', creativeId);
+        
+        if (updateError) {
+          throw new Error(`Failed to save analysis: ${updateError.message}`);
+        }
+        
+        console.log('✅ Auto-analysis complete');
+        
+        // Re-fetch creative with analysis
+        const updatedCreative = await getCreativeById(creativeId);
+        Object.assign(creative, updatedCreative);
+      } catch (analysisError) {
+        console.error('❌ Auto-analysis failed:', analysisError);
+        return NextResponse.json(
+          { error: 'Failed to analyze creative', details: analysisError instanceof Error ? analysisError.message : 'Unknown error' },
+          { status: 500 }
+        );
+      }
     }
 
     // ✅ CREATE RUN RECORD FIRST (shows in history with "running" status)

@@ -49,15 +49,20 @@ interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement
 
 const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
   ({ className, value, checked, onCheckedChange, id, ...props }, ref) => {
-    const handleClick = () => {
-      console.log('🔘 RadioGroupItem clicked:', value)
-      if (onCheckedChange) {
-        onCheckedChange()
-      }
-    }
-
     return (
-      <div className="relative flex items-center cursor-pointer" onClick={handleClick}>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={checked}
+        onClick={(e) => {
+          e.preventDefault()
+          console.log('🔘 RadioGroupItem clicked:', value, 'checked:', checked)
+          if (onCheckedChange && !checked) {
+            onCheckedChange()
+          }
+        }}
+        className="relative flex items-center cursor-pointer focus:outline-none"
+      >
         <input
           ref={ref}
           id={id}
@@ -71,14 +76,14 @@ const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
               onCheckedChange()
             }
           }}
-          className="peer sr-only"
+          className="sr-only"
+          tabIndex={-1}
           {...props}
         />
         <div
           className={cn(
             "aspect-square h-4 w-4 rounded-full border-2 transition-all flex items-center justify-center",
             checked ? "border-primary" : "border-input",
-            "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2",
             className
           )}
         >
@@ -86,7 +91,7 @@ const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
             <div className="h-2 w-2 rounded-full bg-primary" />
           )}
         </div>
-      </div>
+      </button>
     )
   }
 )
