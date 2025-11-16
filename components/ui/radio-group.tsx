@@ -48,39 +48,38 @@ interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement
 }
 
 const RadioGroupItem = React.forwardRef<HTMLInputElement, RadioGroupItemProps>(
-  ({ className, value, checked, onCheckedChange, ...props }, ref) => {
+  ({ className, value, checked, onCheckedChange, id, ...props }, ref) => {
     return (
-      <button
-        type="button"
-        role="radio"
-        aria-checked={checked}
-        onClick={onCheckedChange}
-        className="relative flex items-center cursor-pointer"
-      >
+      <div className="relative flex items-center">
         <input
           ref={ref}
+          id={id}
           type="radio"
           value={value}
           checked={checked}
-          onChange={() => {}}
-          className="sr-only"
-          tabIndex={-1}
+          onChange={onCheckedChange}
+          className="peer sr-only"
           {...props}
         />
         <div
           className={cn(
-            "aspect-square h-4 w-4 rounded-full border-2 transition-all",
-            checked ? "border-primary" : "border-input",
+            "aspect-square h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
+            "peer-checked:border-primary peer-checked:bg-white",
+            "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2",
+            !checked && "border-input",
             className
           )}
         >
-          {checked && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-2 w-2 rounded-full bg-primary" />
-            </div>
-          )}
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center transition-opacity",
+              checked ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <div className="h-2 w-2 rounded-full bg-primary" />
+          </div>
         </div>
-      </button>
+      </div>
     )
   }
 )

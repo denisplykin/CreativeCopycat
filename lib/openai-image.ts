@@ -79,37 +79,62 @@ Rules:
 - z_index: larger numbers = on top (e.g., character=10, background shapes=1).
 - Return ONLY valid JSON, no explanations.`;
 
-    const step1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://creative-copycat.vercel.app',
-        'X-Title': 'Creative Copycat',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: [
+    // Retry logic for OpenRouter (sometimes has connection issues)
+    let step1Response;
+    let retries = 3;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`🔄 Attempt ${attempt}/${retries}: Calling OpenRouter...`);
+        
+        step1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://creative-copycat.vercel.app',
+            'X-Title': 'Creative Copycat',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'openai/gpt-4o',
+            messages: [
               {
-                type: 'text',
-                text: analysisPrompt,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`,
-                },
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: analysisPrompt,
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${mimeType};base64,${base64Image}`,
+                    },
+                  },
+                ],
               },
             ],
-          },
-        ],
-        max_tokens: 2000,
-        temperature: 0.2,
-      }),
-    });
+            max_tokens: 2000,
+            temperature: 0.2,
+          }),
+        });
+        
+        // Success - break out of retry loop
+        console.log(`✅ OpenRouter responded: ${step1Response.status}`);
+        break;
+      } catch (error: any) {
+        console.error(`❌ Attempt ${attempt} failed:`, error.message);
+        
+        if (attempt === retries) {
+          throw new Error(`OpenRouter connection failed after ${retries} attempts: ${error.message}`);
+        }
+        
+        // Wait before retry (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
 
     if (!step1Response.ok) {
       const errorText = await step1Response.text();
