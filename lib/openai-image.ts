@@ -80,8 +80,8 @@ Rules:
 - Return ONLY valid JSON, no explanations.`;
 
     // Retry logic for OpenRouter (sometimes has connection issues)
-    let step1Response;
-    let retries = 3;
+    let step1Response: Response | undefined;
+    const retries = 3;
     
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -134,6 +134,10 @@ Rules:
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+    }
+
+    if (!step1Response) {
+      throw new Error('Failed to get response from OpenRouter after retries');
     }
 
     if (!step1Response.ok) {
