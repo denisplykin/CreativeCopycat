@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
+    console.log('📊 GET /api/runs - Fetching runs...');
     const supabase = supabaseAdmin;
 
     // Fetch all runs with creative info
@@ -27,6 +28,11 @@ export async function GET() {
     if (error) {
       console.error('❌ Supabase error:', error.message);
       throw error;
+    }
+
+    console.log(`✅ Found ${runs?.length || 0} runs`);
+    if (runs && runs.length > 0) {
+      console.log('📋 First run:', JSON.stringify(runs[0], null, 2));
     }
 
     // Calculate progress for running items (mock for now)

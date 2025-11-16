@@ -65,11 +65,13 @@ export default function CreativesNewPage() {
 
   const fetchRuns = async () => {
     try {
+      console.log('🔄 Fetching runs from /api/runs...')
       const response = await fetch('/api/runs')
       const data = await response.json()
+      console.log(`✅ Received ${data.runs?.length || 0} runs:`, data.runs)
       setRuns(data.runs || [])
     } catch (error) {
-      console.error('Failed to fetch runs:', error)
+      console.error('❌ Failed to fetch runs:', error)
     }
   }
 

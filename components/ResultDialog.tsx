@@ -92,13 +92,12 @@ export function ResultDialog({ open, onOpenChange, result }: ResultDialogProps) 
             {/* Original */}
             <div>
               <p className="text-sm font-medium mb-2">Original</p>
-              <div className="relative aspect-[9/16] w-full rounded-lg overflow-hidden border bg-muted">
+              <div className="relative w-full rounded-lg overflow-hidden border bg-muted">
                 {result.creative?.original_image_url && (
-                  <Image
+                  <img
                     src={result.creative.original_image_url}
                     alt="Original"
-                    fill
-                    className="object-contain"
+                    className="w-full h-auto"
                   />
                 )}
               </div>
@@ -107,16 +106,15 @@ export function ResultDialog({ open, onOpenChange, result }: ResultDialogProps) 
             {/* Generated */}
             <div>
               <p className="text-sm font-medium mb-2">Generated</p>
-              <div className="relative aspect-[9/16] w-full rounded-lg overflow-hidden border bg-muted">
+              <div className="relative w-full rounded-lg overflow-hidden border bg-muted">
                 {result.result_url ? (
-                  <Image
+                  <img
                     src={result.result_url}
                     alt="Generated"
-                    fill
-                    className="object-contain"
+                    className="w-full h-auto"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <div className="flex items-center justify-center text-muted-foreground p-12">
                     <p className="text-sm">No result available</p>
                   </div>
                 )}
