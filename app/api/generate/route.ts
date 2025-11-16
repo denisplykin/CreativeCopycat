@@ -3,7 +3,7 @@ import { getCreativeById, updateCreativeStatus, updateGeneratedUrls, createRun, 
 import { uploadFile, getPublicUrl, supabaseAdmin } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
-import { generateMaskEdit } from '@/lib/openai-image';
+import { generateMaskEdit, generateWithDallE3 } from '@/lib/openai-image';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';

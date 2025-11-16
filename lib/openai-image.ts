@@ -247,7 +247,7 @@ Return valid JSON only.`;
     });
     formData.append('prompt', editPrompt);
     // Note: 'size' is NOT needed for /images/edits - it uses input image size
-    formData.append('quality', 'medium'); // Supported: 'low', 'medium', 'high', 'auto'
+    formData.append('quality', 'auto'); // OpenAI automatically chooses optimal quality
     formData.append('n', '1');
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
@@ -386,6 +386,161 @@ function buildEditPrompt(layout: BannerLayout, modifications: string, editTypes:
   prompt += `\n\nMaintain high quality, professional design, same layout and composition.`;
 
   return prompt;
+}
+
+/**
+ * DALL-E 3 GENERATIONS PIPELINE (2 steps)
+ * Full image regeneration (not editing)
+ * 
+ * Step 1: GPT-4o analyzes image → generates detailed DALL-E prompt
+ * Step 2: DALL-E 3 generates new image from prompt
+ * 
+ * Price: $0.04 (standard) or $0.08 (hd)
+ */
+export async function generateWithDallE3(params: {
+  imageBuffer: Buffer;
+  modifications: string;
+  aspectRatio?: string;
+  quality?: 'standard' | 'hd';
+}): Promise<Buffer> {
+  const { imageBuffer, modifications, aspectRatio = '1:1', quality = 'standard' } = params;
+
+  try {
+    console.log('🎨 DALL-E 3 GENERATIONS PIPELINE: Starting...');
+    console.log(`📐 Aspect ratio: ${aspectRatio}`);
+    console.log(`💎 Quality: ${quality} (${quality === 'hd' ? '$0.08' : '$0.04'})`);
+    console.log(`📝 Modifications: ${modifications}`);
+
+    // Convert image to base64
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = detectMimeType(imageBuffer);
+
+    // ========== STEP 1: GPT-4o analyzes image → generates DALL-E prompt ==========
+    console.log('\n👁️ STEP 1: Analyzing image and generating DALL-E prompt...');
+
+    const promptGenerationRequest = `You are an expert at analyzing advertising banners and writing detailed DALL-E prompts.
+
+Analyze this banner image and create a detailed prompt for DALL-E 3 to recreate it with modifications.
+
+USER MODIFICATIONS: ${modifications}
+
+Your task:
+1. Describe ALL visual elements in detail (layout, colors, text, characters, objects, style)
+2. Include the exact text content that should appear
+3. Apply the user's modifications
+4. IMPORTANT: Replace any competitor brand names with "Algonova" (purple #833AE0)
+5. Keep the same composition and style as the original
+
+Return a detailed DALL-E prompt (150-250 words) that will recreate this banner.
+The prompt should be descriptive, specific, and focus on visual details.
+
+Format: Return ONLY the prompt text, no JSON, no explanations.`;
+
+    const step1Response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: promptGenerationRequest,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!step1Response.ok) {
+      const errorText = await step1Response.text();
+      console.error('❌ Step 1 error:', step1Response.status, errorText);
+      throw new Error(`GPT-4o prompt generation error: ${step1Response.status}`);
+    }
+
+    const step1Data: any = await step1Response.json();
+    const dallePrompt = step1Data.choices?.[0]?.message?.content;
+
+    if (!dallePrompt) {
+      throw new Error('No DALL-E prompt returned from GPT-4o');
+    }
+
+    console.log('✅ STEP 1 COMPLETE! Generated DALL-E prompt:');
+    console.log(dallePrompt.substring(0, 300) + '...');
+
+    // ========== STEP 2: DALL-E 3 generates new image ==========
+    console.log('\n🎨 STEP 2: Generating image with DALL-E 3...');
+
+    // Map aspect ratio to DALL-E 3 size
+    let size: '1024x1024' | '1024x1792' | '1792x1024';
+    if (aspectRatio === '9:16' || aspectRatio === '4:5') {
+      size = '1024x1792'; // Vertical
+    } else if (aspectRatio === '16:9') {
+      size = '1792x1024'; // Horizontal
+    } else {
+      size = '1024x1024'; // Square (default for 1:1 and original)
+    }
+
+    console.log(`📐 DALL-E 3 size: ${size}`);
+
+    const step2Response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: dallePrompt,
+        size: size,
+        quality: quality,
+        n: 1,
+      }),
+    });
+
+    if (!step2Response.ok) {
+      const errorText = await step2Response.text();
+      console.error('❌ Step 2 error:', step2Response.status, errorText);
+      throw new Error(`DALL-E 3 generation error: ${step2Response.status} - ${errorText.substring(0, 200)}`);
+    }
+
+    const step2Data: any = await step2Response.json();
+    const imageUrl = step2Data.data?.[0]?.url;
+
+    if (!imageUrl) {
+      console.error('❌ No image URL in response:', step2Data);
+      throw new Error('No image URL returned from DALL-E 3');
+    }
+
+    console.log('✅ STEP 2 COMPLETE! Image generated');
+    console.log(`📥 Downloading from: ${imageUrl.substring(0, 50)}...`);
+
+    // Download the generated image
+    const imageResponse = await fetch(imageUrl);
+    const resultBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    console.log(`✅ Downloaded: ${resultBuffer.length} bytes`);
+    console.log('🎉 DALL-E 3 pipeline successful!\n');
+
+    return resultBuffer;
+  } catch (error) {
+    console.error('❌ DALL-E 3 pipeline error:', error);
+    throw error;
+  }
 }
 
 /**
