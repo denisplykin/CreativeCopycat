@@ -36,6 +36,7 @@ export default function CreativesNewPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedRun, setSelectedRun] = useState<Run | null>(null)
   const [resultDialogOpen, setResultDialogOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   // Fetch creatives
   useEffect(() => {
@@ -161,39 +162,50 @@ export default function CreativesNewPage() {
 
     console.log(`🚀 Starting ${modesToGenerate.length} generation(s)...`)
 
-    // Start all generations in parallel (fire and forget)
-    modesToGenerate.forEach(async ({ mode, config: genConfig }) => {
-      try {
-        console.log(`📤 Starting ${mode} generation...`)
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(genConfig),
-        })
+    // Start all generations and refresh history immediately after
+    const startGenerations = async () => {
+      // Send all requests in parallel
+      const promises = modesToGenerate.map(async ({ mode, config: genConfig }) => {
+        try {
+          console.log(`📤 Starting ${mode} generation...`)
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(genConfig),
+          })
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error(`❌ ${mode} generation failed:`, errorData)
-          // Refresh runs even on error to show failed status
-          fetchRuns()
-          return
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            console.error(`❌ ${mode} generation failed:`, errorData)
+            return { success: false, mode }
+          }
+
+          const result = await response.json()
+          console.log(`✅ ${mode} generation started:`, result)
+          return { success: true, mode }
+        } catch (error) {
+          console.error(`❌ ${mode} generation error:`, error)
+          return { success: false, mode }
         }
+      })
 
-        const result = await response.json()
-        console.log(`✅ ${mode} generation started:`, result)
-        // Refresh runs after each successful start
-        fetchRuns()
-      } catch (error) {
-        console.error(`❌ ${mode} generation error:`, error)
-        fetchRuns()
-      }
-    })
+      // Wait for all requests to complete
+      await Promise.all(promises)
+      
+      // Refresh runs immediately after all requests sent
+      console.log('🔄 Refreshing history after generation start...')
+      await fetchRuns()
+    }
 
-    // Also refresh runs with progressive delays to catch any stragglers
+    // Start generations (don't wait)
+    startGenerations()
+
+    // Also refresh runs with progressive delays to catch updates
     console.log('🔄 Setting up progressive history refresh...')
-    const delays = [300, 1000, 2000] // 300ms, 1s, 2s
+    const delays = [500, 1500, 3000] // 500ms, 1.5s, 3s
     delays.forEach(delay => {
       setTimeout(() => {
+        console.log(`⏰ Progressive refresh at ${delay}ms`)
         fetchRuns()
       }, delay)
     })
@@ -203,6 +215,60 @@ export default function CreativesNewPage() {
   const handleCreativeClick = (creative: Creative) => {
     setSelectedCreative(creative)
     setDialogOpen(true)
+  }
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      console.log('📤 Uploading file:', file.name)
+
+      // Create form data
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('competitor_name', 'My Upload') // Default name
+
+      // Upload to API
+      const response = await fetch('/api/creatives/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Upload failed')
+      }
+
+      const { creative } = await response.json()
+      console.log('✅ Creative uploaded:', creative)
+
+      // Refresh creatives list
+      await fetchCreatives()
+
+      // Open generate dialog with uploaded creative
+      setSelectedCreative(creative)
+      setDialogOpen(true)
+    } catch (error) {
+      console.error('❌ Upload error:', error)
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -238,10 +304,28 @@ export default function CreativesNewPage() {
                   Or pick a competitor creative below
                 </p>
               </div>
-              <Button variant="outline" className="gap-2">
-                <Upload className="w-4 h-4" />
-                Choose File
-              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={uploading}
+                />
+                <Button variant="outline" className="gap-2" disabled={uploading}>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Choose File
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
