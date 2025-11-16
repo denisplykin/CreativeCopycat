@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Disable caching for this route - we need fresh data every time
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     console.log('📊 GET /api/runs - Fetching runs...');
@@ -41,7 +45,16 @@ export async function GET() {
       progress: run.status === 'running' ? Math.floor(Math.random() * 100) : undefined,
     }));
 
-    return NextResponse.json({ runs: runsWithProgress });
+    return NextResponse.json(
+      { runs: runsWithProgress },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('❌ Get runs error:', error);
     return NextResponse.json(
