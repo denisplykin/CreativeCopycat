@@ -288,8 +288,38 @@ Return valid JSON only.`;
 
     if (b64Image) {
       console.log('✅ Got b64_json response');
-      // Convert base64 to buffer and return directly
-      return Buffer.from(b64Image, 'base64');
+      // Convert base64 to buffer
+      let resultBuffer = Buffer.from(b64Image, 'base64');
+
+      console.log(`✅ STEP 3 COMPLETE! Image edited: ${resultBuffer.length} bytes`);
+
+      // ========== STEP 4: Restore original aspect ratio if needed ==========
+      if (aspectRatio === 'original') {
+        console.log('\n📐 STEP 4: Restoring original size...');
+        const editedMetadata = await sharp(resultBuffer).metadata();
+        const originalWidth = layout.image_size.width;
+        const originalHeight = layout.image_size.height;
+        
+        console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
+        console.log(`  Target size: ${originalWidth}x${originalHeight}`);
+        
+        if (editedMetadata.width !== originalWidth || editedMetadata.height !== originalHeight) {
+          console.log(`  ⚠️ Size mismatch, restoring to original dimensions...`);
+          resultBuffer = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'fill', // Fill to exact dimensions (already edited, so OK)
+              kernel: 'lanczos3' // High-quality resize
+            })
+            .toBuffer();
+          console.log(`  ✅ Restored to ${originalWidth}x${originalHeight}`);
+        } else {
+          console.log(`  ✅ Size already matches original, no resize needed`);
+        }
+        console.log('✅ STEP 4 COMPLETE!');
+      }
+
+      console.log('🎉 Mask edit pipeline successful!\n');
+      return resultBuffer;
     }
 
     if (!resultUrl) {
@@ -300,9 +330,35 @@ Return valid JSON only.`;
     // Download the result
     console.log('⬇️ Downloading edited image...');
     const imageResponse = await fetch(resultUrl);
-    const resultBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    let resultBuffer = Buffer.from(await imageResponse.arrayBuffer());
 
     console.log(`✅ STEP 3 COMPLETE! Image edited: ${resultBuffer.length} bytes`);
+
+    // ========== STEP 4: Restore original aspect ratio if needed ==========
+    if (aspectRatio === 'original') {
+      console.log('\n📐 STEP 4: Restoring original size...');
+      const editedMetadata = await sharp(resultBuffer).metadata();
+      const originalWidth = layout.image_size.width;
+      const originalHeight = layout.image_size.height;
+      
+      console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
+      console.log(`  Target size: ${originalWidth}x${originalHeight}`);
+      
+      if (editedMetadata.width !== originalWidth || editedMetadata.height !== originalHeight) {
+        console.log(`  ⚠️ Size mismatch, restoring to original dimensions...`);
+        resultBuffer = await sharp(resultBuffer)
+          .resize(originalWidth, originalHeight, {
+            fit: 'fill', // Fill to exact dimensions (already edited, so OK)
+            kernel: 'lanczos3' // High-quality resize
+          })
+          .toBuffer();
+        console.log(`  ✅ Restored to ${originalWidth}x${originalHeight}`);
+      } else {
+        console.log(`  ✅ Size already matches original, no resize needed`);
+      }
+      console.log('✅ STEP 4 COMPLETE!');
+    }
+
     console.log('🎉 Mask edit pipeline successful!\n');
 
     return resultBuffer;
