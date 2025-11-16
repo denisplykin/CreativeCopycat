@@ -68,31 +68,32 @@ export function GenerateDialog({
     customPrompt: '',
   })
 
-  const handleGenerate = () => {
+  const handleGenerate = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
     console.log('🚀 Generate button clicked!')
     console.log('📦 Config:', config)
     console.log('🎨 Creative:', creative?.id)
     
-    // ✅ IMMEDIATELY close dialog (don't wait for generation to complete)
-    console.log('🚪 Closing dialog immediately...')
-    onOpenChange(false)
-    
-    // Start generation in background
+    // Start generation in background first
     console.log('📤 Starting generation in background...')
     onGenerate(config).catch((error) => {
       console.error('❌ Generation failed:', error)
-      // Don't show alert - user can see failed status in history
     })
+    
+    // Close dialog immediately using setTimeout to ensure it happens after state update
+    console.log('🚪 Closing dialog...')
+    setTimeout(() => {
+      onOpenChange(false)
+    }, 0)
   }
 
   if (!creative) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto"
-        onClose={() => onOpenChange(false)}
-      >
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Generate Variations</DialogTitle>
           <DialogDescription>
