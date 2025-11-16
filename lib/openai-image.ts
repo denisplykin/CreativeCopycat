@@ -193,9 +193,11 @@ Return valid JSON only.`;
     console.log(`🔄 Converting image and mask to PNG (${targetWidth}x${targetHeight})...`);
     
     // Convert image to PNG with compression (quality 80 to reduce file size)
+    // IMPORTANT: Use 'inside' to maintain aspect ratio, NOT 'fill' which distorts
     const convertedImage = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, { 
-        fit: 'fill',
+        fit: 'inside', // Maintain aspect ratio, don't distort
+        withoutEnlargement: true, // Don't upscale if smaller
         kernel: 'lanczos3' // Better quality for downscaling
       })
       .png({ 
@@ -213,10 +215,11 @@ Return valid JSON only.`;
       throw new Error(`Image still too large: ${(convertedImage.length / 1024 / 1024).toFixed(2)}MB (max 4MB). Try a smaller image.`);
     }
     
-    // Convert mask to PNG with SAME exact size
+    // Convert mask to PNG with SAME exact size as the converted image
+    // Use the actual converted image dimensions, not targetWidth/targetHeight
     const convertedMask = await sharp(maskBuffer)
-      .resize(targetWidth, targetHeight, { 
-        fit: 'fill',
+      .resize(imageMetadata.width!, imageMetadata.height!, { 
+        fit: 'fill', // Mask can be stretched, it's just black/white
         kernel: 'nearest' // Sharp edges for mask
       })
       .png({ compressionLevel: 9 }) // Max compression for mask (black/white compresses well)
@@ -314,23 +317,27 @@ Return valid JSON only.`;
  * According to docs: short prompts work better, model doesn't need detailed layout description
  * 
  * CRITICAL: Keep prompt EXTREMELY short and neutral to avoid moderation blocks
+ * IMPORTANT: Always include Algonova text branding in purple color (#833AE0)
  */
 function buildMinimalEditPrompt(modifications: string, editTypes: string[]): string {
   // Ultra-minimal prompt - just tell what to do with masked areas
   // Avoid ANY words that could trigger moderation: "replace", "remove", "logo", "brand", etc.
   
+  // ALWAYS include Algonova branding text
+  const algonova = `text "Algonova" in purple color #833AE0`;
+  
   // If editing logo specifically, use generic "branding element" language
   if (editTypes.includes('logo') && editTypes.length === 1) {
-    return `Professional advertising design with Algonova branding.`;
+    return `Professional advertising design with ${algonova}.`;
   }
   
-  // If editing character, use very generic language
+  // If editing character, ALSO include Algonova branding
   if (editTypes.includes('character')) {
-    return `Professional advertising design with diverse representation.`;
+    return `Professional advertising design with diverse representation and ${algonova}.`;
   }
   
-  // Generic fallback
-  return `Professional advertising design maintaining the existing layout and style.`;
+  // Generic fallback - ALSO include Algonova branding
+  return `Professional advertising design with ${algonova}, maintaining existing layout.`;
 }
 
 /**
