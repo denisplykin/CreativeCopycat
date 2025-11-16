@@ -152,7 +152,7 @@ export interface LayoutElement {
   z_index: number;
 }
 
-export type CopyMode = 'mask_edit';
+export type CopyMode = 'mask_edit' | 'simple_copy' | 'copy_with_color' | 'slightly_different';
 
 export type GenerationType = 'character' | 'background' | 'full_creative';
 
