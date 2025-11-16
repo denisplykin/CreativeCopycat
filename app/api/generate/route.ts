@@ -160,7 +160,7 @@ export async function POST(request: Request) {
         // Generate new texts if not provided
         let finalTexts = texts || {};
         if (!texts || Object.keys(texts).length === 0) {
-          if (creative.analysis.roles && creative.analysis.roles.length > 0) {
+          if (creative.analysis?.roles && creative.analysis.roles.length > 0) {
             console.log('📝 Generating new texts...');
             const generated = await generateTexts(
               creative.analysis.roles,
