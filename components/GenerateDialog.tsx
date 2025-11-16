@@ -15,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
-import { Loader2 } from 'lucide-react'
 
 interface Creative {
   id: string
@@ -68,25 +67,22 @@ export function GenerateDialog({
     },
     customPrompt: '',
   })
-  const [isGenerating, setIsGenerating] = useState(false)
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     console.log('🚀 Generate button clicked!')
     console.log('📦 Config:', config)
     console.log('🎨 Creative:', creative?.id)
     
-    setIsGenerating(true)
-    try {
-      console.log('📤 Calling onGenerate...')
-      await onGenerate(config)
-      console.log('✅ onGenerate completed, closing dialog')
-      onOpenChange(false)
-    } catch (error) {
+    // ✅ IMMEDIATELY close dialog (don't wait for generation to complete)
+    console.log('🚪 Closing dialog immediately...')
+    onOpenChange(false)
+    
+    // Start generation in background
+    console.log('📤 Starting generation in background...')
+    onGenerate(config).catch((error) => {
       console.error('❌ Generation failed:', error)
-      alert(`Generation failed: ${error}`)
-    } finally {
-      setIsGenerating(false)
-    }
+      // Don't show alert - user can see failed status in history
+    })
   }
 
   if (!creative) return null
@@ -353,18 +349,11 @@ export function GenerateDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              'Generate'
-            )}
+          <Button onClick={handleGenerate}>
+            Generate
           </Button>
         </DialogFooter>
       </DialogContent>
