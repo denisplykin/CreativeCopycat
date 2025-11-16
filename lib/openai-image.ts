@@ -43,111 +43,61 @@ export async function generateMaskEdit(params: MaskEditParams): Promise<Buffer> 
     // ========== STEP 1: Analyze banner → JSON layout with bbox ==========
     console.log('\n👁️ STEP 1: Analyzing banner structure...');
 
-    const analysisPrompt = `You will see a SINGLE advertising banner image. Ignore any surrounding UI.
-Your job is to analyze it and return a STRICT JSON description of its layout and main elements.
+    const analysisPrompt = `Analyze this advertising banner and return a JSON description.
 
-Use this EXACT JSON shape:
+JSON structure:
 {
   "image_size": { "width": 0, "height": 0 },
-  "background": {
-    "color": "string",
-    "description": "string"
-  },
+  "background": { "color": "string", "description": "string" },
   "elements": [
     {
       "id": "string",
       "type": "text | character | logo | button | decor | other",
       "role": "headline | body | cta | brand | primary | shape | other",
       "text": "string | null",
-      "subtext": "string | null",
       "font_style": "string | null",
       "color": "string | null",
       "description": "string | null",
       "bbox": { "x": 0, "y": 0, "width": 0, "height": 0 },
-      "z_index": 0,
-      "text_effects": "string | null"
+      "z_index": 0
     }
   ]
 }
 
-Rules:
-- Coordinates must be in pixels.
-- x,y = top-left corner of element.
-- Copy ALL text exactly as it appears.
-- Identify all main elements: headline, body text, CTA button, character/person, logo, decorative shapes.
-- Provide font_style and color for text elements (e.g., "bold sans-serif", "pink").
-- **IMPORTANT**: For text elements, add "text_effects" field to describe visual effects like:
-  * "strikethrough" - if text has a line through it (зачеркнутый текст)
-  * "underline" - if text is underlined
-  * "shadow" - if text has drop shadow
-  * "outline" - if text has outline/stroke
-  * "gradient" - if text has gradient fill
-  * null - if no special effects
-- For prices with strikethrough (e.g., "~~Gratis~~" or crossed-out prices), mark as "strikethrough" in text_effects.
-- Expand bounding boxes slightly to fully include each element.
-- z_index: larger numbers = on top (e.g., character=10, background shapes=1).
-- Return ONLY valid JSON, no explanations.`;
+Return valid JSON only. Include pixel coordinates for all elements.`;
 
-    // Retry logic for OpenRouter (sometimes has connection issues)
-    let step1Response: Response | undefined;
-    const retries = 3;
+    // Use direct OpenAI API (no Azure content filters)
+    console.log('🔄 Calling OpenAI GPT-4o for analysis...');
     
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        console.log(`🔄 Attempt ${attempt}/${retries}: Calling OpenRouter...`);
-        
-        step1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://creative-copycat.vercel.app',
-            'X-Title': 'Creative Copycat',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'openai/gpt-4o',
-            messages: [
+    const step1Response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
               {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: analysisPrompt,
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:${mimeType};base64,${base64Image}`,
-                    },
-                  },
-                ],
+                type: 'text',
+                text: analysisPrompt,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                },
               },
             ],
-            max_tokens: 2000,
-            temperature: 0.2,
-          }),
-        });
-        
-        // Success - break out of retry loop
-        console.log(`✅ OpenRouter responded: ${step1Response.status}`);
-        break;
-      } catch (error: any) {
-        console.error(`❌ Attempt ${attempt} failed:`, error.message);
-        
-        if (attempt === retries) {
-          throw new Error(`OpenRouter connection failed after ${retries} attempts: ${error.message}`);
-        }
-        
-        // Wait before retry (exponential backoff)
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-
-    if (!step1Response) {
-      throw new Error('Failed to get response from OpenRouter after retries');
-    }
+          },
+        ],
+        max_tokens: 2000,
+        temperature: 0.2,
+      }),
+    });
 
     if (!step1Response.ok) {
       const errorText = await step1Response.text();

@@ -190,44 +190,38 @@ export async function POST(request: Request) {
 
         switch (copyMode) {
           case 'simple_copy':
-            // Simple Copy: только замена логотипа и названия бренда
-            console.log('📝 Simple Copy: Replace logo and brand name only');
-            modifications = `Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png). Update any brand names in text to "Algonova". Keep all other design elements, text, colors, and composition exactly as they are.`;
+            console.log('📝 Simple Copy: Logo only');
+            modifications = `Update the company logo to Algonova branding.`;
             editTypes = ['logo'];
             break;
 
           case 'copy_with_color':
-            // Copy + Color: замена логотипа + перекрашивание в цвета Algonova
-            console.log('🎨 Copy + Color: Replace logo + apply Algonova colors');
-            modifications = `Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png). Update brand names to "Algonova" and adjust decorative elements to use these brand colors: vibrant orange, hot pink, deep purple, and cyan. Maintain the current layout and composition.`;
+            console.log('🎨 Copy + Color: Logo + colors');
+            modifications = `Update company logo to Algonova. Apply brand colors: orange, pink, purple, cyan.`;
             editTypes = ['logo', 'decor'];
             break;
 
           case 'slightly_different':
-            // Slightly Different: замена логотипа + небольшое изменение персонажа и фона
-            console.log('👤 Slightly Different: Modify character and background slightly');
-            modifications = `Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png). Update brand names to "Algonova". Adjust the visual style while keeping the same composition and message. Vary decorative elements and color accents to create a fresh look.`;
+            console.log('👤 Slightly Different: Character + logo');
+            modifications = `Update company logo to Algonova. Slightly modify the character while keeping the same type.`;
             editTypes = ['character', 'logo', 'background'];
             break;
 
           case 'mask_edit':
-            // Custom Prompt Mode
             if (configGenerationType === 'custom' && customPrompt) {
               console.log('✏️ Custom Prompt Mode');
-              modifications = `Update the design with these changes: ${customPrompt}. Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png) and update brand names to "Algonova".`;
+              modifications = `${customPrompt}. Update company logo to Algonova.`;
               editTypes = ['character', 'logo', 'text', 'button', 'decor', 'background'];
             } else {
-              // Fallback to default
               console.log('⚙️ Default Mode');
-              modifications = `Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png) and update brand names to "Algonova". Maintain the current visual style and composition.`;
+              modifications = `Update company logo to Algonova branding.`;
               editTypes = ['character', 'logo'];
             }
             break;
 
           default:
-            // Fallback
             console.log('⚠️ Unknown mode, using default');
-            modifications = `Replace the logo with the Algonova logo (https://osokxlweresllgbclkme.supabase.co/storage/v1/object/public/assets/Algo-logo2.png) and update brand names to "Algonova". Keep all other elements as they are.`;
+            modifications = `Update company logo to Algonova.`;
             editTypes = ['logo'];
         }
 
