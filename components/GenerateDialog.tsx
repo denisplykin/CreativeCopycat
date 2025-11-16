@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -147,25 +146,43 @@ export function GenerateDialog({
             {/* Generation Type */}
             <div>
               <Label className="text-base font-semibold mb-3 block">Generation Type</Label>
-              <RadioGroup
-                value={config.generationType}
-                onValueChange={(value) =>
-                  setConfig({ ...config, generationType: value as any })
-                }
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="simple" id="simple" />
-                  <Label htmlFor="simple" className="font-normal cursor-pointer">
-                    Simple (preset options)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="font-normal cursor-pointer">
-                    Custom (your own prompt)
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg border hover:bg-accent transition-colors">
+                  <input
+                    type="radio"
+                    name="generationType"
+                    value="simple"
+                    checked={config.generationType === 'simple'}
+                    onChange={(e) => {
+                      console.log('📻 Simple selected')
+                      setConfig({ ...config, generationType: 'simple' })
+                    }}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <div>
+                    <div className="font-medium">Simple (preset options)</div>
+                    <div className="text-xs text-muted-foreground">Choose from predefined generation modes</div>
+                  </div>
+                </label>
+
+                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg border hover:bg-accent transition-colors">
+                  <input
+                    type="radio"
+                    name="generationType"
+                    value="custom"
+                    checked={config.generationType === 'custom'}
+                    onChange={(e) => {
+                      console.log('📻 Custom selected')
+                      setConfig({ ...config, generationType: 'custom' })
+                    }}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <div>
+                    <div className="font-medium">Custom (your own prompt)</div>
+                    <div className="text-xs text-muted-foreground">Describe exactly what you want to change</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Simple Options (multi-select checkboxes) */}

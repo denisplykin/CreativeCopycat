@@ -5,6 +5,7 @@ import { SidebarHistory } from '@/components/SidebarHistory'
 import { CompetitorFilterTabs } from '@/components/CompetitorFilterTabs'
 import { CreativeCard } from '@/components/CreativeCard'
 import { GenerateDialog, type GenerationConfig } from '@/components/GenerateDialog'
+import { ResultDialog } from '@/components/ResultDialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,8 @@ export default function CreativesNewPage() {
   const [selectedCompetitor, setSelectedCompetitor] = useState('All')
   const [selectedCreative, setSelectedCreative] = useState<Creative | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedRun, setSelectedRun] = useState<Run | null>(null)
+  const [resultDialogOpen, setResultDialogOpen] = useState(false)
 
   // Fetch creatives
   useEffect(() => {
@@ -143,10 +146,17 @@ export default function CreativesNewPage() {
       <SidebarHistory
         items={runs}
         onItemClick={(item) => {
-          const creative = creatives.find((c) => c.id === item.creative_id)
-          if (creative) {
-            setSelectedCreative(creative)
-            setDialogOpen(true)
+          // If completed, show result dialog
+          if (item.status === 'completed' && item.result_url) {
+            setSelectedRun(item)
+            setResultDialogOpen(true)
+          } else {
+            // Otherwise, open generate dialog for this creative
+            const creative = creatives.find((c) => c.id === item.creative_id)
+            if (creative) {
+              setSelectedCreative(creative)
+              setDialogOpen(true)
+            }
           }
         }}
       />
@@ -206,6 +216,13 @@ export default function CreativesNewPage() {
         onOpenChange={setDialogOpen}
         creative={selectedCreative}
         onGenerate={handleGenerate}
+      />
+
+      {/* Result Dialog */}
+      <ResultDialog
+        open={resultDialogOpen}
+        onOpenChange={setResultDialogOpen}
+        result={selectedRun}
       />
     </div>
   )
