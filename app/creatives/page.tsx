@@ -115,9 +115,9 @@ export default function CreativesNewPage() {
       })
     } else {
       // Simple mode - generate for each selected option
-      const options = config.simpleOptions || {}
+      const options = config.simpleOptions
       
-      if (options.simpleCopy) {
+      if (options?.simpleCopy) {
         modesToGenerate.push({
           mode: 'simple_copy',
           config: {
@@ -130,7 +130,7 @@ export default function CreativesNewPage() {
         })
       }
       
-      if (options.copyWithColor) {
+      if (options?.copyWithColor) {
         modesToGenerate.push({
           mode: 'copy_with_color',
           config: {
@@ -143,7 +143,7 @@ export default function CreativesNewPage() {
         })
       }
       
-      if (options.slightlyDifferent) {
+      if (options?.slightlyDifferent) {
         modesToGenerate.push({
           mode: 'slightly_different',
           config: {
