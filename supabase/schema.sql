@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.creative_runs (
   error_message TEXT,
   config JSONB, -- Store generation config
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   completed_at TIMESTAMP WITH TIME ZONE,
   CONSTRAINT creative_runs_pkey PRIMARY KEY (id)
 );
