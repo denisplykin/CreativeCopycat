@@ -172,22 +172,29 @@ export default function CreativesNewPage() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           console.error(`❌ ${mode} generation failed:`, errorData)
+          // Refresh runs even on error to show failed status
+          fetchRuns()
           return
         }
 
         const result = await response.json()
         console.log(`✅ ${mode} generation started:`, result)
+        // Refresh runs after each successful start
+        fetchRuns()
       } catch (error) {
         console.error(`❌ ${mode} generation error:`, error)
+        fetchRuns()
       }
     })
 
-    // Refresh runs immediately to show new items in history
-    console.log('🔄 Refreshing runs immediately...')
-    setTimeout(() => {
-      fetchRuns()
-      console.log('✅ Runs refreshed!')
-    }, 500) // Small delay to ensure server created the records
+    // Also refresh runs with progressive delays to catch any stragglers
+    console.log('🔄 Setting up progressive history refresh...')
+    const delays = [300, 1000, 2000] // 300ms, 1s, 2s
+    delays.forEach(delay => {
+      setTimeout(() => {
+        fetchRuns()
+      }, delay)
+    })
   }
 
   // Handle creative card click
