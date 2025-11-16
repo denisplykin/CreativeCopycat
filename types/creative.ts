@@ -180,6 +180,8 @@ export interface GenerateRequest {
   language?: string;
   aspectRatio?: string;
   numVariations?: number;
+  configGenerationType?: 'simple' | 'custom';
+  customPrompt?: string;
 }
 
 export interface GenerateResponse {
