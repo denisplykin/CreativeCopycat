@@ -99,13 +99,27 @@ export default function CreativesNewPage() {
     new Set(creatives.map((c) => c.competitor_name).filter(Boolean))
   ).sort() as string[]
 
-  // Filter creatives
+  // Filter creatives (use includes for partial matching, e.g., "Kodland" matches "Kodland Indonesia")
   const filteredCreatives = creatives.filter((creative) => {
-    if (selectedCompetitor !== 'All' && creative.competitor_name !== selectedCompetitor) {
-      return false
+    if (selectedCompetitor !== 'All') {
+      // If no competitor_name, exclude it
+      if (!creative.competitor_name) {
+        return false
+      }
+      // Use includes() for partial matching (case-insensitive)
+      if (!creative.competitor_name.toLowerCase().includes(selectedCompetitor.toLowerCase())) {
+        return false
+      }
     }
     return true
   })
+  
+  // Debug: Log filter results
+  if (selectedCompetitor !== 'All' && creatives.length > 0) {
+    console.log(`🔍 Filter: "${selectedCompetitor}" selected`)
+    console.log('  Total creatives in state:', creatives.length)
+    console.log('  After filter:', filteredCreatives.length)
+  }
 
   // Handle generate - supports multiple generation modes
   const handleGenerate = async (config: GenerationConfig) => {
