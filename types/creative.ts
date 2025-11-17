@@ -148,6 +148,7 @@ export interface LayoutElement {
   font_style?: string | null;
   color?: string | null;
   description?: string | null;
+  style?: string | null; // Art style description for elements (especially characters)
   bbox: BoundingBox;
   z_index: number;
   text_effects?: string | null; // "strikethrough", "underline", "shadow", "outline", "gradient", etc.
