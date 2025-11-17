@@ -204,7 +204,7 @@ export async function POST(request: Request) {
           case 'slightly_different':
             console.log('👤 Slightly Different: Character + logo');
             modifications = `If there is a company logo, update it to Algonova. If there is a main character, slightly modify them while keeping the same type (e.g., child stays a child, but with different pose or expression).`;
-            editTypes = ['character', 'logo', 'background'];
+            editTypes = ['character', 'logo'];  // ✅ Only character and logo, preserve background!
             break;
 
           case 'mask_edit':
