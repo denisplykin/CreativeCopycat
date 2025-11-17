@@ -343,8 +343,25 @@ Return valid JSON only.`;
             Math.abs(editedMetadata.height! - originalHeight) > 10) {
           console.log(`  📏 Resizing to exact dimensions...`);
           
+          // 🎯 Special case: logo-only edit (small mask ~7%)
+          // DALL-E ignores aspect ratio for small masks and returns arbitrary size
+          // We MUST use 'cover' to fill the original dimensions
+          const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
+          
+          if (isLogoOnlyEdit) {
+            console.log(`  🎯 Logo-only edit detected (small mask), forcing 'cover' to fill original size`);
+            console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, but we need ${originalWidth}x${originalHeight}`);
+            const resized = await sharp(resultBuffer)
+              .resize(originalWidth, originalHeight, {
+                fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
+                position: 'centre',
+                kernel: 'lanczos3'
+              })
+              .toBuffer();
+            resultBuffer = resized as Buffer;
+          }
           // Choose resize strategy based on aspect ratio difference
-          if (aspectDiff <= 0.01) {
+          else if (aspectDiff <= 0.01) {
             // Aspect ratios match - safe to use 'cover' for exact size
             console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
             const resized = await sharp(resultBuffer)
@@ -438,8 +455,25 @@ Return valid JSON only.`;
           Math.abs(editedMetadata.height! - originalHeight) > 10) {
         console.log(`  📏 Resizing to exact dimensions...`);
         
+        // 🎯 Special case: logo-only edit (small mask ~7%)
+        // DALL-E ignores aspect ratio for small masks and returns arbitrary size
+        // We MUST use 'cover' to fill the original dimensions
+        const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
+        
+        if (isLogoOnlyEdit) {
+          console.log(`  🎯 Logo-only edit detected (small mask), forcing 'cover' to fill original size`);
+          console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, but we need ${originalWidth}x${originalHeight}`);
+          const resized = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
+              position: 'centre',
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+          resultBuffer = resized as Buffer;
+        }
         // Choose resize strategy based on aspect ratio difference
-        if (aspectDiff <= 0.01) {
+        else if (aspectDiff <= 0.01) {
           // Aspect ratios match - safe to use 'cover' for exact size
           console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
           const resized = await sharp(resultBuffer)
