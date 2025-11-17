@@ -345,16 +345,15 @@ Return valid JSON only.`;
           
           // 🎯 Special case: logo-only edit (small mask ~7%)
           // DALL-E ignores aspect ratio for small masks and returns arbitrary size
-          // We MUST use 'cover' to fill the original dimensions
+          // We MUST use 'fill' to stretch to original dimensions (logo is small, distortion won't be visible)
           const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
           
           if (isLogoOnlyEdit) {
-            console.log(`  🎯 Logo-only edit detected (small mask), forcing 'cover' to fill original size`);
-            console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, but we need ${originalWidth}x${originalHeight}`);
+            console.log(`  🎯 Logo-only edit detected (small mask), forcing 'fill' to match original size`);
+            console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, stretching to ${originalWidth}x${originalHeight}`);
             const resized = await sharp(resultBuffer)
               .resize(originalWidth, originalHeight, {
-                fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
-                position: 'centre',
+                fit: 'fill',  // ✅ Stretch to exact dimensions (logo area is small, minimal distortion)
                 kernel: 'lanczos3'
               })
               .toBuffer();
@@ -457,16 +456,15 @@ Return valid JSON only.`;
         
         // 🎯 Special case: logo-only edit (small mask ~7%)
         // DALL-E ignores aspect ratio for small masks and returns arbitrary size
-        // We MUST use 'cover' to fill the original dimensions
+        // We MUST use 'fill' to stretch to original dimensions (logo is small, distortion won't be visible)
         const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
         
         if (isLogoOnlyEdit) {
-          console.log(`  🎯 Logo-only edit detected (small mask), forcing 'cover' to fill original size`);
-          console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, but we need ${originalWidth}x${originalHeight}`);
+          console.log(`  🎯 Logo-only edit detected (small mask), forcing 'fill' to match original size`);
+          console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, stretching to ${originalWidth}x${originalHeight}`);
           const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
-              fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
-              position: 'centre',
+              fit: 'fill',  // ✅ Stretch to exact dimensions (logo area is small, minimal distortion)
               kernel: 'lanczos3'
             })
             .toBuffer();
