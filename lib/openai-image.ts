@@ -295,7 +295,7 @@ Return valid JSON only.`;
 
       // ========== STEP 4: Restore original aspect ratio if needed ==========
       if (aspectRatio === 'original') {
-        console.log('\n📐 STEP 4: Restoring original size...');
+        console.log('\n📐 STEP 4: Checking if size restoration needed...');
         const editedMetadata = await sharp(resultBuffer).metadata();
         const originalWidth = layout.image_size.width;
         const originalHeight = layout.image_size.height;
@@ -303,18 +303,35 @@ Return valid JSON only.`;
         console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
         console.log(`  Target size: ${originalWidth}x${originalHeight}`);
         
-        if (editedMetadata.width !== originalWidth || editedMetadata.height !== originalHeight) {
-          console.log(`  ⚠️ Size mismatch, restoring to original dimensions...`);
+        // Check if aspect ratios match (within 1% tolerance)
+        const currentAspect = editedMetadata.width! / editedMetadata.height!;
+        const targetAspect = originalWidth / originalHeight;
+        const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+        
+        console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+        console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+        
+        // Only resize if dimensions are significantly different
+        if (Math.abs(editedMetadata.width! - originalWidth) > 10 || 
+            Math.abs(editedMetadata.height! - originalHeight) > 10) {
+          console.log(`  📏 Resizing to exact dimensions (preserving aspect ratio)...`);
           const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
-              fit: 'fill', // Fill to exact dimensions (already edited, so OK)
+              fit: 'inside',  // ✅ Preserve aspect ratio, no distortion!
+              withoutEnlargement: false,  // Allow upscaling if needed
               kernel: 'lanczos3' // High-quality resize
             })
             .toBuffer();
           resultBuffer = resized as Buffer;
-          console.log(`  ✅ Restored to ${originalWidth}x${originalHeight}`);
+          
+          const finalMetadata = await sharp(resultBuffer).metadata();
+          console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+          
+          if (aspectDiff > 0.01) {
+            console.log(`  ⚠️ Note: Aspect ratio was different, some padding may be added`);
+          }
         } else {
-          console.log(`  ✅ Size already matches original, no resize needed`);
+          console.log(`  ✅ Size already close enough, no resize needed`);
         }
         console.log('✅ STEP 4 COMPLETE!');
       }
@@ -337,7 +354,7 @@ Return valid JSON only.`;
 
     // ========== STEP 4: Restore original aspect ratio if needed ==========
     if (aspectRatio === 'original') {
-      console.log('\n📐 STEP 4: Restoring original size...');
+      console.log('\n📐 STEP 4: Checking if size restoration needed...');
       const editedMetadata = await sharp(resultBuffer).metadata();
       const originalWidth = layout.image_size.width;
       const originalHeight = layout.image_size.height;
@@ -345,18 +362,35 @@ Return valid JSON only.`;
       console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
       console.log(`  Target size: ${originalWidth}x${originalHeight}`);
       
-      if (editedMetadata.width !== originalWidth || editedMetadata.height !== originalHeight) {
-        console.log(`  ⚠️ Size mismatch, restoring to original dimensions...`);
+      // Check if aspect ratios match (within 1% tolerance)
+      const currentAspect = editedMetadata.width! / editedMetadata.height!;
+      const targetAspect = originalWidth / originalHeight;
+      const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+      
+      console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+      console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+      
+      // Only resize if dimensions are significantly different
+      if (Math.abs(editedMetadata.width! - originalWidth) > 10 || 
+          Math.abs(editedMetadata.height! - originalHeight) > 10) {
+        console.log(`  📏 Resizing to exact dimensions (preserving aspect ratio)...`);
         const resized = await sharp(resultBuffer)
           .resize(originalWidth, originalHeight, {
-            fit: 'fill', // Fill to exact dimensions (already edited, so OK)
+            fit: 'inside',  // ✅ Preserve aspect ratio, no distortion!
+            withoutEnlargement: false,  // Allow upscaling if needed
             kernel: 'lanczos3' // High-quality resize
           })
           .toBuffer();
         resultBuffer = resized as Buffer;
-        console.log(`  ✅ Restored to ${originalWidth}x${originalHeight}`);
+        
+        const finalMetadata = await sharp(resultBuffer).metadata();
+        console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+        
+        if (aspectDiff > 0.01) {
+          console.log(`  ⚠️ Note: Aspect ratio was different, some padding may be added`);
+        }
       } else {
-        console.log(`  ✅ Size already matches original, no resize needed`);
+        console.log(`  ✅ Size already close enough, no resize needed`);
       }
       console.log('✅ STEP 4 COMPLETE!');
     }
