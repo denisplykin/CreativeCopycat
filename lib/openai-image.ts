@@ -316,27 +316,13 @@ Return valid JSON only.`;
             Math.abs(editedMetadata.height! - originalHeight) > 10) {
           console.log(`  📏 Resizing to exact dimensions...`);
           
-          // 🎯 Special case: logo-only edit (simple_copy)
-          // DALL-E /images/edits may return square image even for vertical input
-          // For logo edits, we MUST fill the original size
-          const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
-          
-          if (isLogoOnlyEdit) {
-            console.log(`  🎯 Logo-only edit detected, forcing 'cover' to fill original size`);
-            console.log(`  ⚠️ Note: DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, forcing to ${originalWidth}x${originalHeight}`);
-            const resized = await sharp(resultBuffer)
-              .resize(originalWidth, originalHeight, {
-                fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
-                position: 'centre',
-                kernel: 'lanczos3'
-              })
-              .toBuffer();
-            resultBuffer = resized as Buffer;
-          }
           // Choose resize strategy based on aspect ratio difference
-          else if (aspectDiff <= 0.01) {
-            // Aspect ratios match - safe to use 'cover' for exact size
-            console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+          // DALL-E /images/edits often returns slightly different sizes (e.g. 1024x1920 vs 1080x1920)
+          // We use 'cover' to fill the original size if aspect ratio is close enough (within 10%)
+          
+          if (aspectDiff <= 0.10) {
+            // Aspect ratios are close enough (within 10%) - safe to use 'cover'
+            console.log(`  ✅ Aspect ratio close enough (${(aspectDiff * 100).toFixed(2)}% diff), using 'cover' to fill exact dimensions`);
             const resized = await sharp(resultBuffer)
               .resize(originalWidth, originalHeight, {
                 fit: 'cover',  // ✅ Fill entire dimensions, crop minimal edges if needed
@@ -346,8 +332,8 @@ Return valid JSON only.`;
               .toBuffer();
             resultBuffer = resized as Buffer;
           } else {
-            // Aspect ratios don't match - use 'inside' to prevent distortion
-            console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+            // Aspect ratios are very different (>10%) - use 'inside' to prevent distortion
+            console.log(`  ⚠️ Aspect ratio differs significantly by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
             const resized = await sharp(resultBuffer)
               .resize(originalWidth, originalHeight, {
                 fit: 'inside',  // Preserve aspect ratio, don't distort
@@ -407,27 +393,13 @@ Return valid JSON only.`;
           Math.abs(editedMetadata.height! - originalHeight) > 10) {
         console.log(`  📏 Resizing to exact dimensions...`);
         
-        // 🎯 Special case: logo-only edit (simple_copy)
-        // DALL-E /images/edits may return square image even for vertical input
-        // For logo edits, we MUST fill the original size
-        const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
-        
-        if (isLogoOnlyEdit) {
-          console.log(`  🎯 Logo-only edit detected, forcing 'cover' to fill original size`);
-          console.log(`  ⚠️ Note: DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, forcing to ${originalWidth}x${originalHeight}`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'cover',  // ✅ Fill entire dimensions, crop edges if needed
-              position: 'centre',
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          resultBuffer = resized as Buffer;
-        }
         // Choose resize strategy based on aspect ratio difference
-        else if (aspectDiff <= 0.01) {
-          // Aspect ratios match - safe to use 'cover' for exact size
-          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+        // DALL-E /images/edits often returns slightly different sizes (e.g. 1024x1920 vs 1080x1920)
+        // We use 'cover' to fill the original size if aspect ratio is close enough (within 10%)
+        
+        if (aspectDiff <= 0.10) {
+          // Aspect ratios are close enough (within 10%) - safe to use 'cover'
+          console.log(`  ✅ Aspect ratio close enough (${(aspectDiff * 100).toFixed(2)}% diff), using 'cover' to fill exact dimensions`);
           const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
               fit: 'cover',  // ✅ Fill entire dimensions, crop minimal edges if needed
@@ -437,8 +409,8 @@ Return valid JSON only.`;
             .toBuffer();
           resultBuffer = resized as Buffer;
         } else {
-          // Aspect ratios don't match - use 'inside' to prevent distortion
-          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+          // Aspect ratios are very different (>10%) - use 'inside' to prevent distortion
+          console.log(`  ⚠️ Aspect ratio differs significantly by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
           const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
               fit: 'inside',  // Preserve aspect ratio, don't distort
