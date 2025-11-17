@@ -345,19 +345,28 @@ Return valid JSON only.`;
           
           // 🎯 Special case: logo-only edit (small mask ~7%)
           // DALL-E ignores aspect ratio for small masks and returns arbitrary size
-          // We MUST use 'fill' to stretch to original dimensions (logo is small, distortion won't be visible)
           const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
           
           if (isLogoOnlyEdit) {
-            console.log(`  🎯 Logo-only edit detected (small mask), forcing 'fill' to match original size`);
-            console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, stretching to ${originalWidth}x${originalHeight}`);
-            const resized = await sharp(resultBuffer)
-              .resize(originalWidth, originalHeight, {
-                fit: 'fill',  // ✅ Stretch to exact dimensions (logo area is small, minimal distortion)
-                kernel: 'lanczos3'
-              })
-              .toBuffer();
-            resultBuffer = resized as Buffer;
+            console.log(`  🎯 Logo-only edit detected (small mask)`);
+            console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, need ${originalWidth}x${originalHeight}`);
+            
+            // If aspect ratio is TOO different (>30%), don't resize - quality will be too bad
+            if (aspectDiff > 0.30) {
+              console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(1)}% (>30%), skipping resize to preserve quality`);
+              console.log(`  💡 Returning DALL-E image as-is: ${editedMetadata.width}x${editedMetadata.height}`);
+              // Don't resize - return as-is
+            } else {
+              // If aspect ratio is close enough, use 'fill' to match exact dimensions
+              console.log(`  ✅ Aspect ratio close enough (${(aspectDiff * 100).toFixed(1)}%), using 'fill' to match size`);
+              const resized = await sharp(resultBuffer)
+                .resize(originalWidth, originalHeight, {
+                  fit: 'fill',  // Stretch to exact dimensions
+                  kernel: 'lanczos3'
+                })
+                .toBuffer();
+              resultBuffer = resized as Buffer;
+            }
           }
           // Choose resize strategy based on aspect ratio difference
           else if (aspectDiff <= 0.01) {
@@ -456,19 +465,28 @@ Return valid JSON only.`;
         
         // 🎯 Special case: logo-only edit (small mask ~7%)
         // DALL-E ignores aspect ratio for small masks and returns arbitrary size
-        // We MUST use 'fill' to stretch to original dimensions (logo is small, distortion won't be visible)
         const isLogoOnlyEdit = editTypes.length === 1 && editTypes[0] === 'logo';
         
         if (isLogoOnlyEdit) {
-          console.log(`  🎯 Logo-only edit detected (small mask), forcing 'fill' to match original size`);
-          console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, stretching to ${originalWidth}x${originalHeight}`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'fill',  // ✅ Stretch to exact dimensions (logo area is small, minimal distortion)
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          resultBuffer = resized as Buffer;
+          console.log(`  🎯 Logo-only edit detected (small mask)`);
+          console.log(`  ⚠️ DALL-E returned ${editedMetadata.width}x${editedMetadata.height}, need ${originalWidth}x${originalHeight}`);
+          
+          // If aspect ratio is TOO different (>30%), don't resize - quality will be too bad
+          if (aspectDiff > 0.30) {
+            console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(1)}% (>30%), skipping resize to preserve quality`);
+            console.log(`  💡 Returning DALL-E image as-is: ${editedMetadata.width}x${editedMetadata.height}`);
+            // Don't resize - return as-is
+          } else {
+            // If aspect ratio is close enough, use 'fill' to match exact dimensions
+            console.log(`  ✅ Aspect ratio close enough (${(aspectDiff * 100).toFixed(1)}%), using 'fill' to match size`);
+            const resized = await sharp(resultBuffer)
+              .resize(originalWidth, originalHeight, {
+                fit: 'fill',  // Stretch to exact dimensions
+                kernel: 'lanczos3'
+              })
+              .toBuffer();
+            resultBuffer = resized as Buffer;
+          }
         }
         // Choose resize strategy based on aspect ratio difference
         else if (aspectDiff <= 0.01) {
