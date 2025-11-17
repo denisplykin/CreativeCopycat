@@ -247,7 +247,7 @@ Return valid JSON only.`;
     });
     formData.append('prompt', editPrompt);
     // Note: 'size' is NOT needed for /images/edits - it uses input image size
-    formData.append('quality', 'auto'); // OpenAI automatically chooses optimal quality
+    formData.append('quality', 'high'); // ✅ High quality for better results
     formData.append('n', '1');
 
     const editResponse = await fetch('https://api.openai.com/v1/images/edits', {
@@ -314,22 +314,37 @@ Return valid JSON only.`;
         // Only resize if dimensions are significantly different
         if (Math.abs(editedMetadata.width! - originalWidth) > 10 || 
             Math.abs(editedMetadata.height! - originalHeight) > 10) {
-          console.log(`  📏 Resizing to exact dimensions (preserving aspect ratio)...`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'inside',  // ✅ Preserve aspect ratio, no distortion!
-              withoutEnlargement: false,  // Allow upscaling if needed
-              kernel: 'lanczos3' // High-quality resize
-            })
-            .toBuffer();
-          resultBuffer = resized as Buffer;
+          console.log(`  📏 Resizing to exact dimensions...`);
+          
+          // Choose resize strategy based on aspect ratio difference
+          if (aspectDiff <= 0.01) {
+            // Aspect ratios match - safe to use 'cover' for exact size
+            console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+            const resized = await sharp(resultBuffer)
+              .resize(originalWidth, originalHeight, {
+                fit: 'cover',  // ✅ Fill entire dimensions, crop minimal edges if needed
+                position: 'centre',
+                kernel: 'lanczos3'
+              })
+              .toBuffer();
+            resultBuffer = resized as Buffer;
+          } else {
+            // Aspect ratios don't match - use 'inside' to prevent distortion
+            console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+            const resized = await sharp(resultBuffer)
+              .resize(originalWidth, originalHeight, {
+                fit: 'inside',  // Preserve aspect ratio, don't distort
+                withoutEnlargement: false,
+                kernel: 'lanczos3'
+              })
+              .toBuffer();
+            resultBuffer = resized as Buffer;
+            
+            console.log(`  ⚠️ Note: Image may not fill exact dimensions due to aspect ratio mismatch`);
+          }
           
           const finalMetadata = await sharp(resultBuffer).metadata();
           console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
-          
-          if (aspectDiff > 0.01) {
-            console.log(`  ⚠️ Note: Aspect ratio was different, some padding may be added`);
-          }
         } else {
           console.log(`  ✅ Size already close enough, no resize needed`);
         }
@@ -373,22 +388,37 @@ Return valid JSON only.`;
       // Only resize if dimensions are significantly different
       if (Math.abs(editedMetadata.width! - originalWidth) > 10 || 
           Math.abs(editedMetadata.height! - originalHeight) > 10) {
-        console.log(`  📏 Resizing to exact dimensions (preserving aspect ratio)...`);
-        const resized = await sharp(resultBuffer)
-          .resize(originalWidth, originalHeight, {
-            fit: 'inside',  // ✅ Preserve aspect ratio, no distortion!
-            withoutEnlargement: false,  // Allow upscaling if needed
-            kernel: 'lanczos3' // High-quality resize
-          })
-          .toBuffer();
-        resultBuffer = resized as Buffer;
+        console.log(`  📏 Resizing to exact dimensions...`);
+        
+        // Choose resize strategy based on aspect ratio difference
+        if (aspectDiff <= 0.01) {
+          // Aspect ratios match - safe to use 'cover' for exact size
+          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+          const resized = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'cover',  // ✅ Fill entire dimensions, crop minimal edges if needed
+              position: 'centre',
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+          resultBuffer = resized as Buffer;
+        } else {
+          // Aspect ratios don't match - use 'inside' to prevent distortion
+          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+          const resized = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'inside',  // Preserve aspect ratio, don't distort
+              withoutEnlargement: false,
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+          resultBuffer = resized as Buffer;
+          
+          console.log(`  ⚠️ Note: Image may not fill exact dimensions due to aspect ratio mismatch`);
+        }
         
         const finalMetadata = await sharp(resultBuffer).metadata();
         console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
-        
-        if (aspectDiff > 0.01) {
-          console.log(`  ⚠️ Note: Aspect ratio was different, some padding may be added`);
-        }
       } else {
         console.log(`  ✅ Size already close enough, no resize needed`);
       }
