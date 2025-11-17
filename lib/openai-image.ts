@@ -36,12 +36,6 @@ export async function generateMaskEdit(params: MaskEditParams): Promise<Buffer> 
     console.log(`📝 Modifications: ${modifications}`);
     console.log(`🎯 Edit types: ${editTypes.join(', ')}`);
 
-    // 🔍 DEBUG: Log input image metadata
-    console.log(`\n🔍 [DEBUG] Input image buffer: ${imageBuffer.length} bytes`);
-    const inputMetadata = await sharp(imageBuffer).metadata();
-    console.log(`🔍 [DEBUG] Input image size: ${inputMetadata.width}x${inputMetadata.height}`);
-    console.log(`🔍 [DEBUG] Input format: ${inputMetadata.format}, channels: ${inputMetadata.channels}`);
-
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
@@ -183,6 +177,12 @@ Return valid JSON only.`;
     // IMPORTANT: For /images/edits, both image and mask must be EXACTLY the same size
     // AND under 4MB each (OpenAI limit)
     const sharp = (await import('sharp')).default;
+    
+    // 🔍 DEBUG: Log input image metadata
+    console.log(`\n🔍 [DEBUG] Input image buffer: ${imageBuffer.length} bytes`);
+    const inputMetadata = await sharp(imageBuffer).metadata();
+    console.log(`🔍 [DEBUG] Input image size: ${inputMetadata.width}x${inputMetadata.height}`);
+    console.log(`🔍 [DEBUG] Input format: ${inputMetadata.format}, channels: ${inputMetadata.channels}`);
     
     let targetWidth = layout.image_size.width;
     let targetHeight = layout.image_size.height;
