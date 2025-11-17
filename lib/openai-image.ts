@@ -412,6 +412,56 @@ Return valid JSON only.`;
         console.log('✅ STEP 4 COMPLETE!');
       }
 
+      // ========== STEP 5: Overlay real Algonova logo ==========
+      if (editTypes.includes('logo')) {
+        console.log('\n🎨 STEP 5: Overlaying real Algonova PNG logo...');
+        
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        try {
+          // Load Algonova logo
+          const logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+          const logoBuffer = fs.readFileSync(logoPath);
+          console.log(`  📂 Loaded logo from: ${logoPath}`);
+          
+          // Find logo position from layout
+          const logoElement = layout.elements.find(e => e.type === 'logo');
+          
+          if (logoElement && logoElement.bbox) {
+            const bbox = logoElement.bbox;
+            console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
+            
+            // Resize logo to fit the bbox (preserve aspect ratio, fit inside)
+            const resizedLogo = await sharp(logoBuffer)
+              .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
+                fit: 'contain',  // Preserve logo aspect ratio
+                background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
+              })
+              .toBuffer();
+            
+            // Overlay logo on generated image
+            resultBuffer = await sharp(resultBuffer)
+              .composite([{
+                input: resizedLogo,
+                left: Math.floor(bbox.x),
+                top: Math.floor(bbox.y)
+              }])
+              .toBuffer() as Buffer;
+            
+            console.log(`  ✅ Algonova logo overlayed successfully!`);
+            console.log('✅ STEP 5 COMPLETE!');
+          } else {
+            console.log(`  ⚠️ No logo element found in layout, skipping logo overlay`);
+          }
+        } catch (logoError) {
+          console.warn(`  ⚠️ Failed to overlay logo:`, logoError);
+          console.log(`  Continuing with DALL-E generated logo...`);
+        }
+      } else {
+        console.log('\n  Skipping logo overlay (not editing logo)');
+      }
+
       console.log('🎉 Mask edit pipeline successful!\n');
       return resultBuffer;
     }
@@ -530,6 +580,56 @@ Return valid JSON only.`;
         console.log(`\n🔍 [DEBUG] No resize performed - dimensions within 10px tolerance (URL path)`);
       }
       console.log('✅ STEP 4 COMPLETE!');
+    }
+
+    // ========== STEP 5: Overlay real Algonova logo (URL path) ==========
+    if (editTypes.includes('logo')) {
+      console.log('\n🎨 STEP 5: Overlaying real Algonova PNG logo...');
+      
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      try {
+        // Load Algonova logo
+        const logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+        const logoBuffer = fs.readFileSync(logoPath);
+        console.log(`  📂 Loaded logo from: ${logoPath}`);
+        
+        // Find logo position from layout
+        const logoElement = layout.elements.find(e => e.type === 'logo');
+        
+        if (logoElement && logoElement.bbox) {
+          const bbox = logoElement.bbox;
+          console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
+          
+          // Resize logo to fit the bbox (preserve aspect ratio, fit inside)
+          const resizedLogo = await sharp(logoBuffer)
+            .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
+              fit: 'contain',  // Preserve logo aspect ratio
+              background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
+            })
+            .toBuffer();
+          
+          // Overlay logo on generated image
+          resultBuffer = await sharp(resultBuffer)
+            .composite([{
+              input: resizedLogo,
+              left: Math.floor(bbox.x),
+              top: Math.floor(bbox.y)
+            }])
+            .toBuffer() as Buffer;
+          
+          console.log(`  ✅ Algonova logo overlayed successfully!`);
+          console.log('✅ STEP 5 COMPLETE!');
+        } else {
+          console.log(`  ⚠️ No logo element found in layout, skipping logo overlay`);
+        }
+      } catch (logoError) {
+        console.warn(`  ⚠️ Failed to overlay logo:`, logoError);
+        console.log(`  Continuing with DALL-E generated logo...`);
+      }
+    } else {
+      console.log('\n  Skipping logo overlay (not editing logo)');
     }
 
     console.log('🎉 Mask edit pipeline successful!\n');
