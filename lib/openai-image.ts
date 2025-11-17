@@ -36,6 +36,12 @@ export async function generateMaskEdit(params: MaskEditParams): Promise<Buffer> 
     console.log(`📝 Modifications: ${modifications}`);
     console.log(`🎯 Edit types: ${editTypes.join(', ')}`);
 
+    // 🔍 DEBUG: Log input image metadata
+    console.log(`\n🔍 [DEBUG] Input image buffer: ${imageBuffer.length} bytes`);
+    const inputMetadata = await sharp(imageBuffer).metadata();
+    console.log(`🔍 [DEBUG] Input image size: ${inputMetadata.width}x${inputMetadata.height}`);
+    console.log(`🔍 [DEBUG] Input format: ${inputMetadata.format}, channels: ${inputMetadata.channels}`);
+
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
@@ -229,6 +235,15 @@ Return valid JSON only.`;
     const maskMetadata = await sharp(convertedMask).metadata();
     console.log(`📐 Mask: ${maskMetadata.width}x${maskMetadata.height}, size: ${(convertedMask.length / 1024 / 1024).toFixed(2)}MB`);
     
+    // 🔍 DEBUG: Log mask coverage
+    const totalImagePixels = maskMetadata.width! * maskMetadata.height!;
+    const maskedPixels = editBoxes.reduce((acc, box) => acc + box.width * box.height, 0);
+    const maskCoverage = (maskedPixels / totalImagePixels * 100).toFixed(1);
+    console.log(`\n🔍 [DEBUG] Mask details:`);
+    console.log(`   Total masked elements: ${editBoxes.length}`);
+    console.log(`   Mask coverage: ${maskCoverage}% of image`);
+    console.log(`   Edit types: ${editTypes.join(', ')}`);
+    
     // Verify sizes match
     if (imageMetadata.width !== maskMetadata.width || imageMetadata.height !== maskMetadata.height) {
       throw new Error(`Size mismatch! Image: ${imageMetadata.width}x${imageMetadata.height}, Mask: ${maskMetadata.width}x${maskMetadata.height}`);
@@ -300,7 +315,19 @@ Return valid JSON only.`;
         const originalWidth = layout.image_size.width;
         const originalHeight = layout.image_size.height;
         
-        console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
+        console.log(`\n🔍 [DEBUG] DALL-E returned image metadata:`);
+        console.log(`   Width: ${editedMetadata.width}px`);
+        console.log(`   Height: ${editedMetadata.height}px`);
+        console.log(`   Format: ${editedMetadata.format}`);
+        console.log(`   Channels: ${editedMetadata.channels}`);
+        console.log(`   Space: ${editedMetadata.space}`);
+        console.log(`   Size: ${(resultBuffer.length / 1024).toFixed(1)}KB`);
+        console.log(`\n🔍 [DEBUG] Original image from analysis:`);
+        console.log(`   Width: ${originalWidth}px`);
+        console.log(`   Height: ${originalHeight}px`);
+        console.log(`🔍 [DEBUG] Edit types used: ${editTypes.join(', ')}`);
+        
+        console.log(`\n  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
         console.log(`  Target size: ${originalWidth}x${originalHeight}`);
         
         // Check if aspect ratios match (within 1% tolerance)
@@ -345,8 +372,17 @@ Return valid JSON only.`;
           
           const finalMetadata = await sharp(resultBuffer).metadata();
           console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+          
+          // 🔍 DEBUG: Log resize details
+          console.log(`\n🔍 [DEBUG] After resize:`);
+          console.log(`   Size change: ${editedMetadata.width}x${editedMetadata.height} → ${finalMetadata.width}x${finalMetadata.height}`);
+          console.log(`   Buffer size: ${(resultBuffer.length / 1024).toFixed(1)}KB`);
+          console.log(`   Final aspect ratio: ${(finalMetadata.width! / finalMetadata.height!).toFixed(3)}`);
+          console.log(`   Target aspect ratio: ${targetAspect.toFixed(3)}`);
+          console.log(`   Match: ${Math.abs((finalMetadata.width! / finalMetadata.height!) - targetAspect) < 0.01 ? '✅ YES' : '⚠️ NO'}`);
         } else {
           console.log(`  ✅ Size already close enough, no resize needed`);
+          console.log(`\n🔍 [DEBUG] No resize performed - dimensions within 10px tolerance`);
         }
         console.log('✅ STEP 4 COMPLETE!');
       }
@@ -374,7 +410,19 @@ Return valid JSON only.`;
       const originalWidth = layout.image_size.width;
       const originalHeight = layout.image_size.height;
       
-      console.log(`  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
+      console.log(`\n🔍 [DEBUG] DALL-E returned image metadata (URL path):`);
+      console.log(`   Width: ${editedMetadata.width}px`);
+      console.log(`   Height: ${editedMetadata.height}px`);
+      console.log(`   Format: ${editedMetadata.format}`);
+      console.log(`   Channels: ${editedMetadata.channels}`);
+      console.log(`   Space: ${editedMetadata.space}`);
+      console.log(`   Size: ${(resultBuffer.length / 1024).toFixed(1)}KB`);
+      console.log(`\n🔍 [DEBUG] Original image from analysis:`);
+      console.log(`   Width: ${originalWidth}px`);
+      console.log(`   Height: ${originalHeight}px`);
+      console.log(`🔍 [DEBUG] Edit types used: ${editTypes.join(', ')}`);
+      
+      console.log(`\n  Current size: ${editedMetadata.width}x${editedMetadata.height}`);
       console.log(`  Target size: ${originalWidth}x${originalHeight}`);
       
       // Check if aspect ratios match (within 1% tolerance)
@@ -419,8 +467,17 @@ Return valid JSON only.`;
         
         const finalMetadata = await sharp(resultBuffer).metadata();
         console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+        
+        // 🔍 DEBUG: Log resize details
+        console.log(`\n🔍 [DEBUG] After resize (URL path):`);
+        console.log(`   Size change: ${editedMetadata.width}x${editedMetadata.height} → ${finalMetadata.width}x${finalMetadata.height}`);
+        console.log(`   Buffer size: ${(resultBuffer.length / 1024).toFixed(1)}KB`);
+        console.log(`   Final aspect ratio: ${(finalMetadata.width! / finalMetadata.height!).toFixed(3)}`);
+        console.log(`   Target aspect ratio: ${targetAspect.toFixed(3)}`);
+        console.log(`   Match: ${Math.abs((finalMetadata.width! / finalMetadata.height!) - targetAspect) < 0.01 ? '✅ YES' : '⚠️ NO'}`);
       } else {
         console.log(`  ✅ Size already close enough, no resize needed`);
+        console.log(`\n🔍 [DEBUG] No resize performed - dimensions within 10px tolerance (URL path)`);
       }
       console.log('✅ STEP 4 COMPLETE!');
     }
