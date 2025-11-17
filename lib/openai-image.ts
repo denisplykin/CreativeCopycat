@@ -5,6 +5,7 @@ import fetch, { Response } from 'node-fetch';
 
 interface BannerLayout {
   image_size: { width: number; height: number };
+  art_style?: string; // Overall artistic style (anime/realistic/cartoon/etc)
   background: {
     color: string;
     description: string;
@@ -48,6 +49,7 @@ export async function generateMaskEdit(params: MaskEditParams): Promise<Buffer> 
 JSON structure:
 {
   "image_size": { "width": 0, "height": 0 },
+  "art_style": "anime | realistic | cartoon | illustration | 3d | photo | sketch | other",
   "background": { "color": "string", "description": "string" },
   "elements": [
     {
@@ -58,6 +60,7 @@ JSON structure:
       "font_style": "string | null",
       "color": "string | null",
       "description": "string | null",
+      "style": "string | null",
       "bbox": { "x": 0, "y": 0, "width": 0, "height": 0 },
       "z_index": 0
     }
@@ -65,10 +68,13 @@ JSON structure:
 }
 
 Important: 
+- **art_style**: Identify the overall artistic style (anime/realistic/cartoon/etc)
 - Mark company logos and brand names as type: "logo" (not "text")
 - Mark brand text as role: "brand"
+- For "character" elements, include detailed style description in "style" field
 - Include all text exactly as shown
 - Provide pixel coordinates for every element
+- Count total number of characters present
 
 Return valid JSON only.`;
 
@@ -171,7 +177,7 @@ Return valid JSON only.`;
     console.log('\n✏️ STEP 3: Editing image with mask (gpt-image-1)...');
 
     // Build minimal edit prompt (important: keep it short!)
-    const editPrompt = buildMinimalEditPrompt(modifications, editTypes);
+    const editPrompt = buildMinimalEditPrompt(modifications, editTypes, layout);
     console.log('📝 Edit prompt:', editPrompt);
 
     // IMPORTANT: For /images/edits, both image and mask must be EXACTLY the same size
@@ -647,8 +653,9 @@ Return valid JSON only.`;
  * 
  * CRITICAL: Keep prompt EXTREMELY short and neutral to avoid moderation blocks
  * IMPORTANT: Always include Algonova text branding in purple color (#833AE0)
+ * NEW: Use art_style and character count for more precise "slightly different" mode
  */
-function buildMinimalEditPrompt(modifications: string, editTypes: string[]): string {
+function buildMinimalEditPrompt(modifications: string, editTypes: string[], layout?: BannerLayout): string {
   // Ultra-minimal prompt - just tell what to do with masked areas
   // Avoid ANY words that could trigger moderation: "replace", "remove", "logo", "brand", etc.
   
@@ -660,7 +667,18 @@ function buildMinimalEditPrompt(modifications: string, editTypes: string[]): str
     return `Professional advertising design with ${algonova}.`;
   }
   
-  // If editing character, ALSO include Algonova branding
+  // If editing character, use art style for precision
+  if (editTypes.includes('character') && layout) {
+    const artStyle = layout.art_style || 'illustration';
+    const characters = layout.elements.filter(e => e.type === 'character');
+    const charCount = characters.length;
+    const charStyle = characters[0]?.style || artStyle;
+    
+    // 🎯 STRICT prompt for "slightly different" mode
+    return `Professional advertising design with ${charCount} character${charCount > 1 ? 's' : ''} in ${charStyle} style. Maintain exact same art style, composition, and character type. Only minor expression/pose variation. Include ${algonova}.`;
+  }
+  
+  // If editing character WITHOUT layout info (fallback)
   if (editTypes.includes('character')) {
     return `Professional advertising design with diverse representation and ${algonova}.`;
   }
