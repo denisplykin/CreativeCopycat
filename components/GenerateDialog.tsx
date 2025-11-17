@@ -329,38 +329,6 @@ export function GenerateDialog({
                     </p>
                   </div>
                 </div>
-
-                {/* Gemini Nano Banana - DISABLED */}
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="geminiInpaint"
-                    disabled
-                    checked={config.simpleOptions?.geminiInpaint}
-                    onCheckedChange={(checked) =>
-                      setConfig({
-                        ...config,
-                        simpleOptions: {
-                          ...config.simpleOptions!,
-                          geminiInpaint: checked as boolean,
-                        },
-                      })
-                    }
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor="geminiInpaint" className="font-normal cursor-pointer text-muted-foreground">
-                      🍌 Gemini Nano Banana
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        🔒 Coming soon
-                      </Badge>
-                      <Badge variant="outline" className="ml-1 text-xs">
-                        83x cheaper!
-                      </Badge>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Ultra-fast logo replacement with Google Gemini ($0.002 vs $0.17)
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
 
