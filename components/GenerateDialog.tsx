@@ -43,6 +43,7 @@ export interface GenerationConfig {
     slightlyDifferent: boolean
     fbData: boolean
     randomVariations: boolean
+    geminiInpaint: boolean
   }
   
   // Для кастомной генерации
@@ -66,6 +67,7 @@ export function GenerateDialog({
       slightlyDifferent: false,
       fbData: false,
       randomVariations: false,
+      geminiInpaint: false,
     },
     customPrompt: '',
   })
