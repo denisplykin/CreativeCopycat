@@ -67,9 +67,18 @@ JSON structure:
   ]
 }
 
-Important: 
+Important:
 - **art_style**: Identify the overall artistic style (anime/realistic/cartoon/etc)
-- Mark company logos and brand names as type: "logo" (not "text")
+- **LOGO DETECTION**: Mark company logos and brand names as type: "logo" (not "text")
+  - The logo bounding box MUST include ALL visual elements that are part of the logo:
+    * Brand text (e.g., "BrightCHAMPS", "Harvard Business")
+    * Icons, shields, emblems, or symbols that are PART OF the logo
+    * Background badges, circles, or shapes that contain the brand
+  - Examples:
+    * BrightCHAMPS with shield icon → bbox covers BOTH shield AND text
+    * Harvard with crest → bbox covers BOTH crest AND text
+    * Logo on circular badge → bbox covers ENTIRE badge including decorations
+  - The bounding box should cover the COMPLETE visual logo element, not just text
 - Mark brand text as role: "brand"
 - For "character" elements, include detailed style description in "style" field
 - Include all text exactly as shown

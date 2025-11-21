@@ -64,6 +64,11 @@ Provide a comprehensive JSON analysis with:
    - Position: {x_percent, y_percent, width_percent, height_percent}
    - Colors (hex codes)
    - Style: flat/3D/outlined/realistic
+   - **IMPORTANT FOR LOGOS**: When type is "logo", the position bounding box MUST include:
+     * Brand text (e.g., "BrightCHAMPS", "Harvard Business")
+     * All icons, shields, emblems, or symbols that are PART OF the logo
+     * All background badges, circles, or shapes that contain the brand
+     * The bounding box should cover the COMPLETE visual logo element (e.g., shield + text, crest + text, badge + text)
 
 4. **Color Palette**:
    - Primary color (hex)
