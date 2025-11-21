@@ -234,7 +234,7 @@ export async function POST(request: Request) {
         // Choose image generation model
         if (imageModel === 'nano-banana-pro') {
           console.log('🍌 Using Nano Banana Pro for generation...');
-          bgBuffer = await generateWithNanoBanana({
+          bgBuffer = await NanoBanana.generateWithNanaBanana({
             imageBuffer: originalBuffer,
             modifications,
             aspectRatio,
