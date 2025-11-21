@@ -257,12 +257,12 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
     console.log('✅ STEP 2 COMPLETE! Image generated');
 
     // Convert base64 data URL to Buffer
-    const imageBuffer = dataUrlToBuffer(result.imageUrl);
+    const resultBuffer = dataUrlToBuffer(result.imageUrl);
 
-    console.log(`✅ Generated: ${imageBuffer.length} bytes`);
+    console.log(`✅ Generated: ${resultBuffer.length} bytes`);
     console.log('🎉 Nano Banana Pro pipeline successful!\n');
 
-    return imageBuffer;
+    return resultBuffer;
   } catch (error) {
     console.error('❌ Nano Banana Pro pipeline error:', error);
     throw error;
