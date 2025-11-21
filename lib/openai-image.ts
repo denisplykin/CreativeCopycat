@@ -472,8 +472,8 @@ Return valid JSON only.`;
               const imgWidth = imageMetadata.width!;
               const imgHeight = imageMetadata.height!;
 
-              // Expand bbox by 60% to create cleanup zone around logo
-              const expansion = 0.6;
+              // Expand bbox by 100% to create cleanup zone around logo
+              const expansion = 1.0;
               const expandedBbox = {
                 x: Math.max(0, bbox.x - bbox.width * expansion),
                 y: Math.max(0, bbox.y - bbox.height * expansion),
@@ -487,34 +487,58 @@ Return valid JSON only.`;
 
               console.log(`  🧹 Cleaning decorative elements in expanded area: ${Math.round(expandedBbox.width)}x${Math.round(expandedBbox.height)}`);
 
-              // Sample background color from image corners (average of 4 corners)
+              // Sample background color from area AROUND the logo bbox (not image corners)
               const imageData = await sharp(resultBuffer).raw().toBuffer({ resolveWithObject: true });
               const { data, info } = imageData;
               const channels = info.channels;
 
-              // Sample 4 corner pixels
-              const corners = [
-                { x: 10, y: 10 }, // Top-left
-                { x: info.width - 10, y: 10 }, // Top-right
-                { x: 10, y: info.height - 10 }, // Bottom-left
-                { x: info.width - 10, y: info.height - 10 } // Bottom-right
-              ];
+              // Sample pixels from edges just outside the original logo bbox
+              const samplePoints = [];
+              const margin = 5; // pixels outside bbox to sample
+
+              // Top edge (outside bbox)
+              if (bbox.y - margin > 0) {
+                for (let x = Math.max(0, bbox.x); x < Math.min(info.width, bbox.x + bbox.width); x += 20) {
+                  samplePoints.push({ x, y: Math.floor(bbox.y - margin) });
+                }
+              }
+
+              // Bottom edge (outside bbox)
+              if (bbox.y + bbox.height + margin < info.height) {
+                for (let x = Math.max(0, bbox.x); x < Math.min(info.width, bbox.x + bbox.width); x += 20) {
+                  samplePoints.push({ x, y: Math.floor(bbox.y + bbox.height + margin) });
+                }
+              }
+
+              // Left edge (outside bbox)
+              if (bbox.x - margin > 0) {
+                for (let y = Math.max(0, bbox.y); y < Math.min(info.height, bbox.y + bbox.height); y += 20) {
+                  samplePoints.push({ x: Math.floor(bbox.x - margin), y });
+                }
+              }
+
+              // Right edge (outside bbox)
+              if (bbox.x + bbox.width + margin < info.width) {
+                for (let y = Math.max(0, bbox.y); y < Math.min(info.height, bbox.y + bbox.height); y += 20) {
+                  samplePoints.push({ x: Math.floor(bbox.x + bbox.width + margin), y });
+                }
+              }
 
               let totalR = 0, totalG = 0, totalB = 0;
-              corners.forEach(corner => {
-                const idx = (corner.y * info.width + corner.x) * channels;
+              samplePoints.forEach(point => {
+                const idx = (point.y * info.width + point.x) * channels;
                 totalR += data[idx];
                 totalG += data[idx + 1];
                 totalB += data[idx + 2];
               });
 
               const bgColor = {
-                r: Math.round(totalR / 4),
-                g: Math.round(totalG / 4),
-                b: Math.round(totalB / 4)
+                r: Math.round(totalR / samplePoints.length),
+                g: Math.round(totalG / samplePoints.length),
+                b: Math.round(totalB / samplePoints.length)
               };
 
-              console.log(`  🎨 Background color: rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
+              console.log(`  🎨 Background color (sampled ${samplePoints.length} points around logo): rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
 
               // Create a cleanup mask (filled rectangle) for the expanded area
               const cleanupMask = await sharp({
@@ -735,8 +759,8 @@ Return valid JSON only.`;
             const imgWidth = imageMetadata.width!;
             const imgHeight = imageMetadata.height!;
 
-            // Expand bbox by 60% to create cleanup zone around logo
-            const expansion = 0.6;
+            // Expand bbox by 100% to create cleanup zone around logo
+            const expansion = 1.0;
             const expandedBbox = {
               x: Math.max(0, bbox.x - bbox.width * expansion),
               y: Math.max(0, bbox.y - bbox.height * expansion),
@@ -750,34 +774,58 @@ Return valid JSON only.`;
 
             console.log(`  🧹 Cleaning decorative elements in expanded area: ${Math.round(expandedBbox.width)}x${Math.round(expandedBbox.height)}`);
 
-            // Sample background color from image corners (average of 4 corners)
+            // Sample background color from area AROUND the logo bbox (not image corners)
             const imageData = await sharp(resultBuffer).raw().toBuffer({ resolveWithObject: true });
             const { data, info } = imageData;
             const channels = info.channels;
 
-            // Sample 4 corner pixels
-            const corners = [
-              { x: 10, y: 10 }, // Top-left
-              { x: info.width - 10, y: 10 }, // Top-right
-              { x: 10, y: info.height - 10 }, // Bottom-left
-              { x: info.width - 10, y: info.height - 10 } // Bottom-right
-            ];
+            // Sample pixels from edges just outside the original logo bbox
+            const samplePoints = [];
+            const margin = 5; // pixels outside bbox to sample
+
+            // Top edge (outside bbox)
+            if (bbox.y - margin > 0) {
+              for (let x = Math.max(0, bbox.x); x < Math.min(info.width, bbox.x + bbox.width); x += 20) {
+                samplePoints.push({ x, y: Math.floor(bbox.y - margin) });
+              }
+            }
+
+            // Bottom edge (outside bbox)
+            if (bbox.y + bbox.height + margin < info.height) {
+              for (let x = Math.max(0, bbox.x); x < Math.min(info.width, bbox.x + bbox.width); x += 20) {
+                samplePoints.push({ x, y: Math.floor(bbox.y + bbox.height + margin) });
+              }
+            }
+
+            // Left edge (outside bbox)
+            if (bbox.x - margin > 0) {
+              for (let y = Math.max(0, bbox.y); y < Math.min(info.height, bbox.y + bbox.height); y += 20) {
+                samplePoints.push({ x: Math.floor(bbox.x - margin), y });
+              }
+            }
+
+            // Right edge (outside bbox)
+            if (bbox.x + bbox.width + margin < info.width) {
+              for (let y = Math.max(0, bbox.y); y < Math.min(info.height, bbox.y + bbox.height); y += 20) {
+                samplePoints.push({ x: Math.floor(bbox.x + bbox.width + margin), y });
+              }
+            }
 
             let totalR = 0, totalG = 0, totalB = 0;
-            corners.forEach(corner => {
-              const idx = (corner.y * info.width + corner.x) * channels;
+            samplePoints.forEach(point => {
+              const idx = (point.y * info.width + point.x) * channels;
               totalR += data[idx];
               totalG += data[idx + 1];
               totalB += data[idx + 2];
             });
 
             const bgColor = {
-              r: Math.round(totalR / 4),
-              g: Math.round(totalG / 4),
-              b: Math.round(totalB / 4)
+              r: Math.round(totalR / samplePoints.length),
+              g: Math.round(totalG / samplePoints.length),
+              b: Math.round(totalB / samplePoints.length)
             };
 
-            console.log(`  🎨 Background color: rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
+            console.log(`  🎨 Background color (sampled ${samplePoints.length} points around logo): rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
 
             // Create a cleanup mask (filled rectangle) for the expanded area
             const cleanupMask = await sharp({
