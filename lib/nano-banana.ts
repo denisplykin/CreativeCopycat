@@ -7,15 +7,63 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const NANO_BANANA_MODEL = 'google/gemini-3-pro-image-preview';
 
+// Pricing per million tokens (as of documentation)
+const PRICING = {
+  'nano-banana-pro': {
+    input: 2.0,   // $2/M tokens
+    output: 12.0  // $12/M tokens
+  },
+  'claude-3.5-sonnet': {
+    input: 3.0,   // $3/M tokens
+    output: 15.0  // $15/M tokens
+  }
+};
+
+/**
+ * Calculate cost from token usage
+ */
+function calculateCost(
+  inputTokens: number,
+  outputTokens: number,
+  model: 'nano-banana-pro' | 'claude-3.5-sonnet'
+): CostBreakdown {
+  const pricing = PRICING[model];
+  const inputCost = (inputTokens / 1_000_000) * pricing.input;
+  const outputCost = (outputTokens / 1_000_000) * pricing.output;
+
+  return {
+    inputTokens,
+    outputTokens,
+    inputCost,
+    outputCost,
+    totalCost: inputCost + outputCost
+  };
+}
+
 export interface NanoBananaOptions {
   prompt: string;
   temperature?: number;
   maxTokens?: number;
 }
 
+export interface CostBreakdown {
+  inputTokens: number;
+  outputTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+}
+
 export interface NanoBananaResponse {
   imageUrl: string; // Base64 data URL
   rawResponse: any;
+  cost?: CostBreakdown;
+}
+
+export interface NanoBananaPipelineCost {
+  step1_analysis: CostBreakdown;
+  step2_generation: CostBreakdown;
+  totalCost: number;
 }
 
 /**
@@ -75,9 +123,25 @@ export async function generateImageWithNanoBanana(
     // Get the first generated image
     const imageUrl = message.images[0].image_url.url;
 
+    // Extract usage data and calculate cost
+    let cost: CostBreakdown | undefined;
+    if (result.usage) {
+      const inputTokens = result.usage.prompt_tokens || 0;
+      const outputTokens = result.usage.completion_tokens || 0;
+      cost = calculateCost(inputTokens, outputTokens, 'nano-banana-pro');
+
+      console.log('💰 Nano Banana Pro Cost:');
+      console.log(`   Input tokens: ${inputTokens.toLocaleString()}`);
+      console.log(`   Output tokens: ${outputTokens.toLocaleString()}`);
+      console.log(`   Input cost: $${cost.inputCost.toFixed(6)}`);
+      console.log(`   Output cost: $${cost.outputCost.toFixed(6)}`);
+      console.log(`   Total cost: $${cost.totalCost.toFixed(6)}`);
+    }
+
     return {
       imageUrl,
       rawResponse: result,
+      cost,
     };
   } catch (error) {
     console.error('Error generating image with Nano Banana Pro:', error);
@@ -156,14 +220,14 @@ export async function generateImageBuffer(
  * Similar to generateWithDallE3 but uses Nano Banana Pro via OpenRouter
  *
  * @param params - Image buffer, modifications, and aspect ratio
- * @returns Buffer containing the generated image
+ * @returns Object containing the generated image buffer and cost breakdown
  */
 export async function generateWithNanoBanana(params: {
   imageBuffer: Buffer;
   modifications: string;
   aspectRatio?: string;
   analysis?: any; // Optional pre-existing analysis data
-}): Promise<Buffer> {
+}): Promise<{ buffer: Buffer; cost: NanoBananaPipelineCost }> {
   const { imageBuffer, modifications, aspectRatio = '1:1', analysis } = params;
 
   try {
@@ -243,8 +307,29 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
       throw new Error('No prompt returned from analysis step');
     }
 
-    console.log('✅ STEP 1 COMPLETE! Generated prompt:');
-    console.log(generationPrompt.substring(0, 300) + '...');
+    // Extract cost from step 1
+    let step1Cost: CostBreakdown;
+    if (step1Data.usage) {
+      const inputTokens = step1Data.usage.prompt_tokens || 0;
+      const outputTokens = step1Data.usage.completion_tokens || 0;
+      step1Cost = calculateCost(inputTokens, outputTokens, 'claude-3.5-sonnet');
+
+      console.log('✅ STEP 1 COMPLETE! Generated prompt:');
+      console.log(generationPrompt.substring(0, 300) + '...');
+      console.log('💰 Step 1 (Claude Analysis) Cost:');
+      console.log(`   Input tokens: ${inputTokens.toLocaleString()}`);
+      console.log(`   Output tokens: ${outputTokens.toLocaleString()}`);
+      console.log(`   Cost: $${step1Cost.totalCost.toFixed(6)}`);
+    } else {
+      console.log('⚠️ No usage data available for step 1');
+      step1Cost = {
+        inputTokens: 0,
+        outputTokens: 0,
+        inputCost: 0,
+        outputCost: 0,
+        totalCost: 0
+      };
+    }
 
     // ========== STEP 2: Generate image with Nano Banana Pro ==========
     console.log('\n🍌 STEP 2: Generating image with Nano Banana Pro...');
@@ -256,13 +341,38 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
     console.log('✅ STEP 2 COMPLETE! Image generated');
 
-    // Convert base64 data URL to Buffer
-    const imageBuffer = dataUrlToBuffer(result.imageUrl);
+    // Get cost from step 2
+    const step2Cost = result.cost || {
+      inputTokens: 0,
+      outputTokens: 0,
+      inputCost: 0,
+      outputCost: 0,
+      totalCost: 0
+    };
 
-    console.log(`✅ Generated: ${imageBuffer.length} bytes`);
+    // Calculate total pipeline cost
+    const totalCost = step1Cost.totalCost + step2Cost.totalCost;
+
+    console.log('\n💰 TOTAL PIPELINE COST:');
+    console.log(`   Step 1 (Analysis): $${step1Cost.totalCost.toFixed(6)}`);
+    console.log(`   Step 2 (Generation): $${step2Cost.totalCost.toFixed(6)}`);
+    console.log(`   ================================`);
+    console.log(`   TOTAL: $${totalCost.toFixed(6)}`);
+
+    // Convert base64 data URL to Buffer
+    const generatedBuffer = dataUrlToBuffer(result.imageUrl);
+
+    console.log(`✅ Generated: ${generatedBuffer.length} bytes`);
     console.log('🎉 Nano Banana Pro pipeline successful!\n');
 
-    return imageBuffer;
+    return {
+      buffer: generatedBuffer,
+      cost: {
+        step1_analysis: step1Cost,
+        step2_generation: step2Cost,
+        totalCost
+      }
+    };
   } catch (error) {
     console.error('❌ Nano Banana Pro pipeline error:', error);
     throw error;

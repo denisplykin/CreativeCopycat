@@ -234,12 +234,14 @@ export async function POST(request: Request) {
         // Choose image generation model
         if (imageModel === 'nano-banana-pro') {
           console.log('🍌 Using Nano Banana Pro for generation...');
-          bgBuffer = await generateWithNanoBanana({
+          const result = await generateWithNanoBanana({
             imageBuffer: originalBuffer,
             modifications,
             aspectRatio,
             analysis: creative.analysis,
           });
+          bgBuffer = result.buffer;
+          // Cost information is logged within the function
         } else if (imageModel === 'dall-e-3') {
           console.log('🎨 Using DALL-E 3 for generation...');
           bgBuffer = await generateWithDallE3({
