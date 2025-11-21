@@ -660,8 +660,8 @@ function buildMinimalEditPrompt(modifications: string, editTypes: string[], layo
   // Avoid ANY words that could trigger moderation: "replace", "remove", "logo", "brand", etc.
   
   // ALWAYS include Algonova branding text
-  const algonova = `simple text "Algonova" in purple color #833AE0 (text only, no decorative elements or symbols)`;
-
+  const algonova = `text "Algonova" in purple color #833AE0`;
+  
   // If editing logo specifically, use generic "branding element" language
   if (editTypes.includes('logo') && editTypes.length === 1) {
     return `Professional advertising design with ${algonova}.`;
@@ -775,7 +775,7 @@ Your task:
 1. Describe ALL visual elements in detail (layout, colors, text, characters, objects, style)
 2. Include the exact text content that should appear
 3. Apply the user's modifications
-4. IMPORTANT: Replace any competitor brand names with "Algonova" (purple #833AE0). Use simple text only - NO decorative letters, symbols, or graphic elements around the brand name.
+4. IMPORTANT: Replace any competitor brand names with "Algonova" (purple #833AE0)
 5. Keep the same composition and style as the original
 
 Return a detailed DALL-E prompt (150-250 words) that will recreate this banner.
