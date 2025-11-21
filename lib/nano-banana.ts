@@ -153,23 +153,25 @@ export async function generateWithNanaBanana(params: {
         if (aspectDiff <= 0.01) {
           // Aspect ratios match - safe to use 'cover' for exact size
           console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
-          resultBuffer = await sharp(resultBuffer)
+          const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
               fit: 'cover',
               position: 'centre',
               kernel: 'lanczos3'
             })
             .toBuffer();
+          resultBuffer = resized as Buffer;
         } else {
           // Aspect ratios don't match - use 'inside' to prevent distortion
           console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
-          resultBuffer = await sharp(resultBuffer)
+          const resized = await sharp(resultBuffer)
             .resize(originalWidth, originalHeight, {
               fit: 'inside',
               withoutEnlargement: false,
               kernel: 'lanczos3'
             })
             .toBuffer();
+          resultBuffer = resized as Buffer;
         }
 
         const finalMetadata = await sharp(resultBuffer).metadata();
