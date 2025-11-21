@@ -194,31 +194,44 @@ ORIGINAL IMAGE DIMENSIONS: ${originalWidth}x${originalHeight} pixels
 USER MODIFICATIONS: ${modifications}
 
 CRITICAL PRESERVATION RULES:
-1. **Characters/People**: MUST preserve:
+1. **Characters/People**: MUST preserve EXACTLY:
    - Exact gender (male/female/child)
    - Exact age category (child/teen/adult/elderly)
-   - Exact pose and body position
-   - Exact clothing style and colors
-   - Exact facial expression
-   - Exact number of characters
-   - Exact positioning and spacing
+   - Exact ethnicity and race (skin tone, facial features, hair type)
+   - Exact pose and body position (standing/sitting/jumping, arm positions, leg positions)
+   - Exact clothing style and colors (shirts, pants, accessories - keep identical)
+   - Exact facial expression (smiling/serious/surprised)
+   - Exact number of characters (if 2 people, generate exactly 2 people)
+   - Exact positioning and spacing (if character is on left side, keep on left side)
+   - Exact size/scale of characters relative to banner
 
-2. **Objects/Items**: MUST preserve:
-   - Exact object types (don't change laptop to tablet, etc.)
-   - Exact colors of all objects
-   - Exact positions and layout
-   - Exact sizes and proportions
-   - Exact number of objects
+2. **Objects/Items**: MUST preserve EXACTLY:
+   - Exact object types (laptop stays laptop, phone stays phone, book stays book)
+   - Exact colors of all objects (if laptop is silver, keep it silver)
+   - Exact positions and layout (if object is top-right, keep it top-right)
+   - Exact sizes and proportions (maintain relative scale)
+   - Exact number of objects (if 3 items, generate exactly 3 items)
+   - Exact orientation (if tilted 45°, keep at 45°)
 
-3. **Layout**: MUST preserve:
-   - Exact composition and element placement
+3. **Buttons, CTAs, and UI Elements**: MUST preserve EXACTLY:
+   - Exact position of all buttons (if button is bottom-right, keep it bottom-right)
+   - Exact size and shape of buttons (rounded/square, dimensions)
+   - Exact colors of buttons and CTAs
+   - Exact text on buttons (e.g., "Sign Up", "Learn More")
+   - Exact spacing between UI elements
+   - If there's a CTA in a specific corner, keep it in that exact corner
+
+4. **Layout and Positioning**: MUST preserve EXACTLY:
+   - Exact composition and element placement (nothing should move)
    - Exact background style and colors
-   - Exact text positioning and hierarchy
-   - Exact spacing and margins
+   - Exact text positioning and hierarchy (if headline is top-center, keep it top-center)
+   - Exact spacing and margins (maintain all gaps between elements)
+   - EVERY element must stay in its EXACT original position
+   - Think of the layout as a grid - each element must stay in its cell
 
-4. **Text Content**: Include exact text that should appear (with typography and placement)
+5. **Text Content**: Include exact text that should appear (with typography and placement)
 
-5. **LOGO REPLACEMENT - ABSOLUTELY CRITICAL**:
+6. **LOGO REPLACEMENT - ABSOLUTELY CRITICAL**:
 
    **STEP 1 - REMOVE COMPETITOR LOGO COMPLETELY:**
    - Identify where the competitor logo/brand appears in the original
@@ -226,9 +239,11 @@ CRITICAL PRESERVATION RULES:
    - If the original logo had: shields, icons, emblems, badges, letters, symbols → REMOVE ALL OF THEM
    - Clear the entire logo area to just background
 
-   **STEP 2 - ADD ONLY "ALGONOVA" TEXT:**
-   - In the logo area, place ONLY the word "Algonova" in purple (#833AE0)
-   - The Algonova logo = JUST THE TEXT "Algonova" - ABSOLUTELY NOTHING ELSE
+   **STEP 2 - ADD ONLY "ALGONOVA" TEXT IN PURPLE:**
+   - In the logo area, place ONLY the word "Algonova"
+   - Color: MUST be purple (#833AE0) or purple-like (violet, lavender, magenta)
+   - IMPORTANT: Algonova logo ALWAYS uses purple/purple-like colors - NEVER other colors
+   - The Algonova logo = JUST THE TEXT "Algonova" in PURPLE - ABSOLUTELY NOTHING ELSE
 
    **STEP 3 - ENSURE CLEAN LOGO AREA:**
    - NO decorative letters near "Algonova" (especially NO large "A" letters)
@@ -247,17 +262,30 @@ CRITICAL PRESERVATION RULES:
    **CORRECT EXAMPLE:**
    - ✅ Just the word "Algonova" in purple text, clean background around it
 
-6. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
+7. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
 
 Your task: Write a 300-400 word prompt that describes EVERY visual detail precisely.
-Be extremely specific about what should NOT change (gender, pose, colors, objects, layout).
+Be extremely specific about what should NOT change (gender, ethnicity, race, pose, colors, objects, button positions, layout).
 Focus on preservation and accuracy over creativity.
 
-**CRITICAL REMINDER FOR LOGO**: When describing the logo area in your prompt, you MUST explicitly state:
-- "Remove all competitor logo decorations completely"
-- "The logo shows ONLY the word 'Algonova' in purple text"
-- "NO decorative letters, symbols, or icons appear near or adjacent to 'Algonova'"
-- "The area around 'Algonova' is clean with just the background"
+**CRITICAL REMINDERS FOR YOUR PROMPT:**
+
+1. **For Element Positioning**: You MUST explicitly state the exact position of EVERY element:
+   - "Character is positioned on the LEFT SIDE of the banner"
+   - "Button is in the BOTTOM-RIGHT CORNER at coordinates..."
+   - "CTA is in the TOP-CENTER area"
+   - Describe positions using terms: top/bottom, left/right/center, upper/lower, corner locations
+
+2. **For Character Details**: You MUST explicitly state:
+   - Ethnicity and race (e.g., "Asian woman", "Black man", "Caucasian child")
+   - Exact pose (e.g., "standing with arms crossed", "sitting with laptop")
+   - Exact position (e.g., "positioned on left third of banner")
+
+3. **For Logo**: You MUST explicitly state:
+   - "Remove all competitor logo decorations completely"
+   - "The logo shows ONLY the word 'Algonova' in PURPLE color (#833AE0)"
+   - "NO decorative letters, symbols, or icons appear near or adjacent to 'Algonova'"
+   - "The area around 'Algonova' is clean with just the background"
 
 Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
