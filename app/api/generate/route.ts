@@ -238,6 +238,7 @@ export async function POST(request: Request) {
             imageBuffer: originalBuffer,
             modifications,
             aspectRatio,
+            copyMode,
             analysis: creative.analysis,
           });
         } else if (imageModel === 'dall-e-3') {

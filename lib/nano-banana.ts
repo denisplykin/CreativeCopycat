@@ -14,8 +14,9 @@ export async function generateWithNanaBanana(params: {
   modifications: string;
   aspectRatio?: string;
   analysis?: any;
+  copyMode?: string;
 }): Promise<Buffer> {
-  const { imageBuffer, modifications, aspectRatio = '1:1' } = params;
+  const { imageBuffer, modifications, aspectRatio = '1:1', copyMode = 'simple_copy' } = params;
 
   const OPENROUTER_API_KEY = getOpenRouterKey();
   
@@ -40,27 +41,87 @@ export async function generateWithNanaBanana(params: {
     const mimeType = detectMimeType(imageBuffer);
 
     // Step 1: Generate prompt via Claude
-    console.log('👁️ Step 1: Analyzing image...');
+    console.log(`👁️ Step 1: Analyzing image for mode: ${copyMode}...`);
     
-    const promptRequest = `You are analyzing an advertising banner to create a prompt for image recreation.
+    // Different prompt strategies for different modes
+    let promptRequest = '';
+    
+    switch (copyMode) {
+      case 'simple_copy':
+        promptRequest = `You are modifying an advertising banner. Look at this image.
 
-ANALYZE THIS IMAGE and describe:
-1. Exact layout and composition
-2. Character details (age, gender, clothing, pose, position, expression)
-3. Background style and colors
-4. Text placement and styling
-5. All visual elements and decorations
+TASK: Create a prompt to recreate this image with MINIMAL changes - ONLY replace the company logo/brand with "Algonova". Everything else must stay EXACTLY the same.
+
+PRESERVE EXACTLY:
+- Character appearance, age, gender, ethnicity, clothing, pose, position, expression
+- Background colors, style, patterns, decorations
+- Text content, placement, fonts, colors, sizes
+- Layout and composition
+- All visual elements and decorations
+- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+
+CHANGE ONLY:
+- Replace any visible company logo or brand name with "Algonova"
+
+Return a detailed prompt for image generation that preserves the original design exactly.`;
+        break;
+
+      case 'slightly_different':
+        promptRequest = `You are modifying an advertising banner. Look at this image.
+
+TASK: Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
+
+PRESERVE EXACTLY:
+- Art style and illustration technique
+- Background colors, style, patterns, decorations  
+- Text content, placement, fonts, colors, sizes
+- Layout and composition
+- Character position in frame
+- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+
+MODIFY:
+- Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
+- Replace any visible company logo or brand name with "Algonova"
+
+IMPORTANT: The character should feel like a different person but in the same art style and similar pose.
+
+Return a detailed prompt for image generation.`;
+        break;
+
+      case 'copy_with_color':
+        promptRequest = `You are modifying an advertising banner. Look at this image.
+
+TASK: Create a prompt to recreate this image with Algonova brand colors applied.
+
+PRESERVE EXACTLY:
+- Character appearance, pose, position
+- Background structure
+- Text content, placement, fonts
+- Layout and composition
+- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+
+MODIFY:
+- Apply Algonova brand colors (orange, pink, purple, cyan) to decorative elements, backgrounds, accents
+- Replace any visible company logo or brand name with "Algonova"
+
+Return a detailed prompt for image generation.`;
+        break;
+
+      default:
+        // Fallback to generic prompt
+        promptRequest = `You are analyzing an advertising banner to create a prompt for image recreation.
+
+ANALYZE THIS IMAGE and describe all elements.
 
 MODIFICATIONS NEEDED: ${modifications}
 
 CRITICAL REQUIREMENTS:
 - Original dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
 - Generated image MUST match these EXACT dimensions
-- Preserve ALL elements EXCEPT what's specified in modifications
-- Maintain exact same composition, layout, colors, style
 - Replace brand names with "Algonova"
 
-Return ONLY the detailed prompt for image generation that preserves the original design.`;
+Return ONLY the detailed prompt for image generation.`;
+    }
 
     const step1Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
