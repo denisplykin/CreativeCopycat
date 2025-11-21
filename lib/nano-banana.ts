@@ -289,13 +289,3 @@ export function detectMimeType(buffer: Buffer): string {
   }
   return 'image/png';
 }
-
-// Explicit re-exports for TypeScript module resolution
-export {
-  generateImageWithNanaBanana,
-  generateCreativeBanner,
-  generateImageBuffer,
-  generateWithNanaBanana,
-  dataUrlToBuffer,
-  detectMimeType,
-};
