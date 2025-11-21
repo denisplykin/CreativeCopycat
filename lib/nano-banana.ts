@@ -218,7 +218,15 @@ CRITICAL PRESERVATION RULES:
 
 4. **Text Content**: Include exact text that should appear (with typography and placement)
 
-5. **Brand Replacement**: Replace any competitor brand names/logos with "Algonova" (use purple #833AE0)
+5. **Brand Replacement - CRITICAL LOGO RULES**:
+   - Replace any competitor brand names/logos with "Algonova" (use purple #833AE0)
+   - IMPORTANT: The Algonova logo should be ONLY the word "Algonova" - NOTHING ELSE
+   - DO NOT add decorative letters (like "A") near or adjacent to "Algonova"
+   - DO NOT add decorative symbols, icons, emblems, or shapes near "Algonova"
+   - DO NOT add shields, badges, circles, or any decorative frames around "Algonova"
+   - The logo area should be CLEAN with just the word "Algonova" by itself
+   - If the original had decorative logo elements (shields, icons, etc.), REMOVE them
+   - Keep the logo simple and minimal - just the text "Algonova" in purple
 
 6. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
 
