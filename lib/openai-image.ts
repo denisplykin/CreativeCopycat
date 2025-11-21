@@ -472,8 +472,8 @@ Return valid JSON only.`;
               const imgWidth = imageMetadata.width!;
               const imgHeight = imageMetadata.height!;
 
-              // Expand bbox by 25% to create cleanup zone around logo
-              const expansion = 0.25;
+              // Expand bbox by 60% to create cleanup zone around logo
+              const expansion = 0.6;
               const expandedBbox = {
                 x: Math.max(0, bbox.x - bbox.width * expansion),
                 y: Math.max(0, bbox.y - bbox.height * expansion),
@@ -735,8 +735,8 @@ Return valid JSON only.`;
             const imgWidth = imageMetadata.width!;
             const imgHeight = imageMetadata.height!;
 
-            // Expand bbox by 25% to create cleanup zone around logo
-            const expansion = 0.25;
+            // Expand bbox by 60% to create cleanup zone around logo
+            const expansion = 0.6;
             const expandedBbox = {
               x: Math.max(0, bbox.x - bbox.width * expansion),
               y: Math.max(0, bbox.y - bbox.height * expansion),
