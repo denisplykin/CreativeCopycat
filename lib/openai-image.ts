@@ -464,29 +464,99 @@ Return valid JSON only.`;
           if (logoElement && logoElement.bbox) {
             const bbox = logoElement.bbox;
             console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
-            
-            // Scale logo 80% larger to cover any decorative elements
-            const logoScale = 1.8;
+
+            // Clean up decorative elements around the logo area before overlaying
+            try {
+              // Get image metadata
+              const imageMetadata = await sharp(resultBuffer).metadata();
+              const imgWidth = imageMetadata.width!;
+              const imgHeight = imageMetadata.height!;
+
+              // Expand bbox by 25% to create cleanup zone around logo
+              const expansion = 0.25;
+              const expandedBbox = {
+                x: Math.max(0, bbox.x - bbox.width * expansion),
+                y: Math.max(0, bbox.y - bbox.height * expansion),
+                width: bbox.width * (1 + 2 * expansion),
+                height: bbox.height * (1 + 2 * expansion)
+              };
+
+              // Ensure expanded bbox doesn't exceed image boundaries
+              expandedBbox.width = Math.min(expandedBbox.width, imgWidth - expandedBbox.x);
+              expandedBbox.height = Math.min(expandedBbox.height, imgHeight - expandedBbox.y);
+
+              console.log(`  🧹 Cleaning decorative elements in expanded area: ${Math.round(expandedBbox.width)}x${Math.round(expandedBbox.height)}`);
+
+              // Sample background color from image corners (average of 4 corners)
+              const imageData = await sharp(resultBuffer).raw().toBuffer({ resolveWithObject: true });
+              const { data, info } = imageData;
+              const channels = info.channels;
+
+              // Sample 4 corner pixels
+              const corners = [
+                { x: 10, y: 10 }, // Top-left
+                { x: info.width - 10, y: 10 }, // Top-right
+                { x: 10, y: info.height - 10 }, // Bottom-left
+                { x: info.width - 10, y: info.height - 10 } // Bottom-right
+              ];
+
+              let totalR = 0, totalG = 0, totalB = 0;
+              corners.forEach(corner => {
+                const idx = (corner.y * info.width + corner.x) * channels;
+                totalR += data[idx];
+                totalG += data[idx + 1];
+                totalB += data[idx + 2];
+              });
+
+              const bgColor = {
+                r: Math.round(totalR / 4),
+                g: Math.round(totalG / 4),
+                b: Math.round(totalB / 4)
+              };
+
+              console.log(`  🎨 Background color: rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
+
+              // Create a cleanup mask (filled rectangle) for the expanded area
+              const cleanupMask = await sharp({
+                create: {
+                  width: Math.ceil(expandedBbox.width),
+                  height: Math.ceil(expandedBbox.height),
+                  channels: 3,
+                  background: bgColor
+                }
+              }).png().toBuffer();
+
+              // Apply cleanup mask to remove decorative elements
+              resultBuffer = await sharp(resultBuffer)
+                .composite([{
+                  input: cleanupMask,
+                  left: Math.floor(expandedBbox.x),
+                  top: Math.floor(expandedBbox.y)
+                }])
+                .toBuffer() as Buffer;
+
+              console.log(`  ✅ Cleaned decorative elements around logo area`);
+            } catch (cleanupError) {
+              console.warn(`  ⚠️ Failed to clean decorative elements:`, cleanupError);
+            }
+
+            // Resize logo to fit the ORIGINAL bbox (same size as competitor logos)
             const resizedLogo = await sharp(logoBuffer)
-              .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
+              .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
                 fit: 'contain',  // Preserve logo aspect ratio
                 background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
               })
               .toBuffer();
 
-            // Center the larger logo on the bbox position
-            const offsetX = bbox.width * (logoScale - 1) / 2;
-            const offsetY = bbox.height * (logoScale - 1) / 2;
-
-            // Overlay logo on generated image
+            // Overlay logo at original size
             resultBuffer = await sharp(resultBuffer)
               .composite([{
                 input: resizedLogo,
-                left: Math.floor(bbox.x - offsetX),
-                top: Math.floor(bbox.y - offsetY)
+                left: Math.floor(bbox.x),
+                top: Math.floor(bbox.y)
               }])
               .toBuffer() as Buffer;
-            
+
             console.log(`  ✅ Algonova logo overlayed successfully!`);
             console.log('✅ STEP 5 COMPLETE!');
           } else {
@@ -657,29 +727,99 @@ Return valid JSON only.`;
         if (logoElement && logoElement.bbox) {
           const bbox = logoElement.bbox;
           console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
-          
-          // Scale logo 80% larger to cover any decorative elements
-          const logoScale = 1.8;
+
+          // Clean up decorative elements around the logo area before overlaying
+          try {
+            // Get image metadata
+            const imageMetadata = await sharp(resultBuffer).metadata();
+            const imgWidth = imageMetadata.width!;
+            const imgHeight = imageMetadata.height!;
+
+            // Expand bbox by 25% to create cleanup zone around logo
+            const expansion = 0.25;
+            const expandedBbox = {
+              x: Math.max(0, bbox.x - bbox.width * expansion),
+              y: Math.max(0, bbox.y - bbox.height * expansion),
+              width: bbox.width * (1 + 2 * expansion),
+              height: bbox.height * (1 + 2 * expansion)
+            };
+
+            // Ensure expanded bbox doesn't exceed image boundaries
+            expandedBbox.width = Math.min(expandedBbox.width, imgWidth - expandedBbox.x);
+            expandedBbox.height = Math.min(expandedBbox.height, imgHeight - expandedBbox.y);
+
+            console.log(`  🧹 Cleaning decorative elements in expanded area: ${Math.round(expandedBbox.width)}x${Math.round(expandedBbox.height)}`);
+
+            // Sample background color from image corners (average of 4 corners)
+            const imageData = await sharp(resultBuffer).raw().toBuffer({ resolveWithObject: true });
+            const { data, info } = imageData;
+            const channels = info.channels;
+
+            // Sample 4 corner pixels
+            const corners = [
+              { x: 10, y: 10 }, // Top-left
+              { x: info.width - 10, y: 10 }, // Top-right
+              { x: 10, y: info.height - 10 }, // Bottom-left
+              { x: info.width - 10, y: info.height - 10 } // Bottom-right
+            ];
+
+            let totalR = 0, totalG = 0, totalB = 0;
+            corners.forEach(corner => {
+              const idx = (corner.y * info.width + corner.x) * channels;
+              totalR += data[idx];
+              totalG += data[idx + 1];
+              totalB += data[idx + 2];
+            });
+
+            const bgColor = {
+              r: Math.round(totalR / 4),
+              g: Math.round(totalG / 4),
+              b: Math.round(totalB / 4)
+            };
+
+            console.log(`  🎨 Background color: rgb(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`);
+
+            // Create a cleanup mask (filled rectangle) for the expanded area
+            const cleanupMask = await sharp({
+              create: {
+                width: Math.ceil(expandedBbox.width),
+                height: Math.ceil(expandedBbox.height),
+                channels: 3,
+                background: bgColor
+              }
+            }).png().toBuffer();
+
+            // Apply cleanup mask to remove decorative elements
+            resultBuffer = await sharp(resultBuffer)
+              .composite([{
+                input: cleanupMask,
+                left: Math.floor(expandedBbox.x),
+                top: Math.floor(expandedBbox.y)
+              }])
+              .toBuffer() as Buffer;
+
+            console.log(`  ✅ Cleaned decorative elements around logo area`);
+          } catch (cleanupError) {
+            console.warn(`  ⚠️ Failed to clean decorative elements:`, cleanupError);
+          }
+
+          // Resize logo to fit the ORIGINAL bbox (same size as competitor logos)
           const resizedLogo = await sharp(logoBuffer)
-            .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
+            .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
               fit: 'contain',  // Preserve logo aspect ratio
               background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
             })
             .toBuffer();
 
-          // Center the larger logo on the bbox position
-          const offsetX = bbox.width * (logoScale - 1) / 2;
-          const offsetY = bbox.height * (logoScale - 1) / 2;
-
-          // Overlay logo on generated image
+          // Overlay logo at original size
           resultBuffer = await sharp(resultBuffer)
             .composite([{
               input: resizedLogo,
-              left: Math.floor(bbox.x - offsetX),
-              top: Math.floor(bbox.y - offsetY)
+              left: Math.floor(bbox.x),
+              top: Math.floor(bbox.y)
             }])
             .toBuffer() as Buffer;
-          
+
           console.log(`  ✅ Algonova logo overlayed successfully!`);
           console.log('✅ STEP 5 COMPLETE!');
         } else {
