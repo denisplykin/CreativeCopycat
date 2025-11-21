@@ -465,8 +465,8 @@ Return valid JSON only.`;
             const bbox = logoElement.bbox;
             console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
             
-            // Scale logo 40% larger to cover any decorative elements
-            const logoScale = 1.4;
+            // Scale logo 80% larger to cover any decorative elements
+            const logoScale = 1.8;
             const resizedLogo = await sharp(logoBuffer)
               .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
                 fit: 'contain',  // Preserve logo aspect ratio
@@ -658,8 +658,8 @@ Return valid JSON only.`;
           const bbox = logoElement.bbox;
           console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
           
-          // Scale logo 40% larger to cover any decorative elements
-          const logoScale = 1.4;
+          // Scale logo 80% larger to cover any decorative elements
+          const logoScale = 1.8;
           const resizedLogo = await sharp(logoBuffer)
             .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
               fit: 'contain',  // Preserve logo aspect ratio
