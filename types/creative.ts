@@ -160,6 +160,8 @@ export type GenerationType = 'character' | 'background' | 'full_creative';
 
 export type StylePreset = 'anime' | 'sakura' | 'realistic' | 'original' | '3d' | 'minimal';
 
+export type ImageGenerationModel = 'dall-e-2' | 'dall-e-3' | 'nano-banana-pro';
+
 // API Request/Response types
 export interface AnalyzeRequest {
   creativeId: string;
@@ -178,6 +180,7 @@ export interface GenerateRequest {
   texts?: Record<string, string>;
   patternId?: string;
   llmModel?: string;
+  imageModel?: ImageGenerationModel;
   temperature?: number;
   language?: string;
   aspectRatio?: string;

@@ -4,6 +4,7 @@ import { uploadFile, getPublicUrl, supabaseAdmin } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { generateMaskEdit, generateWithDallE3 } from '@/lib/openai-image';
+import { generateWithNanaBanana } from '@/lib/nano-banana';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       stylePreset = 'original',
       texts,
       llmModel,
+      imageModel = 'dall-e-2',
       temperature,
       language = 'en',
       aspectRatio = 'original',
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
       customPrompt,
     } = body;
 
-    console.log(`🎨 Generating creative: ${generationType}, copyMode: ${copyMode}, aspectRatio: ${aspectRatio}`);
+    console.log(`🎨 Generating creative: ${generationType}, copyMode: ${copyMode}, imageModel: ${imageModel}, aspectRatio: ${aspectRatio}`);
 
     // Get creative
     const creative = await getCreativeById(creativeId);
@@ -103,6 +105,7 @@ export async function POST(request: Request) {
         stylePreset,
         numVariations,
         language,
+        imageModel,
       },
     });
     console.log(`✅ Run ${runId} created, starting generation...`);
@@ -227,15 +230,35 @@ export async function POST(request: Request) {
 
         console.log(`📝 Modifications: ${modifications.substring(0, 100)}...`);
         console.log(`🎯 Edit types: ${editTypes.join(', ')}`);
-        
-        bgBuffer = await generateMaskEdit({
-          imageBuffer: originalBuffer,
-          modifications,
-          editTypes,
-          aspectRatio,
-        });
-        
-        console.log('✅ Mask edit complete!');
+
+        // Choose image generation model
+        if (imageModel === 'nano-banana-pro') {
+          console.log('🍌 Using Nano Banana Pro for generation...');
+          bgBuffer = await generateWithNanoBanana({
+            imageBuffer: originalBuffer,
+            modifications,
+            aspectRatio,
+            analysis: creative.analysis,
+          });
+        } else if (imageModel === 'dall-e-3') {
+          console.log('🎨 Using DALL-E 3 for generation...');
+          bgBuffer = await generateWithDallE3({
+            imageBuffer: originalBuffer,
+            modifications,
+            aspectRatio,
+          });
+        } else {
+          // Default: DALL-E 2 mask editing
+          console.log('✏️ Using DALL-E 2 mask editing...');
+          bgBuffer = await generateMaskEdit({
+            imageBuffer: originalBuffer,
+            modifications,
+            editTypes,
+            aspectRatio,
+          });
+        }
+
+        console.log('✅ Generation complete!');
 
         // Mask edit returns the final image
         const finalBuffer = bgBuffer;
