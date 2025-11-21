@@ -426,8 +426,8 @@ Return valid JSON only.`;
         const path = await import('path');
         
         try {
-          // Load Algonova logo
-          const logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+          // Load Algonova logo (use SVG for clean rendering without decorations)
+          const logoPath = path.join(process.cwd(), 'public/algonova-logo.svg');
           const logoBuffer = fs.readFileSync(logoPath);
           console.log(`  📂 Loaded logo from: ${logoPath}`);
           
@@ -596,8 +596,8 @@ Return valid JSON only.`;
       const path = await import('path');
       
       try {
-        // Load Algonova logo
-        const logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+        // Load Algonova logo (use SVG for clean rendering without decorations)
+        const logoPath = path.join(process.cwd(), 'public/algonova-logo.svg');
         const logoBuffer = fs.readFileSync(logoPath);
         console.log(`  📂 Loaded logo from: ${logoPath}`);
         

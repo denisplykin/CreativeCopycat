@@ -32,9 +32,9 @@ async function uploadLogo() {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Read logo file
-  const logoPath = path.join(__dirname, '../public/algonova-logo.png');
-  
+  // Read logo file (use SVG for clean rendering without decorations)
+  const logoPath = path.join(__dirname, '../public/algonova-logo.svg');
+
   if (!fs.existsSync(logoPath)) {
     console.error('❌ Logo file not found:', logoPath);
     process.exit(1);
@@ -45,7 +45,7 @@ async function uploadLogo() {
 
   // Upload to Supabase storage
   const bucketName = 'assets';
-  const filePath = 'logos/algonova-logo.png';
+  const filePath = 'logos/algonova-logo.svg';
 
   try {
     // Check if bucket exists, create if not
@@ -78,7 +78,7 @@ async function uploadLogo() {
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, logoBuffer, {
-        contentType: 'image/png',
+        contentType: 'image/svg+xml',
         cacheControl: '3600',
         upsert: true,
       });
