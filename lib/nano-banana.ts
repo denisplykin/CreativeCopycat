@@ -42,7 +42,11 @@ export async function generateWithNanaBanana(params: {
     // Step 1: Generate prompt via Claude
     console.log('👁️ Step 1: Analyzing image...');
     
-    const promptRequest = `Analyze this banner and create a detailed prompt to recreate it with these modifications: ${modifications}. Replace any brand names with "Algonova". Return ONLY the prompt text.`;
+    const promptRequest = `Analyze this banner and create a detailed prompt to recreate it with these modifications: ${modifications}. 
+
+CRITICAL: The original image is ${originalWidth}x${originalHeight} pixels (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1). The generated image MUST match these EXACT dimensions and aspect ratio.
+
+Replace any brand names with "Algonova". Return ONLY the prompt text for image generation.`;
 
     const step1Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
@@ -129,61 +133,45 @@ export async function generateWithNanaBanana(params: {
     let resultBuffer = Buffer.from(matches[1], 'base64');
     console.log(`✅ Generated: ${resultBuffer.length} bytes`);
 
-    // Step 3: Resize to original dimensions if needed
-    if (aspectRatio === 'original') {
-      console.log('\n📐 Step 3: Resizing to original dimensions...');
+    // Step 3: Resize to match original dimensions (ALWAYS, not just for 'original')
+    console.log('\n📐 Step 3: Resizing to match source dimensions...');
+    console.log(`  Requested aspectRatio: ${aspectRatio}`);
 
-      const sharp = (await import('sharp')).default;
-      const generatedMetadata = await sharp(resultBuffer).metadata();
-      console.log(`  Current size: ${generatedMetadata.width}x${generatedMetadata.height}`);
-      console.log(`  Target size: ${originalWidth}x${originalHeight}`);
+    const sharp = (await import('sharp')).default;
+    const generatedMetadata = await sharp(resultBuffer).metadata();
+    console.log(`  Generated size: ${generatedMetadata.width}x${generatedMetadata.height}`);
+    console.log(`  Original size: ${originalWidth}x${originalHeight}`);
 
-      // Only resize if dimensions are different (10px tolerance)
-      if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
-          Math.abs(generatedMetadata.height! - originalHeight) > 10) {
+    // Only resize if dimensions are different (10px tolerance)
+    if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
+        Math.abs(generatedMetadata.height! - originalHeight) > 10) {
 
-        const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
-        const targetAspect = originalWidth / originalHeight;
-        const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+      const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
+      const targetAspect = originalWidth / originalHeight;
+      const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
 
-        console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
-        console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+      console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+      console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
 
-        // Choose resize strategy based on aspect ratio difference
-        if (aspectDiff <= 0.01) {
-          // Aspect ratios match - safe to use 'cover' for exact size
-          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'cover',
-              position: 'centre',
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          // @ts-ignore - Sharp Buffer type compatibility
-          resultBuffer = resized;
-        } else {
-          // Aspect ratios don't match - use 'inside' to prevent distortion
-          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'inside',
-              withoutEnlargement: false,
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          // @ts-ignore - Sharp Buffer type compatibility
-          resultBuffer = resized;
-        }
+      // Always use 'cover' to match exact dimensions
+      console.log(`  🎯 Using 'cover' to match exact dimensions`);
+      const resized = await sharp(resultBuffer)
+        .resize(originalWidth, originalHeight, {
+          fit: 'cover',
+          position: 'centre',
+          kernel: 'lanczos3'
+        })
+        .toBuffer();
+      // @ts-ignore - Sharp Buffer type compatibility
+      resultBuffer = resized;
 
-        const finalMetadata = await sharp(resultBuffer).metadata();
-        console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
-      } else {
-        console.log(`  ✅ Size already matches, no resize needed`);
-      }
-
-      console.log('✅ Step 3 complete!');
+      const finalMetadata = await sharp(resultBuffer).metadata();
+      console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+    } else {
+      console.log(`  ✅ Size already matches, no resize needed`);
     }
+
+    console.log('✅ Step 3 complete!');
 
     return resultBuffer;
   } catch (error) {
