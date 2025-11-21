@@ -465,20 +465,25 @@ Return valid JSON only.`;
             const bbox = logoElement.bbox;
             console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
             
-            // Resize logo to fit the bbox (preserve aspect ratio, fit inside)
+            // Scale logo 40% larger to cover any decorative elements
+            const logoScale = 1.4;
             const resizedLogo = await sharp(logoBuffer)
-              .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
+              .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
                 fit: 'contain',  // Preserve logo aspect ratio
                 background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
               })
               .toBuffer();
-            
+
+            // Center the larger logo on the bbox position
+            const offsetX = bbox.width * (logoScale - 1) / 2;
+            const offsetY = bbox.height * (logoScale - 1) / 2;
+
             // Overlay logo on generated image
             resultBuffer = await sharp(resultBuffer)
               .composite([{
                 input: resizedLogo,
-                left: Math.floor(bbox.x),
-                top: Math.floor(bbox.y)
+                left: Math.floor(bbox.x - offsetX),
+                top: Math.floor(bbox.y - offsetY)
               }])
               .toBuffer() as Buffer;
             
@@ -653,20 +658,25 @@ Return valid JSON only.`;
           const bbox = logoElement.bbox;
           console.log(`  📍 Logo position: (${bbox.x}, ${bbox.y}), size: ${bbox.width}x${bbox.height}`);
           
-          // Resize logo to fit the bbox (preserve aspect ratio, fit inside)
+          // Scale logo 40% larger to cover any decorative elements
+          const logoScale = 1.4;
           const resizedLogo = await sharp(logoBuffer)
-            .resize(Math.ceil(bbox.width), Math.ceil(bbox.height), {
+            .resize(Math.ceil(bbox.width * logoScale), Math.ceil(bbox.height * logoScale), {
               fit: 'contain',  // Preserve logo aspect ratio
               background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
             })
             .toBuffer();
-          
+
+          // Center the larger logo on the bbox position
+          const offsetX = bbox.width * (logoScale - 1) / 2;
+          const offsetY = bbox.height * (logoScale - 1) / 2;
+
           // Overlay logo on generated image
           resultBuffer = await sharp(resultBuffer)
             .composite([{
               input: resizedLogo,
-              left: Math.floor(bbox.x),
-              top: Math.floor(bbox.y)
+              left: Math.floor(bbox.x - offsetX),
+              top: Math.floor(bbox.y - offsetY)
             }])
             .toBuffer() as Buffer;
           
