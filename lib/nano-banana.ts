@@ -160,7 +160,7 @@ export async function generateImageBuffer(
  * @param params - Image buffer, modifications, and aspect ratio
  * @returns Buffer containing the generated image
  */
-export async function generateWithNanoBanana(params: {
+export async function nanoBananaGenerate(params: {
   imageBuffer: Buffer;
   modifications: string;
   aspectRatio?: string;
