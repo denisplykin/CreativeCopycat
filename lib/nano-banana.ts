@@ -274,7 +274,7 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
 /**
  * Detect MIME type from buffer
  */
-function detectMimeType(buffer: Buffer): string {
+export function detectMimeType(buffer: Buffer): string {
   if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
     return 'image/jpeg';
   }
@@ -289,3 +289,13 @@ function detectMimeType(buffer: Buffer): string {
   }
   return 'image/png';
 }
+
+// Explicit re-exports for TypeScript module resolution
+export {
+  generateImageWithNanaBanana,
+  generateCreativeBanner,
+  generateImageBuffer,
+  generateWithNanaBanana,
+  dataUrlToBuffer,
+  detectMimeType,
+};
