@@ -188,7 +188,7 @@ Your task:
 1. Describe ALL visual elements in detail (layout, colors, text, characters, objects, style)
 2. Include the exact text content that should appear (including proper typography and placement)
 3. Apply the user's modifications
-4. IMPORTANT: Replace any competitor brand names with "Algonova" (use purple #833AE0 for brand elements)
+4. IMPORTANT: Replace any competitor brand names with "Algonova" (use purple #833AE0 for brand elements). Use simple text only - NO decorative letters (like large "A"), symbols, or graphic elements around the brand name.
 5. Keep the same composition, style, and visual language as the original
 6. For Nano Banana Pro: Be specific about text rendering, layout, and design elements
 
