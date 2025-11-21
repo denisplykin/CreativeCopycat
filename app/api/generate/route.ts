@@ -193,9 +193,9 @@ export async function POST(request: Request) {
 
         switch (copyMode) {
           case 'simple_copy':
-            console.log('📝 Simple Copy: Logo only');
+            console.log('📝 Simple Copy: Logo + decorative elements');
             modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
-            editTypes = ['logo'];
+            editTypes = ['logo', 'decor'];  // Include 'decor' to remove decorative elements like large "A"
             break;
 
           case 'copy_with_color':
@@ -205,9 +205,9 @@ export async function POST(request: Request) {
             break;
 
           case 'slightly_different':
-            console.log('👤 Slightly Different: Minor character modifications + logo');
+            console.log('👤 Slightly Different: Minor character modifications + logo + decorations');
             modifications = `Update logo to Algonova. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
-            editTypes = ['character', 'logo'];  // ✅ Only character and logo, preserve background!
+            editTypes = ['character', 'logo', 'decor'];  // Include 'decor' to remove decorative elements like large "A"
             break;
 
           case 'mask_edit':
@@ -218,14 +218,14 @@ export async function POST(request: Request) {
             } else {
               console.log('⚙️ Default Mode');
               modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
-              editTypes = ['character', 'logo'];
+              editTypes = ['character', 'logo', 'decor'];  // Include 'decor' to remove decorative elements
             }
             break;
 
           default:
             console.log('⚠️ Unknown mode, using default');
             modifications = `If there is a company logo visible, update it to Algonova. Otherwise, keep the design as is.`;
-            editTypes = ['logo'];
+            editTypes = ['logo', 'decor'];  // Include 'decor' to remove decorative elements
         }
 
         console.log(`📝 Modifications: ${modifications.substring(0, 100)}...`);
