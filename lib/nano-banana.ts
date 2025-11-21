@@ -1,6 +1,8 @@
 /**
  * Nano Banana Pro (Gemini 3 Pro Image Preview) Integration
  * Image generation via OpenRouter
+ *
+ * @module nano-banana
  */
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
