@@ -435,10 +435,28 @@ Return valid JSON only.`;
         const path = await import('path');
         
         try {
-          // Load Algonova logo (use SVG for clean rendering without decorations)
-          const logoPath = path.join(process.cwd(), 'public/algonova-logo.svg');
-          const logoBuffer = fs.readFileSync(logoPath);
-          console.log(`  📂 Loaded logo from: ${logoPath}`);
+          // Load Algonova logo (use PNG for reliable rendering without text issues)
+          let logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+          let logoBuffer: Buffer;
+
+          // If PNG doesn't exist, convert SVG to PNG on-the-fly
+          if (!fs.existsSync(logoPath)) {
+            console.log(`  ⚠️ PNG logo not found, converting SVG to PNG...`);
+            const svgPath = path.join(process.cwd(), 'public/algonova-logo.svg');
+            const svgBuffer = fs.readFileSync(svgPath);
+
+            // Convert SVG to PNG using sharp
+            logoBuffer = await sharp(svgBuffer)
+              .png({ compressionLevel: 9, quality: 100 })
+              .toBuffer();
+
+            // Save PNG for future use
+            fs.writeFileSync(logoPath, logoBuffer);
+            console.log(`  ✅ Generated PNG logo: ${(logoBuffer.length / 1024).toFixed(2)} KB`);
+          } else {
+            logoBuffer = fs.readFileSync(logoPath);
+            console.log(`  📂 Loaded logo from: ${logoPath}`);
+          }
           
           // Find logo position from layout
           const logoElement = layout.elements.find(e => e.type === 'logo');
@@ -605,10 +623,28 @@ Return valid JSON only.`;
       const path = await import('path');
       
       try {
-        // Load Algonova logo (use SVG for clean rendering without decorations)
-        const logoPath = path.join(process.cwd(), 'public/algonova-logo.svg');
-        const logoBuffer = fs.readFileSync(logoPath);
-        console.log(`  📂 Loaded logo from: ${logoPath}`);
+        // Load Algonova logo (use PNG for reliable rendering without text issues)
+        let logoPath = path.join(process.cwd(), 'public/algonova-logo.png');
+        let logoBuffer: Buffer;
+
+        // If PNG doesn't exist, convert SVG to PNG on-the-fly
+        if (!fs.existsSync(logoPath)) {
+          console.log(`  ⚠️ PNG logo not found, converting SVG to PNG...`);
+          const svgPath = path.join(process.cwd(), 'public/algonova-logo.svg');
+          const svgBuffer = fs.readFileSync(svgPath);
+
+          // Convert SVG to PNG using sharp
+          logoBuffer = await sharp(svgBuffer)
+            .png({ compressionLevel: 9, quality: 100 })
+            .toBuffer();
+
+          // Save PNG for future use
+          fs.writeFileSync(logoPath, logoBuffer);
+          console.log(`  ✅ Generated PNG logo: ${(logoBuffer.length / 1024).toFixed(2)} KB`);
+        } else {
+          logoBuffer = fs.readFileSync(logoPath);
+          console.log(`  📂 Loaded logo from: ${logoPath}`);
+        }
         
         // Find logo position from layout
         const logoElement = layout.elements.find(e => e.type === 'logo');
