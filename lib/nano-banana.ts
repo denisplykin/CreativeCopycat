@@ -42,11 +42,25 @@ export async function generateWithNanaBanana(params: {
     // Step 1: Generate prompt via Claude
     console.log('👁️ Step 1: Analyzing image...');
     
-    const promptRequest = `Analyze this banner and create a detailed prompt to recreate it with these modifications: ${modifications}. 
+    const promptRequest = `You are analyzing an advertising banner to create a prompt for image recreation.
 
-CRITICAL: The original image is ${originalWidth}x${originalHeight} pixels (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1). The generated image MUST match these EXACT dimensions and aspect ratio.
+ANALYZE THIS IMAGE and describe:
+1. Exact layout and composition
+2. Character details (age, gender, clothing, pose, position, expression)
+3. Background style and colors
+4. Text placement and styling
+5. All visual elements and decorations
 
-Replace any brand names with "Algonova". Return ONLY the prompt text for image generation.`;
+MODIFICATIONS NEEDED: ${modifications}
+
+CRITICAL REQUIREMENTS:
+- Original dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+- Generated image MUST match these EXACT dimensions
+- Preserve ALL elements EXCEPT what's specified in modifications
+- Maintain exact same composition, layout, colors, style
+- Replace brand names with "Algonova"
+
+Return ONLY the detailed prompt for image generation that preserves the original design.`;
 
     const step1Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
