@@ -28,6 +28,13 @@ export async function generateWithNanaBanana(params: {
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     console.log(`📝 Modifications: ${modifications.substring(0, 100)}...`);
 
+    // Get original dimensions from image metadata
+    const sharp = (await import('sharp')).default;
+    const originalMetadata = await sharp(imageBuffer).metadata();
+    const originalWidth = originalMetadata.width!;
+    const originalHeight = originalMetadata.height!;
+    console.log(`📏 Original dimensions: ${originalWidth}x${originalHeight}`);
+
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
@@ -119,8 +126,60 @@ export async function generateWithNanaBanana(params: {
       throw new Error('Invalid image data URL');
     }
 
-    const resultBuffer = Buffer.from(matches[1], 'base64');
+    let resultBuffer = Buffer.from(matches[1], 'base64');
     console.log(`✅ Generated: ${resultBuffer.length} bytes`);
+
+    // Step 3: Resize to original dimensions if needed
+    if (aspectRatio === 'original') {
+      console.log('\n📐 Step 3: Resizing to original dimensions...');
+
+      const sharp = (await import('sharp')).default;
+      const generatedMetadata = await sharp(resultBuffer).metadata();
+      console.log(`  Current size: ${generatedMetadata.width}x${generatedMetadata.height}`);
+      console.log(`  Target size: ${originalWidth}x${originalHeight}`);
+
+      // Only resize if dimensions are different (10px tolerance)
+      if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
+          Math.abs(generatedMetadata.height! - originalHeight) > 10) {
+
+        const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
+        const targetAspect = originalWidth / originalHeight;
+        const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+
+        console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+        console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+
+        // Choose resize strategy based on aspect ratio difference
+        if (aspectDiff <= 0.01) {
+          // Aspect ratios match - safe to use 'cover' for exact size
+          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+          resultBuffer = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'cover',
+              position: 'centre',
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+        } else {
+          // Aspect ratios don't match - use 'inside' to prevent distortion
+          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+          resultBuffer = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'inside',
+              withoutEnlargement: false,
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+        }
+
+        const finalMetadata = await sharp(resultBuffer).metadata();
+        console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+      } else {
+        console.log(`  ✅ Size already matches, no resize needed`);
+      }
+
+      console.log('✅ Step 3 complete!');
+    }
 
     return resultBuffer;
   } catch (error) {
