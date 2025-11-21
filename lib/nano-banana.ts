@@ -88,25 +88,6 @@ IMPORTANT: The character should feel like a different person but in the same art
 Return a detailed prompt for image generation.`;
         break;
 
-      case 'copy_with_color':
-        promptRequest = `You are modifying an advertising banner. Look at this image.
-
-TASK: Create a prompt to recreate this image with Algonova brand colors applied.
-
-PRESERVE EXACTLY:
-- Character appearance, pose, position
-- Background structure
-- Text content, placement, fonts
-- Layout and composition
-- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
-
-MODIFY:
-- Apply Algonova brand colors (orange, pink, purple, cyan) to decorative elements, backgrounds, accents
-- Replace any visible company logo or brand name with "Algonova"
-
-Return a detailed prompt for image generation.`;
-        break;
-
       default:
         // Fallback to generic prompt
         promptRequest = `You are analyzing an advertising banner to create a prompt for image recreation.

@@ -167,20 +167,6 @@ export default function CreativesNewPage() {
         })
       }
       
-      if (options?.copyWithColor) {
-        modesToGenerate.push({
-          mode: 'copy_with_color',
-          config: {
-            creativeId: selectedCreative.id,
-            generationType: 'full_creative',
-            copyMode: 'copy_with_color',
-            aspectRatio: config.aspectRatio,
-            configGenerationType: 'simple',
-            imageModel: 'nano-banana-pro',
-          }
-        })
-      }
-      
       if (options?.slightlyDifferent) {
         modesToGenerate.push({
           mode: 'slightly_different',

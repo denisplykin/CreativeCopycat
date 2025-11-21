@@ -154,7 +154,7 @@ export interface LayoutElement {
   text_effects?: string | null; // "strikethrough", "underline", "shadow", "outline", "gradient", etc.
 }
 
-export type CopyMode = 'mask_edit' | 'simple_copy' | 'copy_with_color' | 'slightly_different';
+export type CopyMode = 'mask_edit' | 'simple_copy' | 'slightly_different';
 
 export type GenerationType = 'character' | 'background' | 'full_creative';
 

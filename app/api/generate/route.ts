@@ -198,12 +198,6 @@ export async function POST(request: Request) {
             editTypes = ['logo'];
             break;
 
-          case 'copy_with_color':
-            console.log('🎨 Copy + Color: Logo + colors');
-            modifications = `If there is a company logo, update it to Algonova. Apply brand colors (orange, pink, purple, cyan) to decorative elements if present.`;
-            editTypes = ['logo', 'decor'];
-            break;
-
           case 'slightly_different':
             console.log('👤 Slightly Different: Minor character modifications + logo');
             modifications = `Update logo to Algonova. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
