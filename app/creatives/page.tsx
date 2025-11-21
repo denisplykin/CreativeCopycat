@@ -146,6 +146,7 @@ export default function CreativesNewPage() {
           aspectRatio: config.aspectRatio,
           configGenerationType: 'custom',
           customPrompt: config.customPrompt,
+          imageModel: 'nano-banana-pro',
         }
       })
     } else {
@@ -161,6 +162,7 @@ export default function CreativesNewPage() {
             copyMode: 'simple_copy',
             aspectRatio: config.aspectRatio,
             configGenerationType: 'simple',
+            imageModel: 'nano-banana-pro',
           }
         })
       }
@@ -174,6 +176,7 @@ export default function CreativesNewPage() {
             copyMode: 'copy_with_color',
             aspectRatio: config.aspectRatio,
             configGenerationType: 'simple',
+            imageModel: 'nano-banana-pro',
           }
         })
       }
@@ -187,6 +190,7 @@ export default function CreativesNewPage() {
             copyMode: 'slightly_different',
             aspectRatio: config.aspectRatio,
             configGenerationType: 'simple',
+            imageModel: 'nano-banana-pro',
           }
         })
       }
