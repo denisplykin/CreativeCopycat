@@ -218,21 +218,46 @@ CRITICAL PRESERVATION RULES:
 
 4. **Text Content**: Include exact text that should appear (with typography and placement)
 
-5. **Brand Replacement - CRITICAL LOGO RULES**:
-   - Replace any competitor brand names/logos with "Algonova" (use purple #833AE0)
-   - IMPORTANT: The Algonova logo should be ONLY the word "Algonova" - NOTHING ELSE
-   - DO NOT add decorative letters (like "A") near or adjacent to "Algonova"
-   - DO NOT add decorative symbols, icons, emblems, or shapes near "Algonova"
-   - DO NOT add shields, badges, circles, or any decorative frames around "Algonova"
-   - The logo area should be CLEAN with just the word "Algonova" by itself
-   - If the original had decorative logo elements (shields, icons, etc.), REMOVE them
-   - Keep the logo simple and minimal - just the text "Algonova" in purple
+5. **LOGO REPLACEMENT - ABSOLUTELY CRITICAL**:
+
+   **STEP 1 - REMOVE COMPETITOR LOGO COMPLETELY:**
+   - Identify where the competitor logo/brand appears in the original
+   - COMPLETELY REMOVE the competitor logo and ALL its decorative elements
+   - If the original logo had: shields, icons, emblems, badges, letters, symbols → REMOVE ALL OF THEM
+   - Clear the entire logo area to just background
+
+   **STEP 2 - ADD ONLY "ALGONOVA" TEXT:**
+   - In the logo area, place ONLY the word "Algonova" in purple (#833AE0)
+   - The Algonova logo = JUST THE TEXT "Algonova" - ABSOLUTELY NOTHING ELSE
+
+   **STEP 3 - ENSURE CLEAN LOGO AREA:**
+   - NO decorative letters near "Algonova" (especially NO large "A" letters)
+   - NO symbols, icons, emblems, or shapes adjacent to "Algonova"
+   - NO shields, badges, circles, stars, or decorative frames around "Algonova"
+   - NO design elements that "look like a logo" near "Algonova"
+   - The space around "Algonova" should be EMPTY (just background)
+
+   **FORBIDDEN EXAMPLES (DO NOT GENERATE):**
+   - ❌ Large decorative "A" letter next to "Algonova"
+   - ❌ "A" in a circle/shield next to "Algonova"
+   - ❌ Any icon, symbol, or graphic near "Algonova"
+   - ❌ "A Algonova" or "A | Algonova" or "A + Algonova"
+   - ❌ Shield/badge containing or next to "Algonova"
+
+   **CORRECT EXAMPLE:**
+   - ✅ Just the word "Algonova" in purple text, clean background around it
 
 6. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
 
 Your task: Write a 300-400 word prompt that describes EVERY visual detail precisely.
 Be extremely specific about what should NOT change (gender, pose, colors, objects, layout).
 Focus on preservation and accuracy over creativity.
+
+**CRITICAL REMINDER FOR LOGO**: When describing the logo area in your prompt, you MUST explicitly state:
+- "Remove all competitor logo decorations completely"
+- "The logo shows ONLY the word 'Algonova' in purple text"
+- "NO decorative letters, symbols, or icons appear near or adjacent to 'Algonova'"
+- "The area around 'Algonova' is clean with just the background"
 
 Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
