@@ -4,7 +4,7 @@ import { uploadFile, getPublicUrl, supabaseAdmin } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { generateMaskEdit, generateWithDallE3 } from '@/lib/openai-image';
-import { generateWithNanaBanana } from '@/lib/nano-banana';
+import { generateWithNanoBanana } from '@/lib/nano-banana';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
