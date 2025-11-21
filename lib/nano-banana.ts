@@ -186,22 +186,45 @@ export async function generateWithNanoBanana(params: {
     // ========== STEP 1: Analyze image and generate detailed prompt ==========
     console.log('\n👁️ STEP 1: Analyzing image and generating prompt...');
 
-    const promptGenerationRequest = `You are an expert at analyzing advertising banners and writing detailed image generation prompts.
+    const promptGenerationRequest = `You are an expert at analyzing advertising banners and writing detailed image generation prompts for EXACT recreation.
 
-Analyze this banner image and create a detailed prompt to recreate it with modifications.
+Analyze this banner image and create a detailed prompt to recreate it AS CLOSELY AS POSSIBLE with only the specified modifications.
 
+ORIGINAL IMAGE DIMENSIONS: ${originalWidth}x${originalHeight} pixels
 USER MODIFICATIONS: ${modifications}
 
-Your task:
-1. Describe ALL visual elements in detail (layout, colors, text, characters, objects, style)
-2. Include the exact text content that should appear (including proper typography and placement)
-3. Apply the user's modifications
-4. IMPORTANT: Replace any competitor brand names with "Algonova" (use purple #833AE0 for brand elements)
-5. Keep the same composition, style, and visual language as the original
-6. For Nano Banana Pro: Be specific about text rendering, layout, and design elements
+CRITICAL PRESERVATION RULES:
+1. **Characters/People**: MUST preserve:
+   - Exact gender (male/female/child)
+   - Exact age category (child/teen/adult/elderly)
+   - Exact pose and body position
+   - Exact clothing style and colors
+   - Exact facial expression
+   - Exact number of characters
+   - Exact positioning and spacing
 
-Return a detailed prompt (200-300 words) that will recreate this banner.
-The prompt should be descriptive, specific, and focus on visual details, text placement, and design style.
+2. **Objects/Items**: MUST preserve:
+   - Exact object types (don't change laptop to tablet, etc.)
+   - Exact colors of all objects
+   - Exact positions and layout
+   - Exact sizes and proportions
+   - Exact number of objects
+
+3. **Layout**: MUST preserve:
+   - Exact composition and element placement
+   - Exact background style and colors
+   - Exact text positioning and hierarchy
+   - Exact spacing and margins
+
+4. **Text Content**: Include exact text that should appear (with typography and placement)
+
+5. **Brand Replacement**: Replace any competitor brand names/logos with "Algonova" (use purple #833AE0)
+
+6. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
+
+Your task: Write a 300-400 word prompt that describes EVERY visual detail precisely.
+Be extremely specific about what should NOT change (gender, pose, colors, objects, layout).
+Focus on preservation and accuracy over creativity.
 
 Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
@@ -233,8 +256,8 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
             ],
           },
         ],
-        max_tokens: 1000,
-        temperature: 0.3,
+        max_tokens: 1500,
+        temperature: 0.1, // Lower temperature for more precise preservation
       }),
     });
 
@@ -257,9 +280,12 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
     // ========== STEP 2: Generate image with Nano Banana Pro ==========
     console.log('\n🍌 STEP 2: Generating image with Nano Banana Pro...');
 
+    // Add dimension hint to prompt for better size matching
+    const enhancedPrompt = `${generationPrompt}\n\nIMPORTANT: Create this banner at ${originalWidth}x${originalHeight} pixels with the exact layout and proportions described above.`;
+
     const result = await generateImageWithNanoBanana({
-      prompt: generationPrompt,
-      temperature: 0.8, // Creative generation
+      prompt: enhancedPrompt,
+      temperature: 0.5, // Lower temperature for more consistent preservation
     });
 
     console.log('✅ STEP 2 COMPLETE! Image generated');
@@ -271,15 +297,15 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
     // ========== STEP 3: Resize to original dimensions ==========
     if (aspectRatio === 'original') {
-      console.log('\n📐 STEP 3: Resizing to original dimensions...');
+      console.log('\n📐 STEP 3: Resizing to EXACT original dimensions...');
 
-      const generatedMetadata = await sharp(resultBuffer).metadata();
-      console.log(`  Current size: ${generatedMetadata.width}x${generatedMetadata.height}`);
+      let generatedMetadata = await sharp(resultBuffer).metadata();
+      console.log(`  Generated size: ${generatedMetadata.width}x${generatedMetadata.height}`);
       console.log(`  Target size: ${originalWidth}x${originalHeight}`);
 
-      // Only resize if dimensions are different (10px tolerance)
-      if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
-          Math.abs(generatedMetadata.height! - originalHeight) > 10) {
+      // STRICT: Always resize to exact dimensions (no tolerance)
+      if (generatedMetadata.width !== originalWidth || generatedMetadata.height !== originalHeight) {
+        console.log(`  📏 Forcing resize to exact dimensions...`);
 
         const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
         const targetAspect = originalWidth / originalHeight;
@@ -288,35 +314,29 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
         console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
         console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
 
-        // Choose resize strategy based on aspect ratio difference
-        if (aspectDiff <= 0.01) {
-          // Aspect ratios match - safe to use 'cover' for exact size
-          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'cover',
-              position: 'centre',
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          resultBuffer = resized as Buffer;
-        } else {
-          // Aspect ratios don't match - use 'inside' to prevent distortion
-          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
-          const resized = await sharp(resultBuffer)
-            .resize(originalWidth, originalHeight, {
-              fit: 'inside',
-              withoutEnlargement: false,
-              kernel: 'lanczos3'
-            })
-            .toBuffer();
-          resultBuffer = resized as Buffer;
-        }
+        // ALWAYS use 'fill' to match exact dimensions
+        console.log(`  🎯 Using 'fill' mode for exact ${originalWidth}x${originalHeight} dimensions`);
+        const resized = await sharp(resultBuffer)
+          .resize(originalWidth, originalHeight, {
+            fit: 'fill', // Force exact dimensions (may stretch if needed)
+            kernel: 'lanczos3'
+          })
+          .toBuffer();
+        resultBuffer = resized as Buffer;
 
+        // Verify final dimensions
         const finalMetadata = await sharp(resultBuffer).metadata();
         console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+
+        // CRITICAL: Verify dimensions are EXACTLY correct
+        if (finalMetadata.width !== originalWidth || finalMetadata.height !== originalHeight) {
+          console.error(`  ❌ DIMENSION MISMATCH! Got ${finalMetadata.width}x${finalMetadata.height}, expected ${originalWidth}x${originalHeight}`);
+          throw new Error(`Failed to resize to exact dimensions: ${originalWidth}x${originalHeight}`);
+        }
+
+        console.log(`  ✅ VERIFIED: Dimensions are exactly ${originalWidth}x${originalHeight}`);
       } else {
-        console.log(`  ✅ Size already matches, no resize needed`);
+        console.log(`  ✅ Size already exact match: ${originalWidth}x${originalHeight}`);
       }
 
       console.log('✅ STEP 3 COMPLETE!');
