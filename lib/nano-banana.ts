@@ -7,6 +7,43 @@ const getOpenRouterKey = () => process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 /**
+ * Calculate target dimensions based on aspect ratio setting
+ */
+function calculateTargetDimensions(
+  originalWidth: number,
+  originalHeight: number,
+  aspectRatio: string
+): { width: number; height: number } {
+  if (aspectRatio === 'original') {
+    return { width: originalWidth, height: originalHeight };
+  }
+  
+  // Parse aspect ratio (e.g., '16:9' -> [16, 9])
+  const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
+  if (!ratioW || !ratioH) {
+    return { width: originalWidth, height: originalHeight };
+  }
+  
+  const targetRatio = ratioW / ratioH;
+  const originalRatio = originalWidth / originalHeight;
+  
+  // Keep the larger dimension, adjust the smaller one
+  if (originalRatio > targetRatio) {
+    // Original is wider - keep width, adjust height
+    return {
+      width: originalWidth,
+      height: Math.round(originalWidth / targetRatio)
+    };
+  } else {
+    // Original is taller - keep height, adjust width
+    return {
+      width: Math.round(originalHeight * targetRatio),
+      height: originalHeight
+    };
+  }
+}
+
+/**
  * Analyze an existing image and generate a new creative using Nano Banana Pro
  */
 export async function generateWithNanaBanana(params: {
@@ -35,6 +72,12 @@ export async function generateWithNanaBanana(params: {
     const originalWidth = originalMetadata.width!;
     const originalHeight = originalMetadata.height!;
     console.log(`📏 Original dimensions: ${originalWidth}x${originalHeight}`);
+    
+    // Calculate target dimensions based on aspect ratio
+    const targetDimensions = calculateTargetDimensions(originalWidth, originalHeight, aspectRatio);
+    const targetWidth = targetDimensions.width;
+    const targetHeight = targetDimensions.height;
+    console.log(`🎯 Target dimensions: ${targetWidth}x${targetHeight} (ratio: ${aspectRatio})`);
 
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
@@ -58,7 +101,7 @@ PRESERVE EXACTLY:
 - Text content, placement, fonts, colors, sizes
 - Layout and composition
 - All visual elements and decorations
-- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 CHANGE ONLY:
 - Replace any visible company logo or brand name with "Algonova"
@@ -77,7 +120,7 @@ PRESERVE EXACTLY:
 - Text content, placement, fonts, colors, sizes
 - Layout and composition
 - Character position in frame
-- Dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 MODIFY:
 - Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
@@ -97,7 +140,7 @@ ANALYZE THIS IMAGE and describe all elements.
 MODIFICATIONS NEEDED: ${modifications}
 
 CRITICAL REQUIREMENTS:
-- Original dimensions: ${originalWidth}x${originalHeight}px (aspect ratio ${(originalWidth/originalHeight).toFixed(2)}:1)
+- Target dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 - Generated image MUST match these EXACT dimensions
 - Replace brand names with "Algonova"
 
@@ -201,20 +244,20 @@ Return ONLY the detailed prompt for image generation.`;
     let resultBuffer = Buffer.from(matches[1], 'base64');
     console.log(`✅ Generated: ${resultBuffer.length} bytes`);
 
-    // Step 3: Resize to match original dimensions (ALWAYS, not just for 'original')
-    console.log('\n📐 Step 3: Resizing to match source dimensions...');
+    // Step 3: Resize to match target dimensions
+    console.log('\n📐 Step 3: Resizing to match target dimensions...');
     console.log(`  Requested aspectRatio: ${aspectRatio}`);
 
     const generatedMetadata = await sharp(resultBuffer).metadata();
     console.log(`  Generated size: ${generatedMetadata.width}x${generatedMetadata.height}`);
-    console.log(`  Original size: ${originalWidth}x${originalHeight}`);
+    console.log(`  Target size: ${targetWidth}x${targetHeight}`);
 
     // Only resize if dimensions are different (10px tolerance)
-    if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
-        Math.abs(generatedMetadata.height! - originalHeight) > 10) {
+    if (Math.abs(generatedMetadata.width! - targetWidth) > 10 ||
+        Math.abs(generatedMetadata.height! - targetHeight) > 10) {
 
       const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
-      const targetAspect = originalWidth / originalHeight;
+      const targetAspect = targetWidth / targetHeight;
       const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
 
       console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
@@ -223,7 +266,7 @@ Return ONLY the detailed prompt for image generation.`;
       // Always use 'cover' to match exact dimensions
       console.log(`  🎯 Using 'cover' to match exact dimensions`);
       const resized = await sharp(resultBuffer)
-        .resize(originalWidth, originalHeight, {
+        .resize(targetWidth, targetHeight, {
           fit: 'cover',
           position: 'centre',
           kernel: 'lanczos3'
