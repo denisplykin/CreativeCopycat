@@ -262,7 +262,15 @@ CRITICAL PRESERVATION RULES:
    **CORRECT EXAMPLE:**
    - ✅ Just the word "Algonova" in purple text, clean background around it
 
-7. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
+7. **CONTACT INFORMATION REMOVAL - CRITICAL**:
+   - REMOVE all phone numbers (e.g., +1-800-123-4567, (555) 123-4567, 1-800-COMPANY)
+   - REMOVE all website addresses (e.g., www.example.com, example.com, https://example.com)
+   - REMOVE all email addresses (e.g., contact@example.com)
+   - If phone number or website URL appears in the original, DO NOT include it in the generated banner
+   - Replace with blank space or extend the background to fill the area
+   - Exception: If text says "Visit our website" or "Call us", you can keep the label but remove the actual number/URL
+
+8. **Art Style**: Maintain the EXACT same art style (anime/realistic/cartoon/3D/illustration)
 
 Your task: Write a 300-400 word prompt that describes EVERY visual detail precisely.
 Be extremely specific about what should NOT change (gender, ethnicity, race, pose, colors, objects, button positions, layout).
@@ -286,6 +294,12 @@ Focus on preservation and accuracy over creativity.
    - "The logo shows ONLY the word 'Algonova' in PURPLE color (#833AE0)"
    - "NO decorative letters, symbols, or icons appear near or adjacent to 'Algonova'"
    - "The area around 'Algonova' is clean with just the background"
+
+4. **For Contact Information**: You MUST explicitly state:
+   - "Remove all phone numbers from the banner"
+   - "Remove all website addresses (URLs) from the banner"
+   - "Remove all email addresses from the banner"
+   - If contact info is present: "Do not include any phone numbers, websites, or email addresses in the generated image"
 
 Format: Return ONLY the prompt text, no JSON, no explanations.`;
 
