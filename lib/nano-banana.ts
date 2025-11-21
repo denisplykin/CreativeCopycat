@@ -160,7 +160,8 @@ export async function generateWithNanaBanana(params: {
               kernel: 'lanczos3'
             })
             .toBuffer();
-          resultBuffer = resized as Buffer;
+          // @ts-ignore - Sharp Buffer type compatibility
+          resultBuffer = resized;
         } else {
           // Aspect ratios don't match - use 'inside' to prevent distortion
           console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
@@ -171,7 +172,8 @@ export async function generateWithNanaBanana(params: {
               kernel: 'lanczos3'
             })
             .toBuffer();
-          resultBuffer = resized as Buffer;
+          // @ts-ignore - Sharp Buffer type compatibility
+          resultBuffer = resized;
         }
 
         const finalMetadata = await sharp(resultBuffer).metadata();
