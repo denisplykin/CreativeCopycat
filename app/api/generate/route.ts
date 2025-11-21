@@ -4,7 +4,7 @@ import { uploadFile, getPublicUrl, supabaseAdmin } from '@/lib/supabase';
 import { generateTexts, generateImagePrompt } from '@/lib/llm';
 import { generateBackground, editImageWithMask, createTextMask, generateBackgroundPrompt, generateInpaintPrompt } from '@/lib/dalle';
 import { generateMaskEdit, generateWithDallE3 } from '@/lib/openai-image';
-import * as NanoBanana from '@/lib/nano-banana';
+import { generateWithNanaBanana } from '@/lib/nano-banana';
 import { renderCreative } from '@/lib/render';
 import { extractImageMetadata } from '@/lib/ocr';
 import { replaceBrandsInTexts, getLogoBoundingBoxes } from '@/lib/brand-replacement';
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
         // Choose image generation model
         if (imageModel === 'nano-banana-pro') {
           console.log('🍌 Using Nano Banana Pro for generation...');
-          bgBuffer = await NanoBanana.generateWithNanaBanana({
+          bgBuffer = await generateWithNanaBanana({
             imageBuffer: originalBuffer,
             modifications,
             aspectRatio,
