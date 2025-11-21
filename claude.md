@@ -60,20 +60,26 @@ Takes competitor advertising creatives and generates branded versions by:
 - **Buckets**: `creatives` (original + generated images)
 
 ### AI Services
-- **Vision Analysis**: OpenAI GPT-4o
-- **Image Editing**: OpenAI DALL-E (gpt-image-1)
-- **API Client**: OpenAI SDK
+- **Vision Analysis**: OpenAI GPT-4o / Claude 3.5 Sonnet (via OpenRouter)
+- **Image Generation Options**:
+  - **DALL-E 2** (gpt-image-1) - Mask-based editing (default)
+  - **DALL-E 3** - Image-to-image generation
+  - **Nano Banana Pro** - Google Gemini 3 Pro via OpenRouter
+- **API Clients**: OpenAI SDK, OpenRouter API
 
 ### Key Libraries
 ```json
 {
-  "openai": "^4.28.0",          // AI integration
+  "openai": "^4.28.0",          // OpenAI integration (DALL-E, GPT-4o)
   "@supabase/supabase-js": "^2.39.0",  // Database & storage
   "sharp": "^0.33.2",           // Image processing
   "axios": "^1.6.7",            // HTTP client
   "tesseract.js": "^5.1.1"      // OCR (planned)
 }
 ```
+
+**External APIs**:
+- OpenRouter API - Access to Gemini 3 Pro (Nano Banana Pro) and Claude models
 
 ---
 
@@ -114,11 +120,12 @@ CreativeCopycat/
 │   ├── supabase.ts              # Supabase client & storage helpers
 │   ├── db.ts                    # Database operations
 │   ├── openai-image.ts          # Main AI pipeline (DALL-E integration)
+│   ├── nano-banana.ts           # Nano Banana Pro (Gemini 3 Pro) integration
 │   ├── mask-generator.ts        # Mask generation for inpainting
 │   ├── brand-replacement.ts     # Logo overlay logic
 │   ├── design-analysis.ts       # GPT-4o Vision analysis
 │   ├── style-modifiers.ts       # Style preset handling
-│   ├── claude-analyzer.ts       # Alternative analyzer
+│   ├── claude-analyzer.ts       # Alternative analyzer (Claude via OpenRouter)
 │   ├── llm.ts                   # OpenRouter LLM (legacy)
 │   ├── dalle.ts                 # Legacy DALL-E wrapper
 │   ├── ocr.ts                   # OCR utilities (stub)
@@ -199,7 +206,7 @@ import { useState } from 'react';
 **Branch Naming**
 - Feature: `claude/feature-name-sessionId`
 - Bugfix: `claude/fix-name-sessionId`
-- Current branch: `claude/create-calendar-011YpPfKwod6gr2ACHuAn4dy`
+- Current branch: `claude/update-clau-01KGXGEekFy3VFi2pXGknkfz`
 
 **Commit Messages**
 - Use emojis: ✨ feat, 🐛 fix, 📄 docs, 🛠️ refactor, 🎯 test
@@ -251,9 +258,13 @@ editTypes = ['logo', 'decor'];
 **Use case**: Strengthen branding with Algonova colors
 **Cost**: ~$0.17 per creative
 
-### AI Pipeline (5 Steps)
+### AI Pipeline
 
-The core generation logic in `lib/openai-image.ts`:
+The application supports 3 different image generation pipelines:
+
+#### Pipeline 1: DALL-E 2 Mask Editing (Default)
+
+Core logic in `lib/openai-image.ts`:
 
 ```typescript
 generateMaskEdit(imageBuffer, modifications, editTypes, aspectRatio)
@@ -271,9 +282,9 @@ generateMaskEdit(imageBuffer, modifications, editTypes, aspectRatio)
 - Output: Mask buffer (PNG)
 - Cost: Free (local)
 
-**Step 3: DALL-E Inpainting**
+**Step 3: DALL-E 2 Inpainting**
 - Input: Image + Mask + Prompt
-- API: `gpt-image-1` model
+- API: `gpt-image-1` model (DALL-E 2)
 - Output: Edited image
 - Cost: ~$0.16
 
@@ -288,6 +299,66 @@ generateMaskEdit(imageBuffer, modifications, editTypes, aspectRatio)
 - Process: Composite PNG logo using Sharp
 - Output: Final image with perfect logo
 - Cost: Free (local)
+
+#### Pipeline 2: DALL-E 3 Generation
+
+Core logic in `lib/openai-image.ts`:
+
+```typescript
+generateWithDallE3(imageBuffer, modifications, aspectRatio)
+```
+
+**Step 1: Analyze & Generate Prompt**
+- Input: Image buffer + modifications
+- API: `gpt-4o` model
+- Output: Detailed description prompt
+- Cost: ~$0.002
+
+**Step 2: Generate Image**
+- Input: Prompt
+- API: `dall-e-3` model
+- Output: New image (1024x1024 or 1792x1024)
+- Cost: ~$0.04-0.08
+
+**Step 3: Post-process**
+- Resize to target aspect ratio
+- Cost: Free (local)
+
+#### Pipeline 3: Nano Banana Pro (Gemini 3 Pro)
+
+Core logic in `lib/nano-banana.ts`:
+
+```typescript
+generateWithNanoBanana(imageBuffer, modifications, aspectRatio, analysis)
+```
+
+**Step 1: Analyze & Generate Prompt (Claude 3.5 Sonnet)**
+- Input: Image buffer + modifications
+- API: `anthropic/claude-3.5-sonnet` via OpenRouter
+- Output: Detailed 200-300 word recreation prompt
+- Cost: ~$0.003
+
+**Step 2: Generate Image (Gemini 3 Pro)**
+- Input: Detailed prompt
+- API: `google/gemini-3-pro-image-preview` via OpenRouter
+- Output: Generated image (returns base64 data URL)
+- Cost: Variable (OpenRouter pricing)
+
+**Step 3: Convert & Process**
+- Convert base64 to Buffer
+- Cost: Free (local)
+
+**Pipeline Selection** (in `app/api/generate/route.ts`):
+```typescript
+if (imageModel === 'nano-banana-pro') {
+  bgBuffer = await generateWithNanoBanana({ ... });
+} else if (imageModel === 'dall-e-3') {
+  bgBuffer = await generateWithDallE3({ ... });
+} else {
+  // Default: DALL-E 2 mask editing
+  bgBuffer = await generateMaskEdit({ ... });
+}
+```
 
 ### Data Types
 
@@ -342,10 +413,14 @@ Generate a new creative based on original.
 {
   creativeId: string;                    // Creative ID
   generationType: 'full_creative';
-  copyMode: 'simple_copy' | 'slightly_different' | 'copy_with_color';
-  aspectRatio: 'original';
+  copyMode: 'simple_copy' | 'slightly_different' | 'copy_with_color' | 'mask_edit';
+  imageModel?: 'dall-e-2' | 'dall-e-3' | 'nano-banana-pro';  // Default: 'dall-e-2'
+  aspectRatio?: 'original';              // Default: 'original'
   configGenerationType?: 'simple' | 'custom';
   customPrompt?: string;                 // For custom mode
+  stylePreset?: string;                  // Style preset (optional)
+  language?: string;                     // Default: 'en'
+  numVariations?: number;                // Default: 1
 }
 ```
 
@@ -583,8 +658,11 @@ npm start
 
 Create `.env.local`:
 ```bash
-# OpenAI
+# OpenAI (for DALL-E and GPT-4o)
 OPENAI_API_KEY=sk-proj-...
+
+# OpenRouter (for Nano Banana Pro and Claude)
+OPENROUTER_API_KEY=sk-or-v1-...
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -643,7 +721,8 @@ vercel deploy --prod
 ```
 
 **Environment Variables** (Vercel Dashboard):
-- `OPENAI_API_KEY`
+- `OPENAI_API_KEY` - OpenAI API key for DALL-E and GPT-4o
+- `OPENROUTER_API_KEY` - OpenRouter API key for Nano Banana Pro and Claude
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -665,8 +744,9 @@ vercel deploy --prod
 - OpenAI Usage: https://platform.openai.com/usage
 
 **Cost tracking**:
-- ~$0.17 per creative generation
-- ~$0.002 per analysis
+- **DALL-E 2 (mask edit)**: ~$0.17 per creative ($0.002 analysis + $0.16 generation)
+- **DALL-E 3**: ~$0.04-0.08 per creative (depends on size: 1024x1024 or 1792x1024)
+- **Nano Banana Pro**: ~$0.003+ per creative (variable OpenRouter pricing)
 - Budget accordingly for scale
 
 ---
@@ -680,7 +760,7 @@ vercel deploy --prod
 3. **Update types** when changing data structures
 4. **Test API endpoints** after changes
 5. **Check environment variables** are set
-6. **Use the current branch**: `claude/create-calendar-011YpPfKwod6gr2ACHuAn4dy`
+6. **Use the current branch**: `claude/update-clau-01KGXGEekFy3VFi2pXGknkfz`
 
 ### Key Files to Understand
 
@@ -748,5 +828,52 @@ vercel deploy --prod
 **Maintained by**: Engineering Team
 
 **Current Session**:
-- Branch: `claude/create-calendar-011YpPfKwod6gr2ACHuAn4dy`
+- Branch: `claude/update-clau-01KGXGEekFy3VFi2pXGknkfz`
 - Working Directory: `/home/user/CreativeCopycat`
+
+---
+
+## Recent Updates
+
+### v1.1 - Nano Banana Pro Integration (2025-11-21)
+
+**New Features**:
+- ✨ Added Nano Banana Pro (Google Gemini 3 Pro) image generation support via OpenRouter
+- 🎨 Three image generation models now available:
+  - DALL-E 2 (mask-based editing) - Default
+  - DALL-E 3 (image-to-image generation)
+  - Nano Banana Pro (Gemini 3 Pro) - New!
+- 🔄 Multi-step pipeline for Nano Banana Pro:
+  1. Claude 3.5 Sonnet analyzes image and creates detailed prompt
+  2. Gemini 3 Pro generates new image from prompt
+- 📤 Upload endpoint improvements
+
+**Technical Details**:
+- **New File**: `lib/nano-banana.ts` - Nano Banana Pro integration
+- **Updated**: `app/api/generate/route.ts` - Support for `imageModel` parameter
+- **Updated**: `types/creative.ts` - Added `ImageGenerationModel` type
+- **New Env Var**: `OPENROUTER_API_KEY` - Required for Nano Banana Pro and Claude models
+
+**Usage**:
+```typescript
+// Use Nano Banana Pro for generation
+POST /api/generate
+{
+  "creativeId": "uuid",
+  "generationType": "full_creative",
+  "copyMode": "simple_copy",
+  "imageModel": "nano-banana-pro",  // ← New parameter
+  "aspectRatio": "original"
+}
+```
+
+**Benefits**:
+- **Better text rendering**: Gemini 3 Pro handles text in images better than DALL-E
+- **More creative variations**: Different AI approach leads to different results
+- **Cost flexibility**: Choose the best model for your use case
+- **Fallback options**: Multiple models provide redundancy
+
+**When to Use Each Model**:
+- **DALL-E 2** (default): Best for precise mask-based edits, logo replacements
+- **DALL-E 3**: Better for full creative generation, higher quality
+- **Nano Banana Pro**: Best for text-heavy designs, creative variations, different artistic style
