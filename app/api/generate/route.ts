@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       stylePreset = 'original',
       texts,
       llmModel,
-      imageModel = 'dall-e-2',
+      imageModel = 'nano-banana-pro',
       temperature,
       language = 'en',
       aspectRatio = 'original',
