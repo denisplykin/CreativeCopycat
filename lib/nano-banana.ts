@@ -163,8 +163,12 @@ Return ONLY the detailed prompt for image generation.`;
 
     console.log(`✅ Prompt generated: ${prompt.substring(0, 100)}...`);
 
-    // Step 2: Generate image with Nano Banana Pro (with original image as reference)
-    console.log('🍌 Step 2: Generating image with original as reference...');
+    // Step 2: Generate image with Nano Banana Pro
+    // For slightly_different: text-only (generate from scratch for more variation)
+    // For other modes: text + image (modify original for accuracy)
+    const useImageReference = copyMode !== 'slightly_different';
+    
+    console.log(`🍌 Step 2: Generating image ${useImageReference ? 'with original as reference' : 'from text description only'}...`);
 
     const step2Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
@@ -179,13 +183,15 @@ Return ONLY the detailed prompt for image generation.`;
         messages: [
           {
             role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                image_url: { url: `data:${mimeType};base64,${base64Image}` },
-              },
-            ],
+            content: useImageReference
+              ? [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                  },
+                ]
+              : prompt, // Text only for slightly_different
           },
         ],
         modalities: ['image', 'text'],
