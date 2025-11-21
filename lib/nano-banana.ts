@@ -102,8 +102,8 @@ Return ONLY the detailed prompt for image generation that preserves the original
 
     console.log(`✅ Prompt generated: ${prompt.substring(0, 100)}...`);
 
-    // Step 2: Generate image with Nano Banana Pro
-    console.log('🍌 Step 2: Generating image...');
+    // Step 2: Generate image with Nano Banana Pro (with original image as reference)
+    console.log('🍌 Step 2: Generating image with original as reference...');
 
     const step2Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
@@ -118,7 +118,13 @@ Return ONLY the detailed prompt for image generation that preserves the original
         messages: [
           {
             role: 'user',
-            content: prompt,
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: { url: `data:${mimeType};base64,${base64Image}` },
+              },
+            ],
           },
         ],
         modalities: ['image', 'text'],
