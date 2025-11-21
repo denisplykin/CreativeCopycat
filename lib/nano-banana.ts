@@ -137,7 +137,6 @@ Replace any brand names with "Algonova". Return ONLY the prompt text for image g
     console.log('\n📐 Step 3: Resizing to match source dimensions...');
     console.log(`  Requested aspectRatio: ${aspectRatio}`);
 
-    const sharp = (await import('sharp')).default;
     const generatedMetadata = await sharp(resultBuffer).metadata();
     console.log(`  Generated size: ${generatedMetadata.width}x${generatedMetadata.height}`);
     console.log(`  Original size: ${originalWidth}x${originalHeight}`);
