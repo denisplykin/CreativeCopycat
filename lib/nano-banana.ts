@@ -171,6 +171,14 @@ export async function generateWithNanoBanana(params: {
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
     console.log(`📝 Modifications: ${modifications}`);
 
+    // Get original dimensions from image metadata
+    const sharp = (await import('sharp')).default;
+    const originalMetadata = await sharp(imageBuffer).metadata();
+    const originalWidth = originalMetadata.width!;
+    const originalHeight = originalMetadata.height!;
+
+    console.log(`📏 Original dimensions: ${originalWidth}x${originalHeight}`);
+
     // Convert image to base64 for analysis
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
@@ -257,9 +265,63 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
     console.log('✅ STEP 2 COMPLETE! Image generated');
 
     // Convert base64 data URL to Buffer
-    const resultBuffer = dataUrlToBuffer(result.imageUrl);
+    let resultBuffer = dataUrlToBuffer(result.imageUrl);
 
     console.log(`✅ Generated: ${resultBuffer.length} bytes`);
+
+    // ========== STEP 3: Resize to original dimensions ==========
+    if (aspectRatio === 'original') {
+      console.log('\n📐 STEP 3: Resizing to original dimensions...');
+
+      const generatedMetadata = await sharp(resultBuffer).metadata();
+      console.log(`  Current size: ${generatedMetadata.width}x${generatedMetadata.height}`);
+      console.log(`  Target size: ${originalWidth}x${originalHeight}`);
+
+      // Only resize if dimensions are different (10px tolerance)
+      if (Math.abs(generatedMetadata.width! - originalWidth) > 10 ||
+          Math.abs(generatedMetadata.height! - originalHeight) > 10) {
+
+        const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
+        const targetAspect = originalWidth / originalHeight;
+        const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+
+        console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+        console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+
+        // Choose resize strategy based on aspect ratio difference
+        if (aspectDiff <= 0.01) {
+          // Aspect ratios match - safe to use 'cover' for exact size
+          console.log(`  ✅ Aspect ratio matches, using 'cover' for exact dimensions`);
+          const resized = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'cover',
+              position: 'centre',
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+          resultBuffer = resized as Buffer;
+        } else {
+          // Aspect ratios don't match - use 'inside' to prevent distortion
+          console.log(`  ⚠️ Aspect ratio differs by ${(aspectDiff * 100).toFixed(2)}%, using 'inside' to prevent distortion`);
+          const resized = await sharp(resultBuffer)
+            .resize(originalWidth, originalHeight, {
+              fit: 'inside',
+              withoutEnlargement: false,
+              kernel: 'lanczos3'
+            })
+            .toBuffer();
+          resultBuffer = resized as Buffer;
+        }
+
+        const finalMetadata = await sharp(resultBuffer).metadata();
+        console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+      } else {
+        console.log(`  ✅ Size already matches, no resize needed`);
+      }
+
+      console.log('✅ STEP 3 COMPLETE!');
+    }
+
     console.log('🎉 Nano Banana Pro pipeline successful!\n');
 
     return resultBuffer;
