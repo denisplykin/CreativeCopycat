@@ -11,9 +11,10 @@ import type {
  */
 export async function getCreatives(): Promise<Creative[]> {
   const { data, error } = await supabaseAdmin
-    .from('creatives')
+    .from('competitor_creatives')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(10000); // Увеличиваем лимит для отображения всех креативов
 
   if (error) {
     throw new Error(`Failed to fetch creatives: ${error.message}`);
