@@ -114,6 +114,13 @@ export default function CreativesNewPage() {
     return true
   })
   
+  // ✅ Сортировка по активным дням (самые активные сверху)
+  const sortedCreatives = [...filteredCreatives].sort((a, b) => {
+    const daysA = a.active_days ?? 0
+    const daysB = b.active_days ?? 0
+    return daysB - daysA // Descending order
+  })
+  
   // Debug: Log filter results
   if (selectedCompetitor !== 'All' && creatives.length > 0) {
     console.log(`🔍 Filter: "${selectedCompetitor}" selected`)
@@ -393,13 +400,13 @@ export default function CreativesNewPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : filteredCreatives.length === 0 ? (
+        ) : sortedCreatives.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No creatives found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredCreatives.map((creative) => (
+            {sortedCreatives.map((creative) => (
               <CreativeCard
                 key={creative.id}
                 creative={creative}

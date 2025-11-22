@@ -40,6 +40,8 @@ export async function getCreatives(): Promise<Creative[]> {
     id: item.id.toString(),
     competitor_name: item.competitor_name,
     original_image_url: item.image_url, // Маппинг image_url -> original_image_url
+    active_days: item.active_days || 0, // ✅ Добавляем active_days из базы
+    ad_id: item.ad_id, // ✅ Добавляем ad_id
     analysis: null,
     generated_character_url: null,
     generated_background_url: null,

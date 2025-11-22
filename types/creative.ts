@@ -3,6 +3,8 @@ export interface Creative {
   id: string;
   competitor_name: string | null;
   original_image_url: string;
+  active_days?: number; // ✅ Количество активных дней из базы
+  ad_id?: string; // ✅ ID креатива из Google Sheets
   analysis: AnalysisData | null;
   generated_character_url: string | null;
   generated_background_url: string | null;
