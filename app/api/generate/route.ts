@@ -51,43 +51,47 @@ export async function POST(request: Request) {
     // If not analyzed, create minimal analysis on-the-fly
     if (!creative.analysis) {
       console.log('⚠️ Creative not analyzed, creating minimal analysis...');
+      
+      // Default fallback analysis
+      creative.analysis = {
+        ocr: { blocks: [], fullText: '' },
+        layout: {
+          image_size: { width: 1080, height: 1080 }, // Default size
+          background: { color: '#FFFFFF', description: 'Auto-analyzed background' },
+          elements: []
+        },
+        roles: [],
+        dominant_colors: [],
+        language: 'en',
+        aspect_ratio: '1:1', // Default aspect ratio
+      };
+      
       try {
-        // Download original image to get metadata
+        // Try to download original image to get real metadata
         console.log('📥 Downloading image for metadata extraction...');
         const imageResponse = await fetch(creative.original_image_url);
         
         if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+          console.warn(`⚠️ Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+        } else {
+          const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+          console.log(`✅ Downloaded ${imageBuffer.length} bytes`);
+          
+          // Extract metadata
+          console.log('📐 Extracting image metadata...');
+          const metadata = await extractImageMetadata(imageBuffer);
+          console.log(`✅ Metadata: ${metadata.width}x${metadata.height}`);
+          
+          // Update analysis with real dimensions
+          creative.analysis.layout.image_size = { width: metadata.width, height: metadata.height };
+          creative.analysis.aspect_ratio = `${metadata.width}:${metadata.height}`;
         }
         
-        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-        console.log(`✅ Downloaded ${imageBuffer.length} bytes`);
-        
-        // Extract metadata
-        console.log('📐 Extracting image metadata...');
-        const metadata = await extractImageMetadata(imageBuffer);
-        console.log(`✅ Metadata: ${metadata.width}x${metadata.height}`);
-        
-        // Create minimal analysis (in-memory, don't save to DB for competitor_creatives)
-        creative.analysis = {
-          ocr: { blocks: [], fullText: '' },
-          layout: {
-            image_size: { width: metadata.width, height: metadata.height },
-            background: { color: '#FFFFFF', description: 'Auto-analyzed background' },
-            elements: []
-          },
-          roles: [],
-          dominant_colors: [],
-          language: 'en',
-          aspect_ratio: `${metadata.width}:${metadata.height}`,
-        };
-        
-        console.log('✅ Minimal analysis created (in-memory)');
+        console.log('✅ Analysis ready');
       } catch (analysisError) {
-        console.error('❌ Failed to create minimal analysis:', analysisError);
+        console.error('❌ Metadata extraction failed, using defaults:', analysisError);
         console.error('Stack:', analysisError instanceof Error ? analysisError.stack : 'N/A');
-        // Continue anyway - Nano Banana can work without detailed analysis
-        creative.analysis = null;
+        // Continue with default analysis
       }
     }
 
