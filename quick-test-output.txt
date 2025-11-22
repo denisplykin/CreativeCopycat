@@ -1,7 +1,0 @@
-🔍 Quick connection test...
-
-✅ Credentials loaded
-⏳ Loading spreadsheet (this may take 10-20 seconds)...
-
-❌ Error: ECANCELED: operation canceled, read
-Code: ECANCELED
