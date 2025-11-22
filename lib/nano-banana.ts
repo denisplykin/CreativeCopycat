@@ -91,9 +91,9 @@ export async function generateWithNanaBanana(params: {
     
     switch (copyMode) {
       case 'simple_copy':
-        promptRequest = `You are modifying an advertising banner. Look at this image.
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a minor change.
 
-TASK: Create a prompt to recreate this image with MINIMAL changes - ONLY replace the company logo/brand with "Algonova". Everything else must stay EXACTLY the same.
+TASK: Create a detailed prompt to recreate this image with MINIMAL changes - ONLY replace any visible company logo or brand name with "Algonova". Everything else must stay EXACTLY the same.
 
 PRESERVE EXACTLY:
 - Character appearance, age, gender, ethnicity, clothing, pose, position, expression
@@ -110,7 +110,7 @@ Return a detailed prompt for image generation that preserves the original design
         break;
 
       case 'slightly_different':
-        promptRequest = `You are modifying an advertising banner. Look at this image.
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a slight variation.
 
 TASK: Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
 
@@ -133,7 +133,7 @@ Return a detailed prompt for image generation.`;
 
       default:
         // Fallback to generic prompt
-        promptRequest = `You are analyzing an advertising banner to create a prompt for image recreation.
+        promptRequest = `You are a graphic designer analyzing an image to create a recreation prompt.
 
 ANALYZE THIS IMAGE and describe all elements.
 

@@ -278,20 +278,28 @@ export default function CreativesNewPage() {
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      console.log('⚠️ No file selected')
+      return
+    }
+
+    console.log('📁 File selected:', file.name, `(${(file.size / 1024).toFixed(1)} KB)`)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type)
       alert('Please upload an image file')
       return
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
+      console.error('❌ File too large:', file.size)
       alert('File size must be less than 10MB')
       return
     }
 
+    console.log('✅ File validation passed')
     setUploading(true)
     try {
       console.log('📤 Uploading file:', file.name)
@@ -306,6 +314,8 @@ export default function CreativesNewPage() {
         method: 'POST',
         body: formData,
       })
+
+      console.log('📥 Upload response status:', response.status)
 
       if (!response.ok) {
         const error = await response.json()
@@ -326,6 +336,10 @@ export default function CreativesNewPage() {
       alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
+      // Reset input to allow uploading same file again
+      if (e.target) {
+        e.target.value = ''
+      }
     }
   }
 
