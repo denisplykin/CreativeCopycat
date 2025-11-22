@@ -10,6 +10,8 @@ import type {
  * Get all creatives
  */
 export async function getCreatives(): Promise<Creative[]> {
+  // Используем подзапрос для получения DISTINCT по image_url
+  // Для каждого уникального image_url берем последнюю запись (MAX id)
   const { data, error } = await supabaseAdmin
     .from('competitor_creatives')
     .select('*')
@@ -21,8 +23,20 @@ export async function getCreatives(): Promise<Creative[]> {
     throw new Error(`Failed to fetch creatives: ${error.message}`);
   }
 
+  // Дедупликация на клиенте по image_url (берем первое вхождение)
+  const seen = new Set<string>();
+  const uniqueData = (data || []).filter((item: any) => {
+    if (seen.has(item.image_url)) {
+      return false;
+    }
+    seen.add(item.image_url);
+    return true;
+  });
+
+  console.log(`📊 Loaded ${data?.length || 0} records, after dedup: ${uniqueData.length}`);
+
   // Маппинг из competitor_creatives в формат Creative
-  return (data || []).map((item: any) => ({
+  return uniqueData.map((item: any) => ({
     id: item.id.toString(),
     competitor_name: item.competitor_name,
     original_image_url: item.image_url, // Маппинг image_url -> original_image_url
