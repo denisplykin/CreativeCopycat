@@ -153,11 +153,11 @@ export default function CreativesNewPage() {
     return true
   })
   
-  // ✅ Сортировка по дате создания (самые новые сверху)
+  // ✅ Сортировка по активным дням (чем меньше дней - тем выше)
   const sortedCreatives = [...filteredCreatives].sort((a, b) => {
-    const dateA = new Date(a.created_at).getTime()
-    const dateB = new Date(b.created_at).getTime()
-    return dateB - dateA // Descending order (newest first)
+    const daysA = a.active_days ?? 0
+    const daysB = b.active_days ?? 0
+    return daysA - daysB // Ascending order (fewer days first)
   })
   
   // Debug: Log filter results
