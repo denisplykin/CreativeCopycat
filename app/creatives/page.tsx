@@ -95,9 +95,48 @@ export default function CreativesNewPage() {
   }
 
   // Get unique competitors
-  const competitors = Array.from(
+  // Кастомный порядок конкурентов
+  const competitorOrder = [
+    'Kodland Indonesia',
+    'Bright Champs',
+    'Schola Indonesia (Bright Champs)',
+    'Ruangguru',
+    'Coding Bee Academy',
+    'Timedoor Academy',
+    'KodeKiddo',
+    'DIGIKIDZ',
+    'Edufic',
+    'Kalananti',
+    'KodioKids',
+    'Math Champs by Ruangguru',
+    'Sekolah programming Indonesia',
+    'The Lab',
+  ]
+
+  // Получаем уникальных конкурентов из данных
+  const uniqueCompetitors = Array.from(
     new Set(creatives.map((c) => c.competitor_name).filter(Boolean))
-  ).sort() as string[]
+  ) as string[]
+
+  // Сортируем по кастомному порядку, остальные в конец по алфавиту
+  const competitors = uniqueCompetitors.sort((a, b) => {
+    const indexA = competitorOrder.indexOf(a)
+    const indexB = competitorOrder.indexOf(b)
+    
+    // Если оба в списке - сортируем по позиции в списке
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB
+    }
+    
+    // Если только A в списке - A выше
+    if (indexA !== -1) return -1
+    
+    // Если только B в списке - B выше
+    if (indexB !== -1) return 1
+    
+    // Если оба не в списке - алфавитная сортировка
+    return a.localeCompare(b)
+  })
 
   // Filter creatives (use includes for partial matching, e.g., "Kodland" matches "Kodland Indonesia")
   const filteredCreatives = creatives.filter((creative) => {
@@ -114,11 +153,11 @@ export default function CreativesNewPage() {
     return true
   })
   
-  // ✅ Сортировка по активным дням (самые активные сверху)
+  // ✅ Сортировка по дате создания (самые новые сверху)
   const sortedCreatives = [...filteredCreatives].sort((a, b) => {
-    const daysA = a.active_days ?? 0
-    const daysB = b.active_days ?? 0
-    return daysB - daysA // Descending order
+    const dateA = new Date(a.created_at).getTime()
+    const dateB = new Date(b.created_at).getTime()
+    return dateB - dateA // Descending order (newest first)
   })
   
   // Debug: Log filter results
