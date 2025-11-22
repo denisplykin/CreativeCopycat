@@ -113,12 +113,18 @@ export function GenerateDialog({
           <div>
             <Label className="text-base font-semibold mb-3 block">Preview</Label>
             <div className="relative aspect-[9/16] w-full max-w-sm mx-auto bg-muted rounded-lg overflow-hidden border">
-              <Image
-                src={creative.original_image_url}
-                alt={creative.competitor_name || 'Creative'}
-                fill
-                className="object-contain"
-              />
+              {creative.original_image_url ? (
+                <Image
+                  src={creative.original_image_url}
+                  alt={creative.competitor_name || 'Creative'}
+                  fill
+                  className="object-contain"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No image available
+                </div>
+              )}
             </div>
             {creative.analysis?.aspect_ratio && (
               <Badge variant="secondary" className="mt-3 mx-auto block w-fit">

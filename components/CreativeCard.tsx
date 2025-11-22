@@ -37,12 +37,18 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
     >
       {/* Image */}
       <div className="relative w-full h-[400px] bg-muted overflow-hidden">
-        <Image
-          src={creative.original_image_url}
-          alt={`${creative.competitor_name || 'Creative'} creative`}
-          fill
-          className="object-contain transition-transform group-hover:scale-105"
-        />
+        {creative.original_image_url ? (
+          <Image
+            src={creative.original_image_url}
+            alt={`${creative.competitor_name || 'Creative'} creative`}
+            fill
+            className="object-contain transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No image available
+          </div>
+        )}
         
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />

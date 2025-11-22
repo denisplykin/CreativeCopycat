@@ -13,6 +13,7 @@ export async function getCreatives(): Promise<Creative[]> {
   const { data, error } = await supabaseAdmin
     .from('competitor_creatives')
     .select('*')
+    .not('image_url', 'is', null) // ✅ Только с изображениями
     .order('created_at', { ascending: false })
     .limit(10000); // Увеличиваем лимит для отображения всех креативов
 
