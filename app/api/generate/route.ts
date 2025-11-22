@@ -83,8 +83,10 @@ export async function POST(request: Request) {
           console.log(`✅ Metadata: ${metadata.width}x${metadata.height}`);
           
           // Update analysis with real dimensions
-          creative.analysis.layout.image_size = { width: metadata.width, height: metadata.height };
-          creative.analysis.aspect_ratio = `${metadata.width}:${metadata.height}`;
+          if (creative.analysis?.layout) {
+            creative.analysis.layout.image_size = { width: metadata.width, height: metadata.height };
+            creative.analysis.aspect_ratio = `${metadata.width}:${metadata.height}`;
+          }
         }
         
         console.log('✅ Analysis ready');
