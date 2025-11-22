@@ -34,14 +34,18 @@ export async function POST(request: Request) {
     } = body;
 
     console.log(`🎨 Generating creative: ${generationType}, copyMode: ${copyMode}, imageModel: ${imageModel}, aspectRatio: ${aspectRatio}`);
+    console.log(`📋 Creative ID: ${creativeId}`);
 
     // Get creative
+    console.log('🔍 Fetching creative from DB...');
     const creative = await getCreativeById(creativeId);
     if (!creative) {
+      console.error(`❌ Creative ${creativeId} not found`);
       return NextResponse.json({ error: 'Creative not found' }, { status: 404 });
     }
 
     console.log(`✅ Creative found: ${creative.competitor_name || 'Unknown'}`);
+    console.log(`📸 Image URL: ${creative.original_image_url}`);
 
     // ✅ For competitor_creatives: analysis is optional (Nano Banana works without it)
     // If not analyzed, create minimal analysis on-the-fly
@@ -49,11 +53,20 @@ export async function POST(request: Request) {
       console.log('⚠️ Creative not analyzed, creating minimal analysis...');
       try {
         // Download original image to get metadata
+        console.log('📥 Downloading image for metadata extraction...');
         const imageResponse = await fetch(creative.original_image_url);
+        
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+        }
+        
         const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        console.log(`✅ Downloaded ${imageBuffer.length} bytes`);
         
         // Extract metadata
+        console.log('📐 Extracting image metadata...');
         const metadata = await extractImageMetadata(imageBuffer);
+        console.log(`✅ Metadata: ${metadata.width}x${metadata.height}`);
         
         // Create minimal analysis (in-memory, don't save to DB for competitor_creatives)
         creative.analysis = {
@@ -72,6 +85,7 @@ export async function POST(request: Request) {
         console.log('✅ Minimal analysis created (in-memory)');
       } catch (analysisError) {
         console.error('❌ Failed to create minimal analysis:', analysisError);
+        console.error('Stack:', analysisError instanceof Error ? analysisError.stack : 'N/A');
         // Continue anyway - Nano Banana can work without detailed analysis
         creative.analysis = null;
       }
