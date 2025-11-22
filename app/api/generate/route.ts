@@ -99,19 +99,26 @@ export async function POST(request: Request) {
 
     // ✅ CREATE RUN RECORD FIRST (shows in history with "running" status)
     console.log('📝 Creating run record in history...');
-    runId = await createCreativeRun({
-      creative_id: creativeId,
-      generation_type: generationType,
-      copy_mode: copyMode,
-      config: {
-        aspectRatio,
-        stylePreset,
-        numVariations,
-        language,
-        imageModel,
-      },
-    });
-    console.log(`✅ Run ${runId} created, starting generation...`);
+    try {
+      runId = await createCreativeRun({
+        creative_id: creativeId,
+        generation_type: generationType,
+        copy_mode: copyMode,
+        config: {
+          aspectRatio,
+          stylePreset,
+          numVariations,
+          language,
+          imageModel,
+        },
+      });
+      console.log(`✅ Run ${runId} created, starting generation...`);
+    } catch (runError) {
+      console.error('❌ Failed to create run record:', runError);
+      console.error('Stack:', runError instanceof Error ? runError.stack : 'N/A');
+      // Continue without run tracking if it fails
+      console.log('⚠️ Continuing generation without run tracking...');
+    }
 
     let generatedUrl: string;
 
