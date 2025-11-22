@@ -41,21 +41,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Creative not found' }, { status: 404 });
     }
 
-    // If not analyzed, run analysis first
+    console.log(`✅ Creative found: ${creative.competitor_name || 'Unknown'}`);
+
+    // ✅ For competitor_creatives: analysis is optional (Nano Banana works without it)
+    // If not analyzed, create minimal analysis on-the-fly
     if (!creative.analysis) {
-      console.log('⚠️ Creative not analyzed, running analysis first...');
+      console.log('⚠️ Creative not analyzed, creating minimal analysis...');
       try {
-        await updateCreativeStatus(creativeId, 'analyzing');
-        
-        // Download original image
+        // Download original image to get metadata
         const imageResponse = await fetch(creative.original_image_url);
         const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
         
         // Extract metadata
         const metadata = await extractImageMetadata(imageBuffer);
         
-        // Store analysis
-        const analysisData = {
+        // Create minimal analysis (in-memory, don't save to DB for competitor_creatives)
+        creative.analysis = {
           ocr: { blocks: [], fullText: '' },
           layout: {
             image_size: { width: metadata.width, height: metadata.height },
@@ -68,29 +69,11 @@ export async function POST(request: Request) {
           aspect_ratio: `${metadata.width}:${metadata.height}`,
         };
         
-        const { error: updateError } = await supabaseAdmin
-          .from('creatives')
-          .update({ 
-            analysis: analysisData,
-            status: 'completed'
-          })
-          .eq('id', creativeId);
-        
-        if (updateError) {
-          throw new Error(`Failed to save analysis: ${updateError.message}`);
-        }
-        
-        console.log('✅ Auto-analysis complete');
-        
-        // Re-fetch creative with analysis
-        const updatedCreative = await getCreativeById(creativeId);
-        Object.assign(creative, updatedCreative);
+        console.log('✅ Minimal analysis created (in-memory)');
       } catch (analysisError) {
-        console.error('❌ Auto-analysis failed:', analysisError);
-        return NextResponse.json(
-          { error: 'Failed to analyze creative', details: analysisError instanceof Error ? analysisError.message : 'Unknown error' },
-          { status: 500 }
-        );
+        console.error('❌ Failed to create minimal analysis:', analysisError);
+        // Continue anyway - Nano Banana can work without detailed analysis
+        creative.analysis = null;
       }
     }
 
@@ -110,11 +93,7 @@ export async function POST(request: Request) {
     });
     console.log(`✅ Run ${runId} created, starting generation...`);
 
-    // Update status to generating
-    await updateCreativeStatus(creativeId, 'generating');
-
     let generatedUrl: string;
-    const updates: any = {};
 
     switch (generationType) {
       case 'character': {
@@ -131,7 +110,6 @@ export async function POST(request: Request) {
         const characterPath = `characters/${creativeId}_${Date.now()}.png`;
         await uploadFile('assets', characterPath, characterBuffer, 'image/png');
         generatedUrl = getPublicUrl('assets', characterPath);
-        updates.generated_character_url = generatedUrl;
         break;
       }
 
@@ -149,7 +127,6 @@ export async function POST(request: Request) {
         const bgPath = `backgrounds/${creativeId}_${Date.now()}.png`;
         await uploadFile('backgrounds', bgPath, bgBuffer, 'image/png');
         generatedUrl = getPublicUrl('backgrounds', bgPath);
-        updates.generated_background_url = generatedUrl;
         break;
       }
 
@@ -262,7 +239,6 @@ export async function POST(request: Request) {
         const creativePath = `generated-creatives/${creativeId}_${Date.now()}.png`;
         await uploadFile('generated-creatives', creativePath, finalBuffer, 'image/png');
         generatedUrl = getPublicUrl('generated-creatives', creativePath);
-        updates.generated_image_url = generatedUrl;
         
         console.log(`✅ Creative generated: ${generatedUrl}`);
         break;
@@ -271,9 +247,6 @@ export async function POST(request: Request) {
       default:
         return NextResponse.json({ error: 'Invalid generation type' }, { status: 400 });
     }
-
-    // Update creative with generated URLs
-    await updateGeneratedUrls(creativeId, updates);
 
     // ✅ UPDATE RUN STATUS TO COMPLETED
     if (runId) {
@@ -289,11 +262,8 @@ export async function POST(request: Request) {
       latency
     );
 
-    // Get updated creative
-    const updatedCreative = await getCreativeById(creativeId);
-
     const response: GenerateResponse = {
-      creative: updatedCreative!,
+      creative: creative,
       generated_url: generatedUrl,
     };
 
