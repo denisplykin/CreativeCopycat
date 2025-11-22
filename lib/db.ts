@@ -58,6 +58,34 @@ export async function getCreatives(): Promise<Creative[]> {
  * Get creative by ID
  */
 export async function getCreativeById(id: string): Promise<Creative | null> {
+  // ✅ Ищем сначала в competitor_creatives
+  const { data: competitorData, error: competitorError } = await supabaseAdmin
+    .from('competitor_creatives')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (competitorData) {
+    // Маппинг из competitor_creatives в формат Creative
+    return {
+      id: competitorData.id.toString(),
+      competitor_name: competitorData.competitor_name,
+      original_image_url: competitorData.image_url,
+      active_days: competitorData.active_days || 0,
+      ad_id: competitorData.ad_id,
+      analysis: null, // competitor_creatives не хранит analysis
+      generated_character_url: null,
+      generated_background_url: null,
+      generated_image_url: null,
+      figma_file_id: null,
+      status: 'pending' as const,
+      error_message: null,
+      created_at: competitorData.created_at,
+      updated_at: competitorData.updated_at,
+    };
+  }
+
+  // Fallback: если не найдено в competitor_creatives, проверяем старую таблицу
   const { data, error } = await supabaseAdmin
     .from('creatives')
     .select('*')
