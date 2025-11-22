@@ -20,7 +20,21 @@ export async function getCreatives(): Promise<Creative[]> {
     throw new Error(`Failed to fetch creatives: ${error.message}`);
   }
 
-  return data || [];
+  // Маппинг из competitor_creatives в формат Creative
+  return (data || []).map((item: any) => ({
+    id: item.id.toString(),
+    competitor_name: item.competitor_name,
+    original_image_url: item.image_url, // Маппинг image_url -> original_image_url
+    analysis: null,
+    generated_character_url: null,
+    generated_background_url: null,
+    generated_image_url: null,
+    figma_file_id: null,
+    status: 'pending' as const,
+    error_message: null,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  }));
 }
 
 /**
