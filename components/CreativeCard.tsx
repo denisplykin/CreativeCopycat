@@ -11,6 +11,8 @@ interface Creative {
   competitor_name: string | null
   original_image_url: string
   created_at: string
+  active_days?: number // ✅ Добавляем поддержку active_days
+  ad_id?: string // ✅ Добавляем поддержку ad_id
   analysis?: {
     aspect_ratio?: string
     dominant_colors?: string[]
@@ -23,7 +25,8 @@ interface CreativeCardProps {
 }
 
 export function CreativeCard({ creative, onClick }: CreativeCardProps) {
-  const daysActive = Math.floor(
+  // ✅ Используем active_days из базы или вычисляем fallback
+  const daysActive = creative.active_days ?? Math.floor(
     (Date.now() - new Date(creative.created_at).getTime()) / (1000 * 60 * 60 * 24)
   )
 
@@ -37,12 +40,18 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
     >
       {/* Image */}
       <div className="relative w-full h-[400px] bg-muted overflow-hidden">
-        <Image
-          src={creative.original_image_url}
-          alt={`${creative.competitor_name || 'Creative'} creative`}
-          fill
-          className="object-contain transition-transform group-hover:scale-105"
-        />
+        {creative.original_image_url ? (
+          <Image
+            src={creative.original_image_url}
+            alt={`${creative.competitor_name || 'Creative'} creative`}
+            fill
+            className="object-contain transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No image available
+          </div>
+        )}
         
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -64,11 +73,19 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
           <h3 className="font-semibold text-sm truncate">
             {creative.competitor_name || 'Unknown'}
           </h3>
+          {/* ✅ Badge с количеством активных дней */}
+          <Badge variant="default" className="shrink-0 bg-green-600">
+            {daysActive}d
+          </Badge>
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Created {new Date(creative.created_at).toLocaleDateString()}</span>
-          <span>Active {daysActive}d</span>
+          {creative.ad_id && (
+            <span className="truncate" title={creative.ad_id}>
+              ID: {creative.ad_id.substring(0, 12)}...
+            </span>
+          )}
         </div>
       </div>
     </Card>

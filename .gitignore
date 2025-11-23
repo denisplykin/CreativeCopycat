@@ -35,3 +35,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+google-credentials.json
+service-account.json
+credentials.json
+
+# Temporary files
+*.log
+sync-log.txt
+quick-test-output.txt
+
+# Data files
+competitors.csv
+sheets-data.csv
+sheets-data.json

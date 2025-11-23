@@ -10,22 +10,82 @@ import type {
  * Get all creatives
  */
 export async function getCreatives(): Promise<Creative[]> {
+  // Используем подзапрос для получения DISTINCT по image_url
+  // Для каждого уникального image_url берем последнюю запись (MAX id)
   const { data, error } = await supabaseAdmin
-    .from('creatives')
+    .from('competitor_creatives')
     .select('*')
-    .order('created_at', { ascending: false });
+    .not('image_url', 'is', null) // ✅ Только с изображениями
+    .order('created_at', { ascending: false })
+    .limit(10000); // Увеличиваем лимит для отображения всех креативов
 
   if (error) {
     throw new Error(`Failed to fetch creatives: ${error.message}`);
   }
 
-  return data || [];
+  // Дедупликация на клиенте по image_url (берем первое вхождение)
+  const seen = new Set<string>();
+  const uniqueData = (data || []).filter((item: any) => {
+    if (seen.has(item.image_url)) {
+      return false;
+    }
+    seen.add(item.image_url);
+    return true;
+  });
+
+  console.log(`📊 Loaded ${data?.length || 0} records, after dedup: ${uniqueData.length}`);
+
+  // Маппинг из competitor_creatives в формат Creative
+  return uniqueData.map((item: any) => ({
+    id: item.id.toString(),
+    competitor_name: item.competitor_name,
+    original_image_url: item.image_url, // Маппинг image_url -> original_image_url
+    active_days: item.active_days || 0, // ✅ Добавляем active_days из базы
+    ad_id: item.ad_id, // ✅ Добавляем ad_id
+    analysis: null,
+    generated_character_url: null,
+    generated_background_url: null,
+    generated_image_url: null,
+    figma_file_id: null,
+    status: 'pending' as const,
+    error_message: null,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  }));
 }
 
 /**
  * Get creative by ID
  */
 export async function getCreativeById(id: string): Promise<Creative | null> {
+  // ✅ Ищем сначала в competitor_creatives
+  const { data: competitorData, error: competitorError } = await supabaseAdmin
+    .from('competitor_creatives')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (competitorData) {
+    // Маппинг из competitor_creatives в формат Creative
+    return {
+      id: competitorData.id.toString(),
+      competitor_name: competitorData.competitor_name,
+      original_image_url: competitorData.image_url,
+      active_days: competitorData.active_days || 0,
+      ad_id: competitorData.ad_id,
+      analysis: null, // competitor_creatives не хранит analysis
+      generated_character_url: null,
+      generated_background_url: null,
+      generated_image_url: null,
+      figma_file_id: null,
+      status: 'pending' as const,
+      error_message: null,
+      created_at: competitorData.created_at,
+      updated_at: competitorData.updated_at,
+    };
+  }
+
+  // Fallback: если не найдено в competitor_creatives, проверяем старую таблицу
   const { data, error } = await supabaseAdmin
     .from('creatives')
     .select('*')

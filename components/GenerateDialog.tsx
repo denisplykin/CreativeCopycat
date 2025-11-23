@@ -39,7 +39,6 @@ export interface GenerationConfig {
   // Для простой генерации (чекбоксы)
   simpleOptions?: {
     simpleCopy: boolean
-    copyWithColor: boolean
     slightlyDifferent: boolean
     fbData: boolean
     randomVariations: boolean
@@ -63,7 +62,6 @@ export function GenerateDialog({
     generationType: 'simple',
     simpleOptions: {
       simpleCopy: true,           // ✅ По умолчанию включен
-      copyWithColor: false,
       slightlyDifferent: false,
       fbData: false,
       randomVariations: false,
@@ -115,12 +113,18 @@ export function GenerateDialog({
           <div>
             <Label className="text-base font-semibold mb-3 block">Preview</Label>
             <div className="relative aspect-[9/16] w-full max-w-sm mx-auto bg-muted rounded-lg overflow-hidden border">
-              <Image
-                src={creative.original_image_url}
-                alt={creative.competitor_name || 'Creative'}
-                fill
-                className="object-contain"
-              />
+              {creative.original_image_url ? (
+                <Image
+                  src={creative.original_image_url}
+                  alt={creative.competitor_name || 'Creative'}
+                  fill
+                  className="object-contain"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No image available
+                </div>
+              )}
             </div>
             {creative.analysis?.aspect_ratio && (
               <Badge variant="secondary" className="mt-3 mx-auto block w-fit">
@@ -218,31 +222,6 @@ export function GenerateDialog({
                     </Label>
                     <p className="text-xs text-muted-foreground">
                       Replace brand name & logo with Algonova
-                    </p>
-                  </div>
-                </div>
-
-                {/* Copy + Color */}
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="copyWithColor"
-                    checked={config.simpleOptions?.copyWithColor}
-                    onCheckedChange={(checked) =>
-                      setConfig({
-                        ...config,
-                        simpleOptions: {
-                          ...config.simpleOptions!,
-                          copyWithColor: checked as boolean,
-                        },
-                      })
-                    }
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor="copyWithColor" className="font-normal cursor-pointer">
-                      Copy + Color
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Replace brand, logo & recolor with Algonova palette
                     </p>
                   </div>
                 </div>

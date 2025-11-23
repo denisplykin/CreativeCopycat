@@ -10,7 +10,7 @@ export async function GET() {
     console.log('📊 GET /api/runs - Fetching runs...');
     const supabase = supabaseAdmin;
 
-    // Fetch all runs with creative info
+    // Fetch all runs (without JOIN since we removed foreign key)
     const { data: runs, error } = await supabase
       .from('creative_runs')
       .select(`
@@ -20,11 +20,7 @@ export async function GET() {
         copy_mode,
         status,
         created_at,
-        result_url,
-        creative:creatives (
-          competitor_name,
-          original_image_url
-        )
+        result_url
       `)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -35,18 +31,43 @@ export async function GET() {
     }
 
     console.log(`✅ Found ${runs?.length || 0} runs`);
-    if (runs && runs.length > 0) {
-      console.log('📋 First run:', JSON.stringify(runs[0], null, 2));
+
+    // Enrich runs with creative info from competitor_creatives
+    const enrichedRuns = await Promise.all(
+      (runs || []).map(async (run) => {
+        try {
+          // Try to get creative from competitor_creatives first
+          const { data: creative } = await supabase
+            .from('competitor_creatives')
+            .select('competitor_name, image_url')
+            .eq('id', run.creative_id)
+            .single();
+
+          return {
+            ...run,
+            creative: creative ? {
+              competitor_name: creative.competitor_name,
+              original_image_url: creative.image_url,
+            } : null,
+            progress: run.status === 'running' ? Math.floor(Math.random() * 100) : undefined,
+          };
+        } catch (err) {
+          // If not found in competitor_creatives, return without creative info
+          return {
+            ...run,
+            creative: null,
+            progress: run.status === 'running' ? Math.floor(Math.random() * 100) : undefined,
+          };
+        }
+      })
+    );
+
+    if (enrichedRuns.length > 0) {
+      console.log('📋 First run:', JSON.stringify(enrichedRuns[0], null, 2));
     }
 
-    // Calculate progress for running items (mock for now)
-    const runsWithProgress = (runs || []).map((run) => ({
-      ...run,
-      progress: run.status === 'running' ? Math.floor(Math.random() * 100) : undefined,
-    }));
-
     return NextResponse.json(
-      { runs: runsWithProgress },
+      { runs: enrichedRuns },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

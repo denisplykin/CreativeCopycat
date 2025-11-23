@@ -9,16 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.84.0",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.3",
+    "google-spreadsheet": "^5.0.2",
+    "googleapis": "^105.0.0",
     "lucide-react": "^0.553.0",
     "next": "14.2.0",
     "openai": "^4.28.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sharp": "^0.33.2",
+    "sharp": "^0.33.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^5.1.1"

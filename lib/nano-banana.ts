@@ -3,202 +3,151 @@
  * Image generation via OpenRouter
  */
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
+const getOpenRouterKey = () => process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const NANO_BANANA_MODEL = 'google/gemini-3-pro-image-preview';
 
-export interface NanoBananaOptions {
-  prompt: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-export interface NanoBananaResponse {
-  imageUrl: string; // Base64 data URL
-  rawResponse: any;
+/**
+ * Calculate target dimensions based on aspect ratio setting
+ */
+function calculateTargetDimensions(
+  originalWidth: number,
+  originalHeight: number,
+  aspectRatio: string
+): { width: number; height: number } {
+  if (aspectRatio === 'original') {
+    return { width: originalWidth, height: originalHeight };
+  }
+  
+  // Parse aspect ratio (e.g., '16:9' -> [16, 9])
+  const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
+  if (!ratioW || !ratioH) {
+    return { width: originalWidth, height: originalHeight };
+  }
+  
+  const targetRatio = ratioW / ratioH;
+  const originalRatio = originalWidth / originalHeight;
+  
+  // Keep the larger dimension, adjust the smaller one
+  if (originalRatio > targetRatio) {
+    // Original is wider - keep width, adjust height
+    return {
+      width: originalWidth,
+      height: Math.round(originalWidth / targetRatio)
+    };
+  } else {
+    // Original is taller - keep height, adjust width
+    return {
+      width: Math.round(originalHeight * targetRatio),
+      height: originalHeight
+    };
+  }
 }
 
 /**
- * Generate an image using Nano Banana Pro via OpenRouter
- * @param options - Generation options including prompt
- * @returns Base64 encoded image data URL
+ * Analyze an existing image and generate a new creative using Nano Banana Pro
  */
-export async function generateImageWithNanoBanana(
-  options: NanoBananaOptions
-): Promise<NanoBananaResponse> {
-  const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
+export async function generateWithNanaBanana(params: {
+  imageBuffer: Buffer;
+  modifications: string;
+  aspectRatio?: string;
+  analysis?: any;
+  copyMode?: string;
+}): Promise<Buffer> {
+  const { imageBuffer, modifications, aspectRatio = '1:1', copyMode = 'simple_copy' } = params;
 
+  const OPENROUTER_API_KEY = getOpenRouterKey();
+  
   if (!OPENROUTER_API_KEY) {
     throw new Error('OPENROUTER_API_KEY is not configured');
   }
 
   try {
-    const response = await fetch(OPENROUTER_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://creativecopycat.app',
-        'X-Title': 'CreativeCopycat',
-      },
-      body: JSON.stringify({
-        model: NANO_BANANA_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        modalities: ['image', 'text'],
-        temperature,
-        max_tokens: maxTokens,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `OpenRouter API error: ${response.status} ${response.statusText}. ${
-          errorData.error?.message || JSON.stringify(errorData)
-        }`
-      );
-    }
-
-    const result = await response.json();
-
-    // Extract image from response
-    const message = result.choices?.[0]?.message;
-    if (!message?.images || message.images.length === 0) {
-      throw new Error('No images returned from Nano Banana Pro');
-    }
-
-    // Get the first generated image
-    const imageUrl = message.images[0].image_url.url;
-
-    return {
-      imageUrl,
-      rawResponse: result,
-    };
-  } catch (error) {
-    console.error('Error generating image with Nano Banana Pro:', error);
-    throw error;
-  }
-}
-
-/**
- * Generate a creative banner using Nano Banana Pro
- * @param description - Detailed description of the banner to generate
- * @param brandInfo - Brand information to include
- * @returns Base64 encoded image data URL
- */
-export async function generateCreativeBanner(
-  description: string,
-  brandInfo?: {
-    name?: string;
-    colors?: string[];
-    style?: string;
-  }
-): Promise<NanoBananaResponse> {
-  let prompt = description;
-
-  // Enhance prompt with brand information
-  if (brandInfo) {
-    const brandDetails = [];
-    if (brandInfo.name) {
-      brandDetails.push(`Brand: ${brandInfo.name}`);
-    }
-    if (brandInfo.colors && brandInfo.colors.length > 0) {
-      brandDetails.push(`Brand colors: ${brandInfo.colors.join(', ')}`);
-    }
-    if (brandInfo.style) {
-      brandDetails.push(`Style: ${brandInfo.style}`);
-    }
-
-    if (brandDetails.length > 0) {
-      prompt = `${description}\n\n${brandDetails.join('\n')}`;
-    }
-  }
-
-  return generateImageWithNanoBanana({
-    prompt,
-    temperature: 0.8, // Slightly higher for creative generation
-  });
-}
-
-/**
- * Convert base64 data URL to Buffer
- * @param dataUrl - Base64 data URL (e.g., "data:image/png;base64,...")
- * @returns Buffer containing the image data
- */
-export function dataUrlToBuffer(dataUrl: string): Buffer {
-  // Extract base64 data from data URL
-  const matches = dataUrl.match(/^data:image\/\w+;base64,(.+)$/);
-  if (!matches || matches.length < 2) {
-    throw new Error('Invalid data URL format');
-  }
-  return Buffer.from(matches[1], 'base64');
-}
-
-/**
- * Generate an image and return as Buffer for upload
- * @param options - Generation options
- * @returns Buffer containing the generated image
- */
-export async function generateImageBuffer(
-  options: NanoBananaOptions
-): Promise<Buffer> {
-  const result = await generateImageWithNanoBanana(options);
-  return dataUrlToBuffer(result.imageUrl);
-}
-
-/**
- * Analyze an existing image and generate a new creative using Nano Banana Pro
- * Similar to generateWithDallE3 but uses Nano Banana Pro via OpenRouter
- *
- * @param params - Image buffer, modifications, and aspect ratio
- * @returns Buffer containing the generated image
- */
-export async function generateWithNanoBanana(params: {
-  imageBuffer: Buffer;
-  modifications: string;
-  aspectRatio?: string;
-  analysis?: any; // Optional pre-existing analysis data
-}): Promise<Buffer> {
-  const { imageBuffer, modifications, aspectRatio = '1:1', analysis } = params;
-
-  try {
-    console.log('🍌 NANO BANANA PRO PIPELINE: Starting...');
+    console.log('🍌 NANO BANANA PRO: Starting generation...');
     console.log(`📐 Aspect ratio: ${aspectRatio}`);
-    console.log(`📝 Modifications: ${modifications}`);
+    console.log(`📝 Modifications: ${modifications.substring(0, 100)}...`);
 
-    // Convert image to base64 for analysis
+    // Get original dimensions from image metadata
+    const sharp = (await import('sharp')).default;
+    const originalMetadata = await sharp(imageBuffer).metadata();
+    const originalWidth = originalMetadata.width!;
+    const originalHeight = originalMetadata.height!;
+    console.log(`📏 Original dimensions: ${originalWidth}x${originalHeight}`);
+    
+    // Calculate target dimensions based on aspect ratio
+    const targetDimensions = calculateTargetDimensions(originalWidth, originalHeight, aspectRatio);
+    const targetWidth = targetDimensions.width;
+    const targetHeight = targetDimensions.height;
+    console.log(`🎯 Target dimensions: ${targetWidth}x${targetHeight} (ratio: ${aspectRatio})`);
+
+    // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
     const mimeType = detectMimeType(imageBuffer);
 
-    // ========== STEP 1: Analyze image and generate detailed prompt ==========
-    console.log('\n👁️ STEP 1: Analyzing image and generating prompt...');
+    // Step 1: Generate prompt via Claude
+    console.log(`👁️ Step 1: Analyzing image for mode: ${copyMode}...`);
+    
+    // Different prompt strategies for different modes
+    let promptRequest = '';
+    
+    switch (copyMode) {
+      case 'simple_copy':
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a minor change.
 
-    const promptGenerationRequest = `You are an expert at analyzing advertising banners and writing detailed image generation prompts.
+TASK: Create a detailed prompt to recreate this image with MINIMAL changes - ONLY replace any visible company logo or brand name with "Algonova". Everything else must stay EXACTLY the same.
 
-Analyze this banner image and create a detailed prompt to recreate it with modifications.
+PRESERVE EXACTLY:
+- Character appearance, age, gender, ethnicity, clothing, pose, position, expression
+- Background colors, style, patterns, decorations
+- Text content, placement, fonts, colors, sizes
+- Layout and composition
+- All visual elements and decorations
+- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
-USER MODIFICATIONS: ${modifications}
+CHANGE ONLY:
+- Replace any visible company logo or brand name with "Algonova"
 
-Your task:
-1. Describe ALL visual elements in detail (layout, colors, text, characters, objects, style)
-2. Include the exact text content that should appear (including proper typography and placement)
-3. Apply the user's modifications
-4. IMPORTANT: Replace any competitor brand names with "Algonova" (use purple #833AE0 for brand elements)
-5. Keep the same composition, style, and visual language as the original
-6. For Nano Banana Pro: Be specific about text rendering, layout, and design elements
+Return a detailed prompt for image generation that preserves the original design exactly.`;
+        break;
 
-Return a detailed prompt (200-300 words) that will recreate this banner.
-The prompt should be descriptive, specific, and focus on visual details, text placement, and design style.
+      case 'slightly_different':
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a slight variation.
 
-Format: Return ONLY the prompt text, no JSON, no explanations.`;
+TASK: Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
 
-    // Use OpenRouter with Claude for prompt generation (better understanding)
-    const step1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+PRESERVE EXACTLY:
+- Art style and illustration technique
+- Background colors, style, patterns, decorations  
+- Text content, placement, fonts, colors, sizes
+- Layout and composition
+- Character position in frame
+- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+
+MODIFY:
+- Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
+- Replace any visible company logo or brand name with "Algonova"
+
+IMPORTANT: The character should feel like a different person but in the same art style and similar pose.
+
+Return a detailed prompt for image generation.`;
+        break;
+
+      default:
+        // Fallback to generic prompt
+        promptRequest = `You are a graphic designer analyzing an image to create a recreation prompt.
+
+ANALYZE THIS IMAGE and describe all elements.
+
+MODIFICATIONS NEEDED: ${modifications}
+
+CRITICAL REQUIREMENTS:
+- Target dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+- Generated image MUST match these EXACT dimensions
+- Replace brand names with "Algonova"
+
+Return ONLY the detailed prompt for image generation.`;
+    }
+
+    const step1Response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
@@ -212,15 +161,10 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
           {
             role: 'user',
             content: [
-              {
-                type: 'text',
-                text: promptGenerationRequest,
-              },
+              { type: 'text', text: promptRequest },
               {
                 type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`,
-                },
+                image_url: { url: `data:${mimeType};base64,${base64Image}` },
               },
             ],
           },
@@ -231,40 +175,117 @@ Format: Return ONLY the prompt text, no JSON, no explanations.`;
     });
 
     if (!step1Response.ok) {
-      const errorText = await step1Response.text();
-      console.error('❌ Step 1 error:', step1Response.status, errorText);
-      throw new Error(`Prompt generation error: ${step1Response.status}`);
+      throw new Error(`Prompt generation failed: ${step1Response.status}`);
     }
 
-    const step1Data: any = await step1Response.json();
-    const generationPrompt = step1Data.choices?.[0]?.message?.content;
+    const step1Data = await step1Response.json();
+    const prompt = step1Data.choices?.[0]?.message?.content;
 
-    if (!generationPrompt) {
-      throw new Error('No prompt returned from analysis step');
+    if (!prompt) {
+      throw new Error('No prompt generated');
     }
 
-    console.log('✅ STEP 1 COMPLETE! Generated prompt:');
-    console.log(generationPrompt.substring(0, 300) + '...');
+    console.log(`✅ Prompt generated: ${prompt.substring(0, 100)}...`);
 
-    // ========== STEP 2: Generate image with Nano Banana Pro ==========
-    console.log('\n🍌 STEP 2: Generating image with Nano Banana Pro...');
+    // Step 2: Generate image with Nano Banana Pro
+    // For slightly_different: text-only (generate from scratch for more variation)
+    // For other modes: text + image (modify original for accuracy)
+    const useImageReference = copyMode !== 'slightly_different';
+    
+    console.log(`🍌 Step 2: Generating image ${useImageReference ? 'with original as reference' : 'from text description only'}...`);
 
-    const result = await generateImageWithNanoBanana({
-      prompt: generationPrompt,
-      temperature: 0.8, // Creative generation
+    const step2Response = await fetch(OPENROUTER_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://creativecopycat.app',
+        'X-Title': 'CreativeCopycat',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-pro-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: useImageReference
+              ? [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                  },
+                ]
+              : prompt, // Text only for slightly_different
+          },
+        ],
+        modalities: ['image', 'text'],
+        temperature: 0.8,
+        max_tokens: 4096,
+      }),
     });
 
-    console.log('✅ STEP 2 COMPLETE! Image generated');
+    if (!step2Response.ok) {
+      throw new Error(`Image generation failed: ${step2Response.status}`);
+    }
 
-    // Convert base64 data URL to Buffer
-    const imageBuffer = dataUrlToBuffer(result.imageUrl);
+    const step2Data = await step2Response.json();
+    const imageUrl = step2Data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    console.log(`✅ Generated: ${imageBuffer.length} bytes`);
-    console.log('🎉 Nano Banana Pro pipeline successful!\n');
+    if (!imageUrl) {
+      throw new Error('No image generated');
+    }
 
-    return imageBuffer;
+    // Convert data URL to Buffer
+    const matches = imageUrl.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Invalid image data URL');
+    }
+
+    let resultBuffer = Buffer.from(matches[1], 'base64');
+    console.log(`✅ Generated: ${resultBuffer.length} bytes`);
+
+    // Step 3: Resize to match target dimensions
+    console.log('\n📐 Step 3: Resizing to match target dimensions...');
+    console.log(`  Requested aspectRatio: ${aspectRatio}`);
+
+    const generatedMetadata = await sharp(resultBuffer).metadata();
+    console.log(`  Generated size: ${generatedMetadata.width}x${generatedMetadata.height}`);
+    console.log(`  Target size: ${targetWidth}x${targetHeight}`);
+
+    // Only resize if dimensions are different (10px tolerance)
+    if (Math.abs(generatedMetadata.width! - targetWidth) > 10 ||
+        Math.abs(generatedMetadata.height! - targetHeight) > 10) {
+
+      const currentAspect = generatedMetadata.width! / generatedMetadata.height!;
+      const targetAspect = targetWidth / targetHeight;
+      const aspectDiff = Math.abs(currentAspect - targetAspect) / targetAspect;
+
+      console.log(`  Current aspect: ${currentAspect.toFixed(3)}, Target: ${targetAspect.toFixed(3)}`);
+      console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
+
+      // Always use 'cover' to match exact dimensions
+      console.log(`  🎯 Using 'cover' to match exact dimensions`);
+      const resized = await sharp(resultBuffer)
+        .resize(targetWidth, targetHeight, {
+          fit: 'cover',
+          position: 'centre',
+          kernel: 'lanczos3'
+        })
+        .toBuffer();
+      // @ts-ignore - Sharp Buffer type compatibility
+      resultBuffer = resized;
+
+      const finalMetadata = await sharp(resultBuffer).metadata();
+      console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
+    } else {
+      console.log(`  ✅ Size already matches, no resize needed`);
+    }
+
+    console.log('✅ Step 3 complete!');
+
+    return resultBuffer;
   } catch (error) {
-    console.error('❌ Nano Banana Pro pipeline error:', error);
+    console.error('❌ Nano Banana Pro error:', error);
     throw error;
   }
 }
