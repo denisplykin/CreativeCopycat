@@ -44,6 +44,32 @@ function calculateTargetDimensions(
 }
 
 /**
+ * Calculate high-resolution dimensions for generation request
+ * Always use 1024px on the larger side for better quality
+ */
+function calculateHighResDimensions(
+  width: number,
+  height: number
+): { width: number; height: number } {
+  const TARGET_SIZE = 1024;
+  
+  // Determine which side is larger
+  if (width >= height) {
+    // Width is larger - set to 1024, scale height proportionally
+    return {
+      width: TARGET_SIZE,
+      height: Math.round((TARGET_SIZE / width) * height)
+    };
+  } else {
+    // Height is larger - set to 1024, scale width proportionally
+    return {
+      width: Math.round((TARGET_SIZE / height) * width),
+      height: TARGET_SIZE
+    };
+  }
+}
+
+/**
  * Analyze an existing image and generate a new creative using Nano Banana Pro
  */
 export async function generateWithNanaBanana(params: {
@@ -78,6 +104,10 @@ export async function generateWithNanaBanana(params: {
     const targetWidth = targetDimensions.width;
     const targetHeight = targetDimensions.height;
     console.log(`🎯 Target dimensions: ${targetWidth}x${targetHeight} (ratio: ${aspectRatio})`);
+    
+    // Calculate high-resolution request (1024px on larger side)
+    const highResDimensions = calculateHighResDimensions(targetWidth, targetHeight);
+    console.log(`📐 High-res request: ${highResDimensions.width}x${highResDimensions.height} (for better quality)`);
 
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
@@ -101,7 +131,7 @@ PRESERVE EXACTLY:
 - Text content, placement, fonts, colors, sizes
 - Layout and composition
 - All visual elements and decorations
-- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+- HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 CHANGE ONLY:
 - Replace any visible company logo or brand name with "Algonova"
@@ -120,7 +150,7 @@ PRESERVE EXACTLY:
 - Text content, placement, fonts, colors, sizes
 - Layout and composition
 - Character position in frame
-- Dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+- HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 MODIFY:
 - Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
