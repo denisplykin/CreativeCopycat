@@ -290,6 +290,7 @@ export async function POST(request: Request) {
           image_url: generatedUrl,
           active_days: 0,
           ad_id: `gen_${Date.now()}`,
+          launch_date: new Date().toISOString(), // Set current date as launch_date
         })
         .select()
         .single();
