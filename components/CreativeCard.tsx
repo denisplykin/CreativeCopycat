@@ -56,6 +56,16 @@ export function CreativeCard({ creative, onClick }: CreativeCardProps) {
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
         
+        {/* Type Badge (Uploaded/Generated) for My Creatives */}
+        {creative.competitor_name === 'My Creatives' && (
+          <Badge
+            variant="secondary"
+            className="absolute top-2 left-2 bg-purple-600/90 text-white backdrop-blur-sm"
+          >
+            {creative.ad_id?.startsWith('gen_') ? '🎨 Generated' : '📤 Uploaded'}
+          </Badge>
+        )}
+        
         {/* Aspect Ratio Badge */}
         {creative.analysis?.aspect_ratio && (
           <Badge

@@ -280,6 +280,31 @@ export async function POST(request: Request) {
       await updateCreativeRun(runId, 'completed', generatedUrl);
     }
 
+    // ✅ SAVE TO "MY CREATIVES" - Auto-add generated results
+    try {
+      console.log('💾 Saving generated creative to My Creatives...');
+      const { data: savedCreative, error: saveError } = await supabaseAdmin
+        .from('competitor_creatives')
+        .insert({
+          competitor_name: 'My Creatives',
+          image_url: generatedUrl,
+          active_days: 0,
+          ad_id: `gen_${Date.now()}`,
+        })
+        .select()
+        .single();
+      
+      if (saveError) {
+        console.error('⚠️ Failed to save to My Creatives:', saveError);
+        // Don't fail the whole request, just log
+      } else {
+        console.log(`✅ Saved to My Creatives: ${savedCreative.id}`);
+      }
+    } catch (saveErr) {
+      console.error('⚠️ Error saving to My Creatives:', saveErr);
+      // Continue anyway
+    }
+
     // Log run (old format for backward compatibility)
     const latency = Date.now() - startTime;
     await createRun(

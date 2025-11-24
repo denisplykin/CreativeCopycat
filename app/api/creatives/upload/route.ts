@@ -82,10 +82,10 @@ export async function POST(request: NextRequest) {
     const { data: creative, error: dbError } = await supabase
       .from('competitor_creatives')
       .insert({
-        competitor_name: competitorName || 'My Upload',
+        competitor_name: competitorName || 'My Creatives',
         image_url: publicUrl,
         active_days: 0,
-        ad_id: null,
+        ad_id: null, // Now nullable after migration
       })
       .select()
       .single();

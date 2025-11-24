@@ -113,13 +113,13 @@ export default function CreativesNewPage() {
     'The Lab',
   ]
 
-  // Получаем уникальных конкурентов из данных
+  // Получаем уникальных конкурентов из данных (excluding My Creatives)
   const uniqueCompetitors = Array.from(
     new Set(creatives.map((c) => c.competitor_name).filter(Boolean))
-  ) as string[]
+  ).filter(name => name !== 'My Creatives') as string[]
 
   // Сортируем по кастомному порядку, остальные в конец по алфавиту
-  const competitors = uniqueCompetitors.sort((a, b) => {
+  const sortedCompetitors = uniqueCompetitors.sort((a, b) => {
     const indexA = competitorOrder.indexOf(a)
     const indexB = competitorOrder.indexOf(b)
     
@@ -137,6 +137,12 @@ export default function CreativesNewPage() {
     // Если оба не в списке - алфавитная сортировка
     return a.localeCompare(b)
   })
+
+  // ✅ Add "My Creatives" at the beginning if there are any
+  const hasMyCreatives = creatives.some(c => c.competitor_name === 'My Creatives')
+  const competitors = hasMyCreatives 
+    ? ['My Creatives', ...sortedCompetitors] 
+    : sortedCompetitors
 
   // Filter creatives (use includes for partial matching, e.g., "Kodland" matches "Kodland Indonesia")
   const filteredCreatives = creatives.filter((creative) => {
