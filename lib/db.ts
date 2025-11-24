@@ -105,9 +105,40 @@ export async function getCreatives(): Promise<Creative[]> {
 
 /**
  * Get creative by ID
+ * Supports both competitor_creatives IDs (integer) and creative_runs IDs (run_{uuid})
  */
 export async function getCreativeById(id: string): Promise<Creative | null> {
-  // ✅ Ищем сначала в competitor_creatives
+  // Check if this is a creative_run ID (format: run_{uuid})
+  if (id.startsWith('run_')) {
+    const runId = id.replace('run_', '');
+    const { data: runData, error: runError } = await supabaseAdmin
+      .from('creative_runs')
+      .select('*')
+      .eq('id', runId)
+      .single();
+
+    if (runData && runData.result_url) {
+      // Map creative_run to Creative format
+      return {
+        id: `run_${runData.id}`,
+        competitor_name: 'My Creatives',
+        original_image_url: runData.result_url,
+        active_days: 0,
+        ad_id: `gen_${runData.created_at}`,
+        analysis: null,
+        generated_character_url: null,
+        generated_background_url: null,
+        generated_image_url: null,
+        figma_file_id: null,
+        status: 'completed' as const,
+        error_message: null,
+        created_at: runData.created_at,
+        updated_at: runData.updated_at || runData.created_at,
+      };
+    }
+  }
+
+  // ✅ Ищем в competitor_creatives (integer ID or string)
   const { data: competitorData, error: competitorError } = await supabaseAdmin
     .from('competitor_creatives')
     .select('*')
