@@ -121,70 +121,54 @@ export async function generateWithNanaBanana(params: {
     
     switch (copyMode) {
       case 'simple_copy':
-        promptRequest = `You are a graphic designer. Look at this image CAREFULLY.
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a minor change.
 
-STEP 1 - COUNT CHARACTERS:
-Look at the image and count EXACTLY how many people/characters are shown.
-- If you see ONE person, you must write "exactly one" or "single character"
-- If you see TWO people, write "exactly two"
-- Be PRECISE. Do NOT guess or assume.
+FIRST: Count the exact number of people/characters in the image.
 
-STEP 2 - CREATE PROMPT:
-Create a detailed prompt to recreate this image with ONLY the logo/brand changed to "Algonova".
-
-YOUR PROMPT MUST:
-- State the EXACT number you counted (e.g., "exactly one girl" if there's one person)
-- If there is ONE character, say "single character" or "exactly one" - NEVER say "two" or "multiple"
-- NEVER add characters that don't exist in the original image
+TASK: Create a detailed prompt to recreate this image with MINIMAL changes - ONLY replace any visible company logo or brand name with "Algonova". Everything else must stay EXACTLY the same.
 
 PRESERVE EXACTLY:
-- Number of characters (DO NOT ADD MORE THAN YOU SEE)
-- Character appearance, clothing, pose, expression
-- Background, colors, patterns
-- All text content and placement
+- The EXACT number of characters (state explicitly in prompt: "exactly X character(s)" or "single character")
+- Character appearance, age, gender, ethnicity, clothing, pose, position, expression
+- Background colors, style, patterns, decorations
+- Text content, placement, fonts, colors, sizes
 - Layout and composition
-- Resolution: ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+- All visual elements and decorations
+- HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 CHANGE ONLY:
-- Replace any visible logo/brand with "Algonova"
+- Replace any visible company logo or brand name with "Algonova"
 
-⚠️ WARNING: If you describe MORE characters than actually exist in the image, the generation will be WRONG. Count carefully!
+IMPORTANT: In your prompt, you MUST explicitly state the number of characters (e.g., "exactly one girl" or "single character" or "two children"). Do NOT let the image generator add or remove any characters.
 
-Return ONLY the image generation prompt.`;
+Return a detailed prompt for image generation.`;
         break;
 
       case 'slightly_different':
-        promptRequest = `You are a graphic designer. Look at this image CAREFULLY.
+        promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a slight variation.
 
-STEP 1 - COUNT CHARACTERS:
-Look at the image and count EXACTLY how many people/characters are shown.
-- If you see ONE person, you must write "exactly one" or "single character"
-- If you see TWO people, write "exactly two"
-- Be PRECISE. Do NOT guess or assume.
+FIRST: Count the exact number of people/characters in the image.
 
-STEP 2 - CREATE PROMPT:
-Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
-
-YOUR PROMPT MUST:
-- State the EXACT number you counted - NEVER add more characters than you see
-- If there is ONE character, say "single character" or "exactly one"
+TASK: Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
 
 PRESERVE EXACTLY:
-- Number of characters (DO NOT ADD MORE THAN YOU SEE)
+- The EXACT number of characters (state explicitly: "exactly X character(s)" or "single character")
 - Art style and illustration technique
-- Background colors, patterns, decorations
-- All text content and placement
+- Background colors, style, patterns, decorations  
+- Text content, placement, fonts, colors, sizes
 - Layout and composition
 - Character position in frame
-- Resolution: ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+- HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
 MODIFY:
-- Character: Keep same age group and gender, but change facial features, hairstyle, expression slightly
-- Replace any visible logo/brand with "Algonova"
+- Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
+- Replace any visible company logo or brand name with "Algonova"
 
-⚠️ WARNING: If you describe MORE characters than actually exist in the image, the generation will be WRONG. Count carefully!
+IMPORTANT: 
+1. The character should feel like a different person but in the same art style and similar pose.
+2. You MUST explicitly state the number of characters (e.g., "exactly one girl"). Do NOT add extra characters.
 
-Return ONLY the image generation prompt.`;
+Return a detailed prompt for image generation.`;
         break;
 
       default:
