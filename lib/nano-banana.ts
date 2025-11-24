@@ -123,9 +123,12 @@ export async function generateWithNanaBanana(params: {
       case 'simple_copy':
         promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a minor change.
 
+FIRST: Count the exact number of people/characters in the image.
+
 TASK: Create a detailed prompt to recreate this image with MINIMAL changes - ONLY replace any visible company logo or brand name with "Algonova". Everything else must stay EXACTLY the same.
 
 PRESERVE EXACTLY:
+- The EXACT number of characters (state explicitly in prompt: "exactly X character(s)" or "single character")
 - Character appearance, age, gender, ethnicity, clothing, pose, position, expression
 - Background colors, style, patterns, decorations
 - Text content, placement, fonts, colors, sizes
@@ -136,15 +139,20 @@ PRESERVE EXACTLY:
 CHANGE ONLY:
 - Replace any visible company logo or brand name with "Algonova"
 
-Return a detailed prompt for image generation that preserves the original design exactly.`;
+IMPORTANT: In your prompt, you MUST explicitly state the number of characters (e.g., "exactly one girl" or "single character" or "two children"). Do NOT let the image generator add or remove any characters.
+
+Return a detailed prompt for image generation.`;
         break;
 
       case 'slightly_different':
         promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a slight variation.
 
+FIRST: Count the exact number of people/characters in the image.
+
 TASK: Create a prompt to recreate this image with a SLIGHTLY DIFFERENT character while keeping the same style.
 
 PRESERVE EXACTLY:
+- The EXACT number of characters (state explicitly: "exactly X character(s)" or "single character")
 - Art style and illustration technique
 - Background colors, style, patterns, decorations  
 - Text content, placement, fonts, colors, sizes
@@ -156,7 +164,9 @@ MODIFY:
 - Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
 - Replace any visible company logo or brand name with "Algonova"
 
-IMPORTANT: The character should feel like a different person but in the same art style and similar pose.
+IMPORTANT: 
+1. The character should feel like a different person but in the same art style and similar pose.
+2. You MUST explicitly state the number of characters (e.g., "exactly one girl"). Do NOT add extra characters.
 
 Return a detailed prompt for image generation.`;
         break;
@@ -215,7 +225,10 @@ Return ONLY the detailed prompt for image generation.`;
       throw new Error('No prompt generated');
     }
 
-    console.log(`✅ Prompt generated: ${prompt.substring(0, 100)}...`);
+    console.log(`✅ Prompt generated (full):`);
+    console.log(`📝 PROMPT START >>>>`);
+    console.log(prompt);
+    console.log(`<<<< PROMPT END`);
 
     // ✅ Validate that prompt includes "Algonova" for logo replacement
     if (copyMode === 'simple_copy' || copyMode === 'slightly_different') {
