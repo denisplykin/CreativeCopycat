@@ -339,20 +339,20 @@ This is mandatory. Return the complete prompt now.`;
           saturation: 1.05, // +5% saturation for richer colors
           brightness: 1.0,  // Keep brightness unchanged
         })
-        .webp({
-          quality: 95,         // Very high quality (95%)
-          effort: 6,           // Maximum compression effort
-          smartSubsample: false, // Preserve details
+        .png({
+          quality: 100,        // Maximum PNG quality
+          compressionLevel: 6, // Balanced compression (0-9)
+          palette: false,      // Full color, not palette
         })
         .toBuffer();
       // @ts-ignore - Sharp Buffer type compatibility
       resultBuffer = resized;
 
       const finalMetadata = await sharp(resultBuffer).metadata();
-      console.log(`  ✅ Enhanced to ${finalMetadata.width}x${finalMetadata.height} (WebP, quality: 95%)`);
+      console.log(`  ✅ Enhanced to ${finalMetadata.width}x${finalMetadata.height} (PNG, quality: 100%)`);
     } else {
       console.log(`  ✅ Size matches, applying quality enhancement only`);
-      // Even if size matches, apply sharpening and WebP conversion
+      // Even if size matches, apply sharpening and PNG optimization
       const enhanced = await sharp(resultBuffer)
         .sharpen({
           sigma: 1.2,
@@ -363,15 +363,15 @@ This is mandatory. Return the complete prompt now.`;
           saturation: 1.05,
           brightness: 1.0,
         })
-        .webp({
-          quality: 95,
-          effort: 6,
-          smartSubsample: false,
+        .png({
+          quality: 100,
+          compressionLevel: 6,
+          palette: false,
         })
         .toBuffer();
       // @ts-ignore - Sharp Buffer type compatibility
       resultBuffer = enhanced;
-      console.log(`  ✅ Enhanced to WebP (quality: 95%)`);
+      console.log(`  ✅ Enhanced to PNG (quality: 100%)`);
     }
 
     console.log('✅ Step 3 complete with quality enhancement!');
