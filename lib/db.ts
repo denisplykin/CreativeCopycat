@@ -8,10 +8,10 @@ import type {
 
 /**
  * Get all creatives
+ * Includes both competitor creatives AND completed generated creatives from creative_runs
  */
 export async function getCreatives(): Promise<Creative[]> {
-  // Используем подзапрос для получения DISTINCT по image_url
-  // Для каждого уникального image_url берем последнюю запись (MAX id)
+  // 1. Fetch from competitor_creatives (uploaded + competitor data + auto-saved generated)
   const { data, error } = await supabaseAdmin
     .from('competitor_creatives')
     .select('*')
@@ -33,10 +33,10 @@ export async function getCreatives(): Promise<Creative[]> {
     return true;
   });
 
-  console.log(`📊 Loaded ${data?.length || 0} records, after dedup: ${uniqueData.length}`);
+  console.log(`📊 Loaded ${data?.length || 0} competitor_creatives records, after dedup: ${uniqueData.length}`);
 
   // Маппинг из competitor_creatives в формат Creative
-  return uniqueData.map((item: any) => ({
+  const competitorCreatives = uniqueData.map((item: any) => ({
     id: item.id.toString(),
     competitor_name: item.competitor_name,
     original_image_url: item.image_url, // Маппинг image_url -> original_image_url
@@ -52,6 +52,55 @@ export async function getCreatives(): Promise<Creative[]> {
     created_at: item.created_at,
     updated_at: item.updated_at,
   }));
+
+  // 2. Fetch completed runs from creative_runs that are NOT already in competitor_creatives
+  // (These are old generations before auto-save was implemented)
+  const { data: runsData, error: runsError } = await supabaseAdmin
+    .from('creative_runs')
+    .select('*')
+    .eq('status', 'completed')
+    .not('result_url', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+
+  if (runsError) {
+    console.error('⚠️ Failed to fetch creative_runs:', runsError.message);
+  }
+
+  // Filter out runs that are already in competitor_creatives (by result_url)
+  const competitorUrls = new Set(uniqueData.map((item: any) => item.image_url));
+  const uniqueRuns = (runsData || []).filter((run: any) => {
+    return !competitorUrls.has(run.result_url) && !seen.has(run.result_url);
+  });
+
+  console.log(`📊 Found ${runsData?.length || 0} completed runs, ${uniqueRuns.length} unique (not in competitor_creatives)`);
+
+  // Map runs to Creative format (as "My Creatives" with generated badge)
+  const generatedCreatives = uniqueRuns.map((run: any) => {
+    seen.add(run.result_url); // Track to avoid duplicates
+    return {
+      id: `run_${run.id}`, // Prefix with 'run_' to distinguish from competitor_creatives
+      competitor_name: 'My Creatives',
+      original_image_url: run.result_url,
+      active_days: 0,
+      ad_id: `gen_${run.created_at}`, // Mark as generated
+      analysis: null,
+      generated_character_url: null,
+      generated_background_url: null,
+      generated_image_url: null,
+      figma_file_id: null,
+      status: 'completed' as const,
+      error_message: null,
+      created_at: run.created_at,
+      updated_at: run.updated_at || run.created_at,
+    };
+  });
+
+  // Combine both sources
+  const allCreatives = [...competitorCreatives, ...generatedCreatives];
+  console.log(`📊 Total creatives: ${allCreatives.length} (${competitorCreatives.length} from competitor_creatives + ${generatedCreatives.length} from creative_runs)`);
+
+  return allCreatives;
 }
 
 /**
