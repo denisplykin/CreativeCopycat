@@ -323,58 +323,24 @@ This is mandatory. Return the complete prompt now.`;
       console.log(`  Aspect difference: ${(aspectDiff * 100).toFixed(2)}%`);
 
       // Always use 'cover' to match exact dimensions
-      console.log(`  🎯 Using 'cover' to match exact dimensions with quality enhancement`);
+      console.log(`  🎯 Using 'cover' to match exact dimensions`);
       const resized = await sharp(resultBuffer)
         .resize(targetWidth, targetHeight, {
           fit: 'cover',
           position: 'centre',
-          kernel: 'lanczos3' // High-quality resize algorithm
-        })
-        .sharpen({
-          sigma: 1.2,  // Moderate sharpening (not too aggressive)
-          m1: 1.0,     // Threshold for edges
-          m2: 0.5,     // Threshold for details
-        })
-        .modulate({
-          saturation: 1.05, // +5% saturation for richer colors
-          brightness: 1.0,  // Keep brightness unchanged
-        })
-        .png({
-          quality: 100,        // Maximum PNG quality
-          compressionLevel: 6, // Balanced compression (0-9)
-          palette: false,      // Full color, not palette
+          kernel: 'lanczos3'
         })
         .toBuffer();
       // @ts-ignore - Sharp Buffer type compatibility
       resultBuffer = resized;
 
       const finalMetadata = await sharp(resultBuffer).metadata();
-      console.log(`  ✅ Enhanced to ${finalMetadata.width}x${finalMetadata.height} (PNG, quality: 100%)`);
+      console.log(`  ✅ Resized to ${finalMetadata.width}x${finalMetadata.height}`);
     } else {
-      console.log(`  ✅ Size matches, applying quality enhancement only`);
-      // Even if size matches, apply sharpening and PNG optimization
-      const enhanced = await sharp(resultBuffer)
-        .sharpen({
-          sigma: 1.2,
-          m1: 1.0,
-          m2: 0.5,
-        })
-        .modulate({
-          saturation: 1.05,
-          brightness: 1.0,
-        })
-        .png({
-          quality: 100,
-          compressionLevel: 6,
-          palette: false,
-        })
-        .toBuffer();
-      // @ts-ignore - Sharp Buffer type compatibility
-      resultBuffer = enhanced;
-      console.log(`  ✅ Enhanced to PNG (quality: 100%)`);
+      console.log(`  ✅ Size already matches, no resize needed`);
     }
 
-    console.log('✅ Step 3 complete with quality enhancement!');
+    console.log('✅ Step 3 complete!');
 
     return resultBuffer;
   } catch (error) {
