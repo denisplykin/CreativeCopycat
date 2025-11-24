@@ -179,13 +179,72 @@ Return ONLY the detailed prompt for image generation.`;
     }
 
     const step1Data = await step1Response.json();
-    const prompt = step1Data.choices?.[0]?.message?.content;
+    let prompt = step1Data.choices?.[0]?.message?.content;
 
     if (!prompt) {
       throw new Error('No prompt generated');
     }
 
     console.log(`✅ Prompt generated: ${prompt.substring(0, 100)}...`);
+
+    // ✅ Validate that prompt includes "Algonova" for logo replacement
+    if (copyMode === 'simple_copy' || copyMode === 'slightly_different') {
+      if (!prompt.toLowerCase().includes('algonova')) {
+        console.log('⚠️ Prompt missing "Algonova", retrying with stronger instruction...');
+        
+        // Retry with more explicit prompt
+        const retryPromptRequest = `CRITICAL: Your previous response did not include instructions to change the brand to "Algonova".
+
+You MUST include "Algonova" as a replacement for any existing brand/logo in the image.
+
+Look at the image again and provide a complete prompt that:
+1. Describes all visual elements accurately
+2. EXPLICITLY states to replace the "${copyMode === 'simple_copy' ? 'logo/brand' : 'logo'}" with "Algonova"
+
+This is mandatory. Return the complete prompt now.`;
+
+        const retryResponse = await fetch(OPENROUTER_BASE_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://creativecopycat.app',
+            'X-Title': 'CreativeCopycat',
+          },
+          body: JSON.stringify({
+            model: 'anthropic/claude-3.5-sonnet',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: retryPromptRequest },
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                  },
+                ],
+              },
+            ],
+            max_tokens: 1000,
+            temperature: 0.5, // Slightly higher for better compliance
+          }),
+        });
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const retryPrompt = retryData.choices?.[0]?.message?.content;
+          
+          if (retryPrompt && retryPrompt.toLowerCase().includes('algonova')) {
+            prompt = retryPrompt;
+            console.log(`✅ Retry successful! Prompt now includes Algonova: ${prompt.substring(0, 100)}...`);
+          } else {
+            console.log('⚠️ Retry still missing Algonova, proceeding with original prompt');
+          }
+        } else {
+          console.log('⚠️ Retry failed, proceeding with original prompt');
+        }
+      }
+    }
 
     // Step 2: Generate image with Nano Banana Pro
     // For slightly_different: text-only (generate from scratch for more variation)
