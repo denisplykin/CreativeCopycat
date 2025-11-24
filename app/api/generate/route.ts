@@ -262,9 +262,9 @@ export async function POST(request: Request) {
         // Mask edit returns the final image
         const finalBuffer = bgBuffer;
 
-        // Upload to storage
-        const creativePath = `generated-creatives/${creativeId}_${Date.now()}.png`;
-        await uploadFile('generated-creatives', creativePath, finalBuffer, 'image/png');
+        // Upload to storage (WebP format for better quality/size ratio)
+        const creativePath = `generated-creatives/${creativeId}_${Date.now()}.webp`;
+        await uploadFile('generated-creatives', creativePath, finalBuffer, 'image/webp');
         generatedUrl = getPublicUrl('generated-creatives', creativePath);
         
         console.log(`✅ Creative generated: ${generatedUrl}`);
