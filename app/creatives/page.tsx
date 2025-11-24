@@ -146,6 +146,11 @@ export default function CreativesNewPage() {
 
   // Filter creatives (use includes for partial matching, e.g., "Kodland" matches "Kodland Indonesia")
   const filteredCreatives = creatives.filter((creative) => {
+    // ✅ Exclude "My Creatives" from "All" tab (only show in My Creatives tab)
+    if (selectedCompetitor === 'All' && creative.competitor_name === 'My Creatives') {
+      return false
+    }
+    
     if (selectedCompetitor !== 'All') {
       // If no competitor_name, exclude it
       if (!creative.competitor_name) {
