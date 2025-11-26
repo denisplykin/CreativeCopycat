@@ -95,12 +95,62 @@ export default function CreativesNewPage() {
   }
 
   // Get unique competitors
-  const competitors = Array.from(
+  // Кастомный порядок конкурентов
+  const competitorOrder = [
+    'Kodland Indonesia',
+    'Bright Champs',
+    'Schola Indonesia (Bright Champs)',
+    'Ruangguru',
+    'Coding Bee Academy',
+    'Timedoor Academy',
+    'KodeKiddo',
+    'DIGIKIDZ',
+    'Edufic',
+    'Kalananti',
+    'KodioKids',
+    'Math Champs by Ruangguru',
+    'Sekolah programming Indonesia',
+    'The Lab',
+  ]
+
+  // Получаем уникальных конкурентов из данных (excluding My Creatives)
+  const uniqueCompetitors = Array.from(
     new Set(creatives.map((c) => c.competitor_name).filter(Boolean))
-  ).sort() as string[]
+  ).filter(name => name !== 'My Creatives') as string[]
+
+  // Сортируем по кастомному порядку, остальные в конец по алфавиту
+  const sortedCompetitors = uniqueCompetitors.sort((a, b) => {
+    const indexA = competitorOrder.indexOf(a)
+    const indexB = competitorOrder.indexOf(b)
+    
+    // Если оба в списке - сортируем по позиции в списке
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB
+    }
+    
+    // Если только A в списке - A выше
+    if (indexA !== -1) return -1
+    
+    // Если только B в списке - B выше
+    if (indexB !== -1) return 1
+    
+    // Если оба не в списке - алфавитная сортировка
+    return a.localeCompare(b)
+  })
+
+  // ✅ Add "My Creatives" at the beginning if there are any
+  const hasMyCreatives = creatives.some(c => c.competitor_name === 'My Creatives')
+  const competitors = hasMyCreatives 
+    ? ['My Creatives', ...sortedCompetitors] 
+    : sortedCompetitors
 
   // Filter creatives (use includes for partial matching, e.g., "Kodland" matches "Kodland Indonesia")
   const filteredCreatives = creatives.filter((creative) => {
+    // ✅ Exclude "My Creatives" from "All" tab (only show in My Creatives tab)
+    if (selectedCompetitor === 'All' && creative.competitor_name === 'My Creatives') {
+      return false
+    }
+    
     if (selectedCompetitor !== 'All') {
       // If no competitor_name, exclude it
       if (!creative.competitor_name) {
@@ -112,6 +162,13 @@ export default function CreativesNewPage() {
       }
     }
     return true
+  })
+  
+  // ✅ Сортировка по активным дням (чем меньше дней - тем выше)
+  const sortedCreatives = [...filteredCreatives].sort((a, b) => {
+    const daysA = a.active_days ?? 0
+    const daysB = b.active_days ?? 0
+    return daysA - daysB // Ascending order (fewer days first)
   })
   
   // Debug: Log filter results
@@ -146,6 +203,7 @@ export default function CreativesNewPage() {
           aspectRatio: config.aspectRatio,
           configGenerationType: 'custom',
           customPrompt: config.customPrompt,
+          imageModel: 'nano-banana-pro',
         }
       })
     } else {
@@ -161,19 +219,7 @@ export default function CreativesNewPage() {
             copyMode: 'simple_copy',
             aspectRatio: config.aspectRatio,
             configGenerationType: 'simple',
-          }
-        })
-      }
-      
-      if (options?.copyWithColor) {
-        modesToGenerate.push({
-          mode: 'copy_with_color',
-          config: {
-            creativeId: selectedCreative.id,
-            generationType: 'full_creative',
-            copyMode: 'copy_with_color',
-            aspectRatio: config.aspectRatio,
-            configGenerationType: 'simple',
+            imageModel: 'nano-banana-pro',
           }
         })
       }
@@ -187,6 +233,7 @@ export default function CreativesNewPage() {
             copyMode: 'slightly_different',
             aspectRatio: config.aspectRatio,
             configGenerationType: 'simple',
+            imageModel: 'nano-banana-pro',
           }
         })
       }
@@ -281,20 +328,28 @@ export default function CreativesNewPage() {
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      console.log('⚠️ No file selected')
+      return
+    }
+
+    console.log('📁 File selected:', file.name, `(${(file.size / 1024).toFixed(1)} KB)`)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type)
       alert('Please upload an image file')
       return
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
+      console.error('❌ File too large:', file.size)
       alert('File size must be less than 10MB')
       return
     }
 
+    console.log('✅ File validation passed')
     setUploading(true)
     try {
       console.log('📤 Uploading file:', file.name)
@@ -309,6 +364,8 @@ export default function CreativesNewPage() {
         method: 'POST',
         body: formData,
       })
+
+      console.log('📥 Upload response status:', response.status)
 
       if (!response.ok) {
         const error = await response.json()
@@ -329,6 +386,10 @@ export default function CreativesNewPage() {
       alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
+      // Reset input to allow uploading same file again
+      if (e.target) {
+        e.target.value = ''
+      }
     }
   }
 
@@ -403,13 +464,13 @@ export default function CreativesNewPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : filteredCreatives.length === 0 ? (
+        ) : sortedCreatives.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No creatives found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredCreatives.map((creative) => (
+            {sortedCreatives.map((creative) => (
               <CreativeCard
                 key={creative.id}
                 creative={creative}

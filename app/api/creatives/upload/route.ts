@@ -78,13 +78,15 @@ export async function POST(request: NextRequest) {
     const publicUrl = urlData.publicUrl;
     console.log('🔗 Public URL:', publicUrl);
 
-    // Create creative record in database
+    // Create creative record in competitor_creatives table
     const { data: creative, error: dbError } = await supabase
-      .from('creatives')
+      .from('competitor_creatives')
       .insert({
-        competitor_name: competitorName || 'My Upload',
-        original_image_url: publicUrl,
-        status: 'pending',
+        competitor_name: competitorName || 'My Creatives',
+        image_url: publicUrl,
+        active_days: 0,
+        ad_id: null, // Now nullable after migration
+        launch_date: new Date().toISOString(), // Set current date as launch_date
       })
       .select()
       .single();

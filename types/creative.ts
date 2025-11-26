@@ -3,6 +3,8 @@ export interface Creative {
   id: string;
   competitor_name: string | null;
   original_image_url: string;
+  active_days?: number; // ✅ Количество активных дней из базы
+  ad_id?: string; // ✅ ID креатива из Google Sheets
   analysis: AnalysisData | null;
   generated_character_url: string | null;
   generated_background_url: string | null;
@@ -154,7 +156,7 @@ export interface LayoutElement {
   text_effects?: string | null; // "strikethrough", "underline", "shadow", "outline", "gradient", etc.
 }
 
-export type CopyMode = 'mask_edit' | 'simple_copy' | 'copy_with_color' | 'slightly_different';
+export type CopyMode = 'mask_edit' | 'simple_copy' | 'slightly_different';
 
 export type GenerationType = 'character' | 'background' | 'full_creative';
 
