@@ -107,10 +107,13 @@ export async function getCreatives(): Promise<Creative[]> {
  * Get creative by ID
  * Supports both competitor_creatives IDs (integer) and creative_runs IDs (run_{uuid})
  */
-export async function getCreativeById(id: string): Promise<Creative | null> {
+export async function getCreativeById(id: string | number): Promise<Creative | null> {
+  // ✅ Ensure id is a string (might come as number from frontend)
+  const idStr = String(id);
+  
   // Check if this is a creative_run ID (format: run_{uuid})
-  if (id.startsWith('run_')) {
-    const runId = id.replace('run_', '');
+  if (idStr.startsWith('run_')) {
+    const runId = idStr.replace('run_', '');
     const { data: runData, error: runError } = await supabaseAdmin
       .from('creative_runs')
       .select('*')
@@ -142,7 +145,7 @@ export async function getCreativeById(id: string): Promise<Creative | null> {
   const { data: competitorData, error: competitorError } = await supabaseAdmin
     .from('competitor_creatives')
     .select('*')
-    .eq('id', id)
+    .eq('id', idStr)
     .single();
 
   if (competitorData) {
@@ -169,7 +172,7 @@ export async function getCreativeById(id: string): Promise<Creative | null> {
   const { data, error } = await supabaseAdmin
     .from('creatives')
     .select('*')
-    .eq('id', id)
+    .eq('id', idStr)
     .single();
 
   if (error) {
