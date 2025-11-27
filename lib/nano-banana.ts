@@ -182,7 +182,7 @@ MODIFICATIONS NEEDED: ${modifications}
 CRITICAL REQUIREMENTS:
 - Target dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 - Generated image MUST match these EXACT dimensions
-- Replace brand names with "Algonova"
+- If there is a company logo or brand name visible, update it to Algonova branding
 
 Return ONLY the detailed prompt for image generation.`;
     }

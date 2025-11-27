@@ -204,7 +204,7 @@ export async function POST(request: Request) {
 
           case 'slightly_different':
             console.log('👤 Slightly Different: Minor character modifications + logo');
-            modifications = `Update logo to Algonova. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
+            modifications = `If there is a company logo or brand name visible, update it to Algonova branding. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
             editTypes = ['character', 'logo'];  // ✅ Only character and logo, preserve background!
             break;
 
