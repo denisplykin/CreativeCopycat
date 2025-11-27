@@ -125,7 +125,7 @@ export async function generateWithNanaBanana(params: {
 
 FIRST: Count the exact number of people/characters in the image.
 
-TASK: Create a detailed prompt to recreate this image with MINIMAL changes - ONLY replace any visible company logo or brand name with "Algonova". Everything else must stay EXACTLY the same.
+TASK: Create a detailed prompt to recreate this image with MINIMAL changes. Everything must stay EXACTLY the same.
 
 PRESERVE EXACTLY:
 - The EXACT number of characters (state explicitly in prompt: "exactly X character(s)" or "single character")
@@ -136,8 +136,8 @@ PRESERVE EXACTLY:
 - All visual elements and decorations
 - HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 
-CHANGE ONLY:
-- Replace any visible company logo or brand name with "Algonova"
+BRANDING:
+- Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
 IMPORTANT: In your prompt, you MUST explicitly state the number of characters (e.g., "exactly one girl" or "single character" or "two children"). Do NOT let the image generator add or remove any characters.
 
@@ -162,7 +162,9 @@ PRESERVE EXACTLY:
 
 MODIFY:
 - Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
-- Replace any visible company logo or brand name with "Algonova"
+
+BRANDING:
+- Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
 IMPORTANT: 
 1. The character should feel like a different person but in the same art style and similar pose.
@@ -182,7 +184,9 @@ MODIFICATIONS NEEDED: ${modifications}
 CRITICAL REQUIREMENTS:
 - Target dimensions: ${targetWidth}x${targetHeight}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
 - Generated image MUST match these EXACT dimensions
-- If there is a company logo or brand name visible, update it to Algonova branding
+
+BRANDING:
+- Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
 Return ONLY the detailed prompt for image generation.`;
     }
@@ -236,15 +240,16 @@ Return ONLY the detailed prompt for image generation.`;
         console.log('⚠️ Prompt missing "Algonova", retrying with stronger instruction...');
         
         // Retry with more explicit prompt
-        const retryPromptRequest = `CRITICAL: Your previous response did not include instructions to change the brand to "Algonova".
+        const retryPromptRequest = `CRITICAL: Your previous response did not include instructions about "Algonova" branding.
 
-You MUST include "Algonova" as a replacement for any existing brand/logo in the image.
+ONLY if there is a company logo or brand name visible in the original image, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
 Look at the image again and provide a complete prompt that:
 1. Describes all visual elements accurately
-2. EXPLICITLY states to replace the "${copyMode === 'simple_copy' ? 'logo/brand' : 'logo'}" with "Algonova"
+2. If there IS a visible logo/brand, EXPLICITLY states to replace it with "Algonova"
+3. If there is NO visible logo/brand, do NOT add any "Algonova" branding
 
-This is mandatory. Return the complete prompt now.`;
+Return the complete prompt now.`;
 
         const retryResponse = await fetch(OPENROUTER_BASE_URL, {
           method: 'POST',

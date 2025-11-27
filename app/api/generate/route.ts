@@ -198,31 +198,31 @@ export async function POST(request: Request) {
         switch (copyMode) {
           case 'simple_copy':
             console.log('📝 Simple Copy: Logo only');
-            modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
+            modifications = `Only if there is a company logo or brand name visible, update it to Algonova branding. Do not add any new branding, just replace if the original picture has it.`;
             editTypes = ['logo'];
             break;
 
           case 'slightly_different':
             console.log('👤 Slightly Different: Minor character modifications + logo');
-            modifications = `If there is a company logo or brand name visible, update it to Algonova branding. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
+            modifications = `Only if there is a company logo or brand name visible, update it to Algonova branding. Do not add any new branding, just replace if the original picture has it. For character(s): keep EXACT same art style, number of characters, and composition. ONLY minor expression or pose variation. Maintain character type (age/gender category).`;
             editTypes = ['character', 'logo'];  // ✅ Only character and logo, preserve background!
             break;
 
           case 'mask_edit':
             if (configGenerationType === 'custom' && customPrompt) {
               console.log('✏️ Custom Prompt Mode');
-              modifications = `${customPrompt}. Also, if there is a company logo visible, update it to Algonova branding.`;
+              modifications = `${customPrompt}. Only if there is a company logo or brand name visible, update it to Algonova branding. Do not add any new branding, just replace if the original picture has it.`;
               editTypes = ['character', 'logo', 'text', 'button', 'decor', 'background'];
             } else {
               console.log('⚙️ Default Mode');
-              modifications = `If there is a company logo or brand name visible, update it to Algonova branding. Otherwise, keep the design as is.`;
+              modifications = `Only if there is a company logo or brand name visible, update it to Algonova branding. Do not add any new branding, just replace if the original picture has it.`;
               editTypes = ['character', 'logo'];
             }
             break;
 
           default:
             console.log('⚠️ Unknown mode, using default');
-            modifications = `If there is a company logo visible, update it to Algonova. Otherwise, keep the design as is.`;
+            modifications = `Only if there is a company logo or brand name visible, update it to Algonova branding. Do not add any new branding, just replace if the original picture has it.`;
             editTypes = ['logo'];
         }
 
