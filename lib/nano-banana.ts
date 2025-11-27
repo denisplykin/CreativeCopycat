@@ -139,6 +139,12 @@ PRESERVE EXACTLY:
 BRANDING:
 - Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
+TEXT LAYOUT:
+- Ensure ALL text fits completely within image boundaries
+- Leave proper margins (at least 5% from edges)
+- If text is long, reduce font size to fit - never let text overflow or get cut off
+- Text must be fully readable and not cropped
+
 IMPORTANT: In your prompt, you MUST explicitly state the number of characters (e.g., "exactly one girl" or "single character" or "two children"). Do NOT let the image generator add or remove any characters.
 
 Return a detailed prompt for image generation.`;
@@ -166,6 +172,12 @@ MODIFY:
 BRANDING:
 - Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
 
+TEXT LAYOUT:
+- Ensure ALL text fits completely within image boundaries
+- Leave proper margins (at least 5% from edges)
+- If text is long, reduce font size to fit - never let text overflow or get cut off
+- Text must be fully readable and not cropped
+
 IMPORTANT: 
 1. The character should feel like a different person but in the same art style and similar pose.
 2. You MUST explicitly state the number of characters (e.g., "exactly one girl"). Do NOT add extra characters.
@@ -187,6 +199,12 @@ CRITICAL REQUIREMENTS:
 
 BRANDING:
 - Only if there is a company logo or brand name visible, update it to "Algonova" branding. Do not add any new branding, just replace if the original picture has it.
+
+TEXT LAYOUT:
+- Ensure ALL text fits completely within image boundaries
+- Leave proper margins (at least 5% from edges)
+- If text is long, reduce font size to fit - never let text overflow or get cut off
+- Text must be fully readable and not cropped
 
 Return ONLY the detailed prompt for image generation.`;
     }
