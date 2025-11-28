@@ -18,6 +18,7 @@ export async function GET() {
         creative_id,
         generation_type,
         copy_mode,
+        config,
         status,
         created_at,
         result_url

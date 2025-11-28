@@ -17,6 +17,10 @@ interface Run {
   creative_id: string
   generation_type: string
   copy_mode: string
+  config?: {
+    customPrompt?: string
+    [key: string]: any
+  }
   status: 'running' | 'completed' | 'failed'
   progress?: number
   created_at: string

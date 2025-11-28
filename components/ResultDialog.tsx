@@ -22,6 +22,10 @@ interface ResultDialogProps {
     result_url?: string | null
     generation_type: string
     copy_mode: string
+    config?: {
+      customPrompt?: string
+      [key: string]: any
+    }
     status: 'running' | 'completed' | 'failed'
     created_at: string
     creative?: {
@@ -139,6 +143,18 @@ export function ResultDialog({ open, onOpenChange, result }: ResultDialogProps) 
               </Badge>
             </div>
           </div>
+
+          {/* Custom Prompt (if used) */}
+          {result.config?.customPrompt && (
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                📝 Custom Prompt:
+              </p>
+              <p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
+                {result.config.customPrompt}
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
