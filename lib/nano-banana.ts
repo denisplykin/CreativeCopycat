@@ -105,6 +105,12 @@ export async function generateWithNanaBanana(params: {
     const targetHeight = targetDimensions.height;
     console.log(`🎯 Target dimensions: ${targetWidth}x${targetHeight} (ratio: ${aspectRatio})`);
     
+    // Check if aspect ratio changed significantly (>10%)
+    const originalAspect = originalWidth / originalHeight;
+    const targetAspect = targetWidth / targetHeight;
+    const aspectChanged = Math.abs(originalAspect - targetAspect) > 0.1;
+    console.log(`📐 Aspect ratio: original ${originalAspect.toFixed(2)}, target ${targetAspect.toFixed(2)}, changed: ${aspectChanged}`);
+    
     // Calculate high-resolution request (1024px on larger side)
     const highResDimensions = calculateHighResDimensions(targetWidth, targetHeight);
     console.log(`📐 High-res request: ${highResDimensions.width}x${highResDimensions.height} (for better quality)`);
@@ -161,6 +167,18 @@ Return a detailed prompt for image generation.`;
         break;
 
       case 'slightly_different':
+        const aspectAdaptation = aspectChanged 
+          ? `
+
+ASPECT RATIO ADAPTATION (CRITICAL):
+- The target aspect ratio (${targetAspect.toFixed(2)}:1) differs from the original (${originalAspect.toFixed(2)}:1)
+- REORGANIZE text layout to fit the new dimensions - stack text vertically if needed
+- REDUCE font sizes if necessary to fit all text within boundaries
+- Maintain visual hierarchy but ADAPT positioning for the new shape
+- ALL text must stay within image with 5% margin from edges
+- Do NOT let any text get cut off or overflow`
+          : '';
+          
         promptRequest = `You are a graphic designer working on image modification. Look at this image and help recreate it with a slight variation.
 
 FIRST: Count the exact number of people/characters in the image.
@@ -171,10 +189,10 @@ PRESERVE EXACTLY:
 - The EXACT number of characters (state explicitly: "exactly X character(s)" or "single character")
 - Art style and illustration technique
 - Background colors, style, patterns, decorations  
-- Text content, placement, fonts, colors, sizes
-- Layout and composition
+- Text content (same words), fonts, colors
 - Character position in frame
 - HIGH RESOLUTION: Generate at ${highResDimensions.width}x${highResDimensions.height}px (aspect ratio ${(targetWidth/targetHeight).toFixed(2)}:1)
+${aspectAdaptation}
 
 MODIFY:
 - Character: Keep same age group and gender, but change facial features, hairstyle, expression, pose slightly
