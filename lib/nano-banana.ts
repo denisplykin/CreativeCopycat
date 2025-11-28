@@ -109,9 +109,25 @@ export async function generateWithNanaBanana(params: {
     const highResDimensions = calculateHighResDimensions(targetWidth, targetHeight);
     console.log(`📐 High-res request: ${highResDimensions.width}x${highResDimensions.height} (for better quality)`);
 
+    // Compress image if larger than 4MB
+    let processedBuffer = imageBuffer;
+    const MAX_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
+    
+    if (imageBuffer.length > MAX_SIZE_BYTES) {
+      console.log(`⚠️ Image too large (${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB), compressing...`);
+      processedBuffer = await sharp(imageBuffer)
+        .resize(1920, 1920, { 
+          fit: 'inside', 
+          withoutEnlargement: true 
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      console.log(`✅ Compressed to ${(processedBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+    }
+
     // Convert image to base64
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = detectMimeType(imageBuffer);
+    const base64Image = processedBuffer.toString('base64');
+    const mimeType = detectMimeType(processedBuffer);
 
     // Step 1: Generate prompt via Claude
     console.log(`👁️ Step 1: Analyzing image for mode: ${copyMode}...`);
@@ -218,12 +234,56 @@ Return ONLY the detailed prompt for image generation.`;
       }),
     });
 
+    let prompt: string = '';
+    
     if (!step1Response.ok) {
-      throw new Error(`Prompt generation failed: ${step1Response.status}`);
+      const errorBody = await step1Response.text();
+      console.error(`❌ Prompt generation error (attempt 1):`, errorBody);
+      
+      // Retry once after 1 second
+      console.log('🔄 Retrying prompt generation...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const retryStep1 = await fetch(OPENROUTER_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://creativecopycat.app',
+          'X-Title': 'CreativeCopycat',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3.5-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: promptRequest },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                },
+              ],
+            },
+          ],
+          max_tokens: 1000,
+          temperature: 0.3,
+        }),
+      });
+      
+      if (!retryStep1.ok) {
+        const retryErrorBody = await retryStep1.text();
+        console.error(`❌ Prompt generation failed on retry:`, retryErrorBody);
+        throw new Error(`Prompt generation failed: ${retryStep1.status} - ${retryErrorBody}`);
+      }
+      
+      const retryData = await retryStep1.json();
+      prompt = retryData.choices?.[0]?.message?.content || '';
+      console.log('✅ Retry successful!');
+    } else {
+      const step1Data = await step1Response.json();
+      prompt = step1Data.choices?.[0]?.message?.content || '';
     }
-
-    const step1Data = await step1Response.json();
-    let prompt = step1Data.choices?.[0]?.message?.content;
 
     if (!prompt) {
       throw new Error('No prompt generated');
