@@ -375,11 +375,29 @@ export default function CreativesNewPage() {
       const { creative } = await response.json()
       console.log('✅ Creative uploaded:', creative)
 
+      // Map to Creative interface (image_url -> original_image_url)
+      const mappedCreative: Creative = {
+        id: creative.id.toString(),
+        competitor_name: creative.competitor_name,
+        original_image_url: creative.image_url, // ✅ Маппинг!
+        active_days: creative.active_days || 0,
+        ad_id: creative.ad_id,
+        analysis: null,
+        generated_character_url: null,
+        generated_background_url: null,
+        generated_image_url: null,
+        figma_file_id: null,
+        status: 'pending' as const,
+        error_message: null,
+        created_at: creative.created_at,
+        updated_at: creative.updated_at,
+      }
+
       // Refresh creatives list
       await fetchCreatives()
 
       // Open generate dialog with uploaded creative
-      setSelectedCreative(creative)
+      setSelectedCreative(mappedCreative)
       setDialogOpen(true)
     } catch (error) {
       console.error('❌ Upload error:', error)
