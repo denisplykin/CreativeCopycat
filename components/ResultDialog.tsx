@@ -12,11 +12,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
-import { Download, ExternalLink } from 'lucide-react'
+import { Download, ExternalLink, Sparkles } from 'lucide-react'
+
+interface SourceCreative {
+  id: string
+  competitor_name: string | null
+  original_image_url: string
+  analysis?: any
+}
 
 interface ResultDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onUseAsSource?: (creative: SourceCreative) => void
   result: {
     id: string
     result_url?: string | null
@@ -35,7 +43,7 @@ interface ResultDialogProps {
   } | null
 }
 
-export function ResultDialog({ open, onOpenChange, result }: ResultDialogProps) {
+export function ResultDialog({ open, onOpenChange, onUseAsSource, result }: ResultDialogProps) {
   if (!result) return null
 
   const handleDownload = async () => {
@@ -123,6 +131,27 @@ export function ResultDialog({ open, onOpenChange, result }: ResultDialogProps) 
                   </div>
                 )}
               </div>
+              {/* Use as a source button */}
+              {result.result_url && onUseAsSource && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2 w-full gap-2"
+                  onClick={() => {
+                    const creative: SourceCreative = {
+                      id: `generated_${result.id}`,
+                      competitor_name: 'My Creatives',
+                      original_image_url: result.result_url!,
+                      analysis: null,
+                    }
+                    onOpenChange(false)
+                    onUseAsSource(creative)
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Use as a source
+                </Button>
+              )}
             </div>
           </div>
 

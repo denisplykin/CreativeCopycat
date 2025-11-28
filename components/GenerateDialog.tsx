@@ -32,8 +32,10 @@ interface GenerateDialogProps {
   onGenerate: (config: GenerationConfig) => Promise<void>
 }
 
+export type AspectRatioType = 'original' | '1:1' | '4:5' | '9:16' | '16:9'
+
 export interface GenerationConfig {
-  aspectRatio: 'original' | '1:1' | '4:5' | '9:16' | '16:9'
+  aspectRatios: AspectRatioType[]
   generationType: 'simple' | 'custom'
   
   // Для простой генерации (чекбоксы)
@@ -58,7 +60,7 @@ export function GenerateDialog({
   console.log('🎭 GenerateDialog render - open:', open, 'creative:', creative?.id)
   
   const [config, setConfig] = useState<GenerationConfig>({
-    aspectRatio: 'original',      // ✅ Original size по умолчанию
+    aspectRatios: ['original'],   // ✅ Original size по умолчанию
     generationType: 'simple',
     simpleOptions: {
       simpleCopy: true,           // ✅ По умолчанию включен
@@ -135,23 +137,42 @@ export function GenerateDialog({
 
           {/* Right: Configuration */}
           <div className="space-y-6">
-            {/* Aspect Ratio */}
-            <div>
-              <Label htmlFor="aspectRatio" className="text-base font-semibold mb-3 block">
-                Aspect Ratio
-              </Label>
-              <select
-                id="aspectRatio"
-                value={config.aspectRatio}
-                onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as any })}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="original">Original (Keep same as source)</option>
-                <option value="1:1">1:1 (Square)</option>
-                <option value="4:5">4:5 (Vertical)</option>
-                <option value="9:16">9:16 (Stories)</option>
-                <option value="16:9">16:9 (Horizontal)</option>
-              </select>
+            {/* Aspect Ratio - Multi-select checkboxes */}
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <Label className="text-sm font-semibold block">Aspect Ratio:</Label>
+              
+              {[
+                { value: 'original' as AspectRatioType, label: 'Original', desc: 'Keep same as source' },
+                { value: '1:1' as AspectRatioType, label: '1:1', desc: 'Square' },
+                { value: '4:5' as AspectRatioType, label: '4:5', desc: 'Vertical' },
+                { value: '9:16' as AspectRatioType, label: '9:16', desc: 'Stories' },
+                { value: '16:9' as AspectRatioType, label: '16:9', desc: 'Horizontal' },
+              ].map((ratio) => (
+                <div key={ratio.value} className="flex items-start space-x-2">
+                  <Checkbox
+                    id={`aspect-${ratio.value}`}
+                    checked={config.aspectRatios.includes(ratio.value)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setConfig({ ...config, aspectRatios: [...config.aspectRatios, ratio.value] })
+                      } else {
+                        // Prevent unchecking last option
+                        if (config.aspectRatios.length > 1) {
+                          setConfig({ ...config, aspectRatios: config.aspectRatios.filter(r => r !== ratio.value) })
+                        }
+                      }
+                    }}
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <Label htmlFor={`aspect-${ratio.value}`} className="font-normal cursor-pointer">
+                      {ratio.label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {ratio.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Generation Type */}

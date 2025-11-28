@@ -182,7 +182,7 @@ export default function CreativesNewPage() {
     console.log('  After filter:', filteredCreatives.length)
   }
 
-  // Handle generate - supports multiple generation modes
+  // Handle generate - supports multiple generation modes AND aspect ratios
   const handleGenerate = async (config: GenerationConfig) => {
     console.log('🎯 handleGenerate called in page.tsx')
     console.log('🎨 Selected creative:', selectedCreative?.id)
@@ -196,50 +196,53 @@ export default function CreativesNewPage() {
     // Determine which modes to generate
     const modesToGenerate: Array<{ mode: string; config: any }> = []
 
-    if (config.generationType === 'custom') {
-      // Custom mode - single generation with custom prompt
-      modesToGenerate.push({
-        mode: 'custom',
-        config: {
-          creativeId: selectedCreative.id,
-          generationType: 'full_creative',
-          copyMode: 'mask_edit',
-          aspectRatio: config.aspectRatio,
-          configGenerationType: 'custom',
-          customPrompt: config.customPrompt,
-          imageModel: 'nano-banana-pro',
+    // Loop through all selected aspect ratios
+    for (const aspectRatio of config.aspectRatios) {
+      if (config.generationType === 'custom') {
+        // Custom mode - single generation with custom prompt for each aspect ratio
+        modesToGenerate.push({
+          mode: `custom_${aspectRatio}`,
+          config: {
+            creativeId: selectedCreative.id,
+            generationType: 'full_creative',
+            copyMode: 'mask_edit',
+            aspectRatio,
+            configGenerationType: 'custom',
+            customPrompt: config.customPrompt,
+            imageModel: 'nano-banana-pro',
+          }
+        })
+      } else {
+        // Simple mode - generate for each selected option and each aspect ratio
+        const options = config.simpleOptions
+        
+        if (options?.simpleCopy) {
+          modesToGenerate.push({
+            mode: `simple_copy_${aspectRatio}`,
+            config: {
+              creativeId: selectedCreative.id,
+              generationType: 'full_creative',
+              copyMode: 'simple_copy',
+              aspectRatio,
+              configGenerationType: 'simple',
+              imageModel: 'nano-banana-pro',
+            }
+          })
         }
-      })
-    } else {
-      // Simple mode - generate for each selected option
-      const options = config.simpleOptions
-      
-      if (options?.simpleCopy) {
-        modesToGenerate.push({
-          mode: 'simple_copy',
-          config: {
-            creativeId: selectedCreative.id,
-            generationType: 'full_creative',
-            copyMode: 'simple_copy',
-            aspectRatio: config.aspectRatio,
-            configGenerationType: 'simple',
-            imageModel: 'nano-banana-pro',
-          }
-        })
-      }
-      
-      if (options?.slightlyDifferent) {
-        modesToGenerate.push({
-          mode: 'slightly_different',
-          config: {
-            creativeId: selectedCreative.id,
-            generationType: 'full_creative',
-            copyMode: 'slightly_different',
-            aspectRatio: config.aspectRatio,
-            configGenerationType: 'simple',
-            imageModel: 'nano-banana-pro',
-          }
-        })
+        
+        if (options?.slightlyDifferent) {
+          modesToGenerate.push({
+            mode: `slightly_different_${aspectRatio}`,
+            config: {
+              creativeId: selectedCreative.id,
+              generationType: 'full_creative',
+              copyMode: 'slightly_different',
+              aspectRatio,
+              configGenerationType: 'simple',
+              imageModel: 'nano-banana-pro',
+            }
+          })
+        }
       }
     }
 
@@ -516,6 +519,27 @@ export default function CreativesNewPage() {
         open={resultDialogOpen}
         onOpenChange={setResultDialogOpen}
         result={selectedRun}
+        onUseAsSource={(creative) => {
+          // Convert to full Creative type
+          const fullCreative: Creative = {
+            id: creative.id,
+            competitor_name: creative.competitor_name,
+            original_image_url: creative.original_image_url,
+            active_days: 0,
+            ad_id: null,
+            analysis: null,
+            generated_character_url: null,
+            generated_background_url: null,
+            generated_image_url: null,
+            figma_file_id: null,
+            status: 'pending' as const,
+            error_message: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+          setSelectedCreative(fullCreative)
+          setDialogOpen(true)
+        }}
       />
     </div>
   )
